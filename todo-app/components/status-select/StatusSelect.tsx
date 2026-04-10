@@ -31,7 +31,7 @@ export default function StatusSelect({
 
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger size="sm" className={`w-auto text-xs px-3 rounded-full ${className ?? ""}`}>
+      <SelectTrigger size="sm" className={`w-auto border-0 bg-secondary text-xs px-3 rounded-full ${className ?? ""}`}>
         <SelectValue>
           <span className={`${current?.color ?? "bg-gray-400"} h-2 w-2 rounded-full`} />
           <span>{current?.label ?? value}</span>
