@@ -16,8 +16,8 @@ type StatusSelectProps = {
 }
 
 export const DEFAULT_STATUS_OPTIONS: StatusOption[] = [
-  { value: "Todo",        label: "Todo",        color: "bg-blue-500"   },
-  { value: "In Progress", label: "In Progress", color: "bg-yellow-500" },
+  { value: "Todo",        label: "Todo",        color: "bg-muted-foreground"   },
+  { value: "In Progress", label: "In Progress", color: "bg-blue-500" },
   { value: "Done",        label: "Done",        color: "bg-green-500"  },
 ]
 

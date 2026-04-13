@@ -4,11 +4,13 @@ import StarterKit from '@tiptap/starter-kit'
 import { Toggle } from '@/components/ui/toggle'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { Bold, Italic, Strikethrough, List, ListOrdered, Code, Minus } from 'lucide-react'
+import { Bold, Italic, Strikethrough, List, ListOrdered, Code, Minus, SquareSplitVertical } from 'lucide-react'
 import { Kbd } from '@/components/ui/kbd'
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { Placeholder } from '@tiptap/extensions'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Button } from '../ui/button'
+import { Skeleton } from '../ui/skeleton'
 
 interface EditorProps {
   content?: string
@@ -99,7 +101,24 @@ export default function Editor({ content = '', onChange }: EditorProps) {
 
 
 
-  if (!editor) return null
+  if (!editor) return (
+    <div className="flex flex-col w-full animate-pulse">
+      {/* Toolbar skeleton */}
+      <div className="flex items-center gap-2 p-2 border-b border-input">
+        <Skeleton className="h-8 w-40 rounded-md" />
+        <Skeleton className="h-8 w-24 rounded-full" />
+        <Skeleton className="h-8 w-16 rounded-full" />
+        <Skeleton className="h-8 w-8 rounded-full" />
+      </div>
+      {/* Editor area skeleton */}
+      <div className="h-40 p-4 flex flex-col gap-2">
+        <Skeleton className="h-3 w-3/4 rounded" />
+        <Skeleton className="h-3 w-1/2 rounded" />
+        <Skeleton className="h-3 w-2/3 rounded" />
+      </div>
+    </div>
+  )
+
 
   const formattingValue = [
     editorState?.isBold ? 'bold' : null,
@@ -130,7 +149,7 @@ export default function Editor({ content = '', onChange }: EditorProps) {
             <SelectTrigger className=" w-40 text-xs shadow-none focus:ring-0">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className='p-1'>
               <SelectItem value="paragraph">Avsnitt</SelectItem>
               <SelectItem value="h1">
                 <span className="">Overskrift 1</span>
@@ -146,8 +165,9 @@ export default function Editor({ content = '', onChange }: EditorProps) {
 
           {/* Text Formatting */}
           <ToggleGroup
+            className='border rounded-full'
             type="multiple"
-            variant={'outline'}
+            variant={'outlineBrand'}
             value={formattingValue}
             onValueChange={(values) => {
               const toggleIfChanged = (key: string, command: () => void) => {
@@ -177,8 +197,9 @@ export default function Editor({ content = '', onChange }: EditorProps) {
 
           {/* Lists */}
           <ToggleGroup
+            className='border rounded-full'
             type="single"
-            variant={'outline'}
+            variant={'outlineBrand'}
             value={listValue}
             onValueChange={(value) => {
               if (value === 'bullet') {
@@ -207,14 +228,15 @@ export default function Editor({ content = '', onChange }: EditorProps) {
 
           {/* Horizontal Rule */}
           <ToolbarTooltip label="Divider">
-            <Toggle
-              size="sm"
-              variant={'outline'}
+            <Button
+              size="icon-sm"
+              variant={'ghost'}
               aria-label="Horizontal rule"
-              onPressedChange={() => editor.chain().focus().setHorizontalRule().run()}
+              onClick={() => editor.chain().focus().setHorizontalRule().run()}
+              className='border rounded-full border-border'
             >
               <Minus className="h-4 w-4" />
-            </Toggle>
+            </Button>
           </ToolbarTooltip>
 
         </div>

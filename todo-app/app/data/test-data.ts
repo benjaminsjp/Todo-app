@@ -1,3 +1,4 @@
+import Comments from "@/components/TaskComments/Comments"
 import { group } from "console"
 import { ListTodo, NotebookPen } from "lucide-react"
 import { title } from "process"
@@ -57,6 +58,13 @@ export const data = {
           author: "John Doe",
           authorProfilePicture: "https://randomuser.me/api/portraits/men/1.jpg"
         },
+        {
+          id: 2,
+          content: "Another comment",
+          createdAt: "05.04.2026",
+          author: "Jane Doe",
+          authorProfilePicture: "https://randomuser.me/api/portraits/women/1.jpg"
+        },
       ],
     },
     {
@@ -69,8 +77,21 @@ export const data = {
       description:
         "Implement the core functionality of the todo app, including task creation, editing, and deletion.",
       slug: "todo-app-functionality",
-      group: "Todo app"
+      group: "Todo app",
+      comments: [],
     },
+    {
+      id: 3,
+      title: "Feriehjemmet Solviken",
+      deadline: "10.04.2026",
+      status: "In Progress",
+      createdAt: "01.04.2026",
+      updatedAt: "05.04.2026",
+      description: "Teste endringer etterspurt fra kunde",
+      slug: "feriehjemmet-solviken",
+      group: "Bli Synlig",
+      comments: [],
+    }
   ],
   status: [
     {

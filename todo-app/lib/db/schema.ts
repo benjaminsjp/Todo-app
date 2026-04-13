@@ -1,0 +1,96 @@
+// lib/db/schema.ts
+import { pgTable, serial, text, timestamp, integer, boolean, pgEnum } from 'drizzle-orm/pg-core'
+
+// Synkronisert automatisk fra Neon Auth
+export const users = pgTable('users', {
+  id:          text('id').primaryKey(),       // Stack Auth sin user ID
+  email:       text('email').notNull().unique(),
+  displayName: text('display_name'),
+  avatarUrl:   text('avatar_url'),
+  createdAt:   timestamp('created_at').defaultNow(),
+})
+
+// Organisasjoner / workspaces
+export const organizations = pgTable('organizations', {
+  id:        serial('id').primaryKey(),
+  name:      text('name').notNull(),
+  slug:      text('slug').notNull().unique(),  // på-n.app/org/mitt-firma
+  avatarUrl: text('avatar_url'),
+  createdAt: timestamp('created_at').defaultNow(),
+})
+
+export const orgRoleEnum = pgEnum('org_role', ['owner', 'admin', 'member', 'viewer'])
+
+// Medlemskap – hvem er med i hvilken org og med hvilken rolle
+export const organizationMembers = pgTable('organization_members', {
+  id:        serial('id').primaryKey(),
+  orgId:     integer('org_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  userId:    text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  role:      orgRoleEnum('role').notNull().default('member'),
+  joinedAt:  timestamp('joined_at').defaultNow(),
+})
+
+// Invitasjoner
+export const invitations = pgTable('invitations', {
+  id:        serial('id').primaryKey(),
+  orgId:     integer('org_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  email:     text('email').notNull(),
+  role:      orgRoleEnum('role').notNull().default('member'),
+  token:     text('token').notNull().unique(),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+})
+
+// Statuser per org
+export const statuses = pgTable('statuses', {
+  id:    serial('id').primaryKey(),
+  label: text('label').notNull(),
+  color: text('color').notNull().default('gray'),
+  order: integer('order').notNull().default(0),
+  orgId: integer('org_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+})
+
+// Task groups / prosjekter per org
+export const taskGroups = pgTable('task_groups', {
+  id:        serial('id').primaryKey(),
+  title:     text('title').notNull(),
+  color:     text('color').notNull().default('bg-gray-500'),
+  orgId:     integer('org_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  createdBy: text('created_by').references(() => users.id),
+  createdAt: timestamp('created_at').defaultNow(),
+})
+
+export const tasks = pgTable('tasks', {
+  id:          serial('id').primaryKey(),
+  title:       text('title').notNull(),
+  description: text('description'),
+  slug:        text('slug').notNull(),
+  deadline:    text('deadline'),
+  statusId:    integer('status_id').references(() => statuses.id),
+  groupId:     integer('group_id').references(() => taskGroups.id),
+  orgId:       integer('org_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  assigneeId:  text('assignee_id').references(() => users.id),
+  createdBy:   text('created_by').references(() => users.id),
+  createdAt:   timestamp('created_at').defaultNow(),
+  updatedAt:   timestamp('updated_at').defaultNow(),
+})
+
+export const comments = pgTable('comments', {
+  id:        serial('id').primaryKey(),
+  content:   text('content').notNull(),
+  taskId:    integer('task_id').notNull().references(() => tasks.id, { onDelete: 'cascade' }),
+  userId:    text('user_id').notNull().references(() => users.id),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+})
+
+// Notater – klar for når du bygger den ut
+export const notes = pgTable('notes', {
+  id:        serial('id').primaryKey(),
+  title:     text('title').notNull(),
+  content:   text('content'),
+  orgId:     integer('org_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  createdBy: text('created_by').references(() => users.id),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+})

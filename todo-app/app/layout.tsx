@@ -3,7 +3,7 @@ import { Geist, Geist_Mono, Outfit, Noto_Serif } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Providers } from "@/components/providers";
-import { AppSidebar } from "@/components/sidebar/app-sidebar";
+import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import AppMenubar from "@/components/menubar";
 

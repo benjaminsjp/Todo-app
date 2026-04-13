@@ -1,0 +1,119 @@
+'use client'
+
+import { useState, useActionState } from 'react'
+import { authClient } from '@/lib/auth/client'
+import { signInWithEmail, signUpWithEmail } from './actions'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+
+export default function AuthPage() {
+  const [isSignUp, setIsSignUp]   = useState(false)
+  const [step, setStep]           = useState<'auth' | 'verify'>('auth')
+  const [email, setEmail]         = useState('')
+  const [otp, setOtp]             = useState('')
+  const [otpError, setOtpError]   = useState('')
+  const [isPending, setIsPending] = useState(false)
+
+  const [signInState, signInAction]   = useActionState(signInWithEmail, null)
+  const [signUpState, signUpAction]   = useActionState(signUpWithEmail, null)
+
+  const handleSignUp = async (formData: FormData) => {
+    setEmail(formData.get('email') as string)
+    await signUpAction(formData)
+    // Hvis e-post ikke er verifisert → vis OTP-steg
+    if (!signUpState?.error) setStep('verify')
+  }
+
+  const handleVerifyOtp = async () => {
+    setIsPending(true)
+    setOtpError('')
+    const { error } = await authClient.emailOtp.verifyEmail({ email, otp })
+    setIsPending(false)
+    if (error) return setOtpError(error.message || 'Ugyldig kode')
+    window.location.href = '/'
+  }
+
+  const handleResend = async () => {
+    await authClient.sendVerificationEmail({
+      email,
+      callbackURL: window.location.origin + '/',
+    })
+  }
+
+  if (step === 'verify') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-6 max-w-sm mx-auto px-4">
+        <div className="text-center">
+          <h1 className="text-3xl font-heading font-medium mb-2">Sjekk innboksen</h1>
+          <p className="text-muted-foreground text-sm">
+            Vi sendte en kode til <span className="font-medium text-foreground">{email}</span>
+          </p>
+        </div>
+        <Input
+          type="text"
+          placeholder="123456"
+          value={otp}
+          onChange={(e) => setOtp(e.target.value)}
+          className="text-center text-2xl tracking-widest"
+          maxLength={6}
+        />
+        {otpError && <p className="text-sm text-destructive">{otpError}</p>}
+        <Button className="w-full" onClick={handleVerifyOtp} disabled={isPending || otp.length < 6}>
+          {isPending ? 'Verifiserer...' : 'Bekreft kode'}
+        </Button>
+        <button
+          onClick={handleResend}
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Send koden på nytt
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen gap-6 max-w-sm mx-auto px-4">
+      <div className="text-center">
+        <h1 className="text-3xl font-heading font-medium mb-1">
+          {isSignUp ? 'Opprett konto' : 'Logg inn'}
+        </h1>
+        <p className="text-muted-foreground text-sm">På'n – Få fart på oppgavelisten din</p>
+      </div>
+
+      <form action={isSignUp ? handleSignUp : signInAction} className="flex flex-col gap-4 w-full">
+        {isSignUp && (
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="name">Navn</Label>
+            <Input id="name" name="name" type="text" placeholder="Ola Nordmann" required />
+          </div>
+        )}
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="email">E-post</Label>
+          <Input id="email" name="email" type="email" placeholder="ola@example.no" required />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="password">Passord</Label>
+          <Input id="password" name="password" type="password" placeholder="••••••••" required />
+        </div>
+
+        {(signInState?.error || signUpState?.error) && (
+          <p className="text-sm text-destructive">
+            {signInState?.error || signUpState?.error}
+          </p>
+        )}
+
+        <Button type="submit" className="w-full">
+          {isSignUp ? 'Opprett konto' : 'Logg inn'}
+        </Button>
+      </form>
+
+      <button
+        onClick={() => setIsSignUp(!isSignUp)}
+        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        {isSignUp ? 'Har du allerede konto? Logg inn' : 'Ingen konto? Registrer deg'}
+      </button>
+    </div>
+  )
+}
