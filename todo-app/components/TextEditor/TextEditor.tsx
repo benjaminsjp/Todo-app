@@ -133,7 +133,7 @@ export default function Editor({ content = '', onChange }: EditorProps) {
     <TooltipProvider delayDuration={600}>
       <div className="flex flex-col w-full">
         {/* Toolbar */}
-        <div className="flex items-center gap-1 p-2 border-b border-input">
+        <div className="flex items-center gap-1 p-2 border-b border-input overflow-x-auto scrollbar-none">
 
           <Select
             value={editorState?.headingLevel}

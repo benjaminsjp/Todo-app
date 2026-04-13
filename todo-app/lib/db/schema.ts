@@ -55,7 +55,7 @@ export const taskGroups = pgTable('task_groups', {
   id:        serial('id').primaryKey(),
   title:     text('title').notNull(),
   color:     text('color').notNull().default('bg-gray-500'),
-  orgId:     integer('org_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  orgId:     integer('org_id').references(() => organizations.id),
   createdBy: text('created_by').references(() => users.id),
   createdAt: timestamp('created_at').defaultNow(),
 })
@@ -68,7 +68,7 @@ export const tasks = pgTable('tasks', {
   deadline:    text('deadline'),
   statusId:    integer('status_id').references(() => statuses.id),
   groupId:     integer('group_id').references(() => taskGroups.id),
-  orgId:       integer('org_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  orgId:       integer('org_id').references(() => organizations.id),
   assigneeId:  text('assignee_id').references(() => users.id),
   createdBy:   text('created_by').references(() => users.id),
   createdAt:   timestamp('created_at').defaultNow(),
@@ -94,3 +94,35 @@ export const notes = pgTable('notes', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 })
+
+import { relations } from 'drizzle-orm'
+
+export const organizationsRelations = relations(organizations, ({ many }) => ({
+  members:    many(organizationMembers),
+  taskGroups: many(taskGroups),
+  tasks:      many(tasks),
+  statuses:   many(statuses),
+}))
+
+export const taskGroupsRelations = relations(taskGroups, ({ one, many }) => ({
+  org:   one(organizations, { fields: [taskGroups.orgId], references: [organizations.id] }),
+  tasks: many(tasks),
+}))
+
+export const tasksRelations = relations(tasks, ({ one, many }) => ({
+  org:      one(organizations, { fields: [tasks.orgId],      references: [organizations.id] }),
+  group:    one(taskGroups,    { fields: [tasks.groupId],    references: [taskGroups.id] }),
+  status:   one(statuses,      { fields: [tasks.statusId],   references: [statuses.id] }),
+  assignee: one(users,         { fields: [tasks.assigneeId], references: [users.id] }),
+  comments: many(comments),
+}))
+
+export const commentsRelations = relations(comments, ({ one }) => ({
+  task: one(tasks, { fields: [comments.taskId], references: [tasks.id] }),
+  user: one(users, { fields: [comments.userId], references: [users.id] }),
+}))
+
+export const organizationMembersRelations = relations(organizationMembers, ({ one }) => ({
+  org:  one(organizations, { fields: [organizationMembers.orgId],  references: [organizations.id] }),
+  user: one(users,         { fields: [organizationMembers.userId], references: [users.id] }),
+}))
