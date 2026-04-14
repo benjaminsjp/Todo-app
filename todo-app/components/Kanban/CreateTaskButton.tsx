@@ -1,19 +1,16 @@
+// components/CreateTask/CreateTaskButton.tsx
 'use client'
 
-import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
-import { CreateTaskModal } from './CreateTaskModal'
+import Link from 'next/link'
 
-export function CreateTaskButton({ taskGroups }: { taskGroups: { id: number; title: string }[] }) {
-  const [open, setOpen] = useState(false)
-
+export function CreateTaskButton() {
   return (
-    <>
-      <Button variant='brand' onClick={() => setOpen(true)}>
-        <Plus className="size-4" /> Ny task
-      </Button>
-      <CreateTaskModal open={open} onClose={() => setOpen(false)} taskGroups={taskGroups} />
-    </>
+    <Button variant="brand" asChild>
+      <Link href="/tasks/create-task">
+        <Plus className="size-4" /> New task
+      </Link>
+    </Button>
   )
 }

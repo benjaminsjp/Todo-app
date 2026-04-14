@@ -1,10 +1,14 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import StatusSelect, { type StatusOption } from "@/components/status-select/StatusSelect"
 import Comments from "@/components/TaskComments/Comments"
-import Editor from "@/components/TextEditor/TextEditor"
+import { CreateTaskEditor } from "@/components/Kanban/CreateTaskEditor"
+import Link from "next/link"
+import { updateTask } from '@/lib/actions/tasks'
+import { useActionState } from 'react'
 
 type User = {
   id:          string
@@ -55,6 +59,7 @@ function formatDate(date: Date | null | undefined): string {
   })
 }
 
+
 // Mapper DB-kommentarer til formatet Comments-komponenten forventer
 function mapComments(comments: Comment[] = []) {
   return comments.map((c) => ({
@@ -71,47 +76,75 @@ export default function TaskDetails({ task, taskGroup, taskGroupOptions }: {
   taskGroup: string | undefined
   taskGroupOptions: StatusOption[]
 }) {
-  const [status, setStatus]               = useState(task.status?.label ?? 'Todo')
+  const router = useRouter()
+  const [isEditing,  setIsEditing]  = useState(false)
+  const [status,     setStatus]     = useState(task.status?.label ?? 'Todo')
   const [assignedTaskGroup, setTaskGroup] = useState(taskGroup ?? '')
-  const [isEditing, setIsEditing]         = useState(false)
   const [description, setDescription]    = useState(task.description ?? '')
+  const [title,       setTitle]           = useState(task.title)
+
+  const [state, action, isPending] = useActionState(updateTask, null)
+
+
+  const handleSave = async () => {
+    // TODO: koble til updateTask Server Action
+    setIsEditing(false)
+    router.refresh()
+  }
 
   return (
     <div className="flex flex-1 flex-col">
       <div className="@container/main container mx-auto flex-1 flex flex-row">
+
+        {/* Hovedinnhold */}
         <div className="flex flex-1 flex-col gap-4 max-w-prose py-12 px-8 mx-auto">
-          <div className="flex gap-3 items-center">
-            <Button variant="secondary" onClick={() => setIsEditing(!isEditing)}>
-              {isEditing ? 'Lagre' : 'Edit task'}
-            </Button>
-            <span className="text-sm font-medium text-muted-foreground">
-              Sist redigert: {formatDate(task.updatedAt)}
-            </span>
-          </div>
-
-          <h1 className="text-5xl font-medium text-center sm:text-left font-heading text-heading-strong mb-6">
-            {task.title}
-          </h1>
-
-          {/* Description */}
           {isEditing ? (
-            <div className="rounded-lg border border-input overflow-hidden">
-              <Editor content={description} onChange={setDescription} />
-            </div>
-          ) : description ? (
-            <div
-              className="prose prose-sm max-w-none dark:prose-invert"
-              dangerouslySetInnerHTML={{ __html: description }}
-            />
+            // Redigeringsmodus – samme layout som CreateTaskForm
+            <>
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="text-5xl font-medium text-center sm:text-left font-heading bg-transparent border-none outline-none placeholder:text-muted-foreground text-heading-strong mb-6 w-full"
+              />
+              <CreateTaskEditor content={description} onChange={setDescription} />
+            </>
           ) : (
-            <p className="text-muted-foreground text-sm italic">Ingen beskrivelse enda.</p>
+            // Visningsmodus
+            <>
+              <h1 className="text-5xl font-medium text-center sm:text-left font-heading text-heading-strong mb-6">
+                {task.title}
+              </h1>
+              {description ? (
+                <div
+                  className="prose prose-headings:font-normal prose-headings:font-heading max-w-none dark:prose-invert"
+                  dangerouslySetInnerHTML={{ __html: description }}
+                />
+              ) : (
+                <p className="text-muted-foreground text-sm italic">Ingen beskrivelse enda.</p>
+              )}
+              <Comments taskId={task.id} comments={mapComments(task.comments)} />
+            </>
           )}
 
-          <Comments taskId={task.id} comments={mapComments(task.comments)} />
         </div>
 
-        {/* Sidebar – uendret */}
+        {/* Sidebar */}
         <div className="flex flex-col gap-4 min-w-sm max-w-lg border-l px-8 py-12">
+          <div className="flex gap-3 items-center">
+            {isEditing ? (
+              <>
+                <Button variant="brand" onClick={handleSave}>Lagre</Button>
+                <Button variant="ghost" onClick={() => setIsEditing(false)}>Avbryt</Button>
+              </>
+            ) : (
+              <>
+                <Button variant="secondary" onClick={() => setIsEditing(true)}>Rediger</Button>
+                <span className="text-sm font-medium text-muted-foreground">
+                  Sist redigert: {formatDate(task.updatedAt)}
+                </span>
+              </>
+            )}
+          </div>
           <div className="flex items-center">
             <span className="w-1/2">Status:</span>
             <StatusSelect className="text-base" value={status} onChange={setStatus} />

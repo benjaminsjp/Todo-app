@@ -27,7 +27,7 @@ export default function AppMenubar() {
   const { theme, setTheme } = useTheme()
 
   return (
-    <div className="w-full border-b">
+    <div className="w-full border-b sticky top-0 bg-background">
       <div className="container mx-auto flex py-4 items-center gap-4 px-8">
         <AppBreadcrumbs />
 

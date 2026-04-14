@@ -24,10 +24,13 @@ export default async function Page() {
       <div className="container mx-auto flex-1 flex flex-col px-8 py-12">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-5xl font-medium font-heading text-heading-strong">Tasks</h1>
-          <CreateTaskButton taskGroups={taskGroups} />
+          <CreateTaskButton />
         </div>
         <KanbanBoard tasks={tasks} taskGroups={taskGroups} />
       </div>
+
+      
     </div>
+    
   )
 }

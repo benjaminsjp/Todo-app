@@ -4,6 +4,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import Link from "next/link"
 
 import { Group, Plus, Kanban, FolderPlus } from "lucide-react"
 
@@ -12,7 +13,11 @@ export function AddNewTask() {
     <div className="flex gap-2">
         <Tooltip>
         <TooltipTrigger asChild>
-            <Button variant="secondary" size="sm" data-icon="inline-start"><Plus />New task</Button>
+            <Link href='/tasks/create-task'>
+                <Button variant="secondary" size="sm" data-icon="inline-start" className="cursor-pointer">
+                        <Plus />New task
+                </Button>
+            </Link>
         </TooltipTrigger>
         <TooltipContent>
             <p>Create new task</p>

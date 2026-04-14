@@ -4,17 +4,21 @@ import StarterKit from '@tiptap/starter-kit'
 import { Toggle } from '@/components/ui/toggle'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { Bold, Italic, Strikethrough, List, ListOrdered, Code, Minus, SquareSplitVertical } from 'lucide-react'
+import { Bold, Italic, Strikethrough, List, ListOrdered, Minus } from 'lucide-react'
 import { Kbd } from '@/components/ui/kbd'
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Placeholder } from '@tiptap/extensions'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '../ui/button'
 import { Skeleton } from '../ui/skeleton'
+import { cn } from '@/lib/utils'
 
 interface EditorProps {
   content?: string
   onChange?: (html: string) => void
+  placeholder?: string
+  variant?: 'default' | 'ghost'
+  minHeight?: string
 }
 
 const isMac = typeof window !== 'undefined' && navigator.platform.includes('Mac')
@@ -25,8 +29,6 @@ type ToolbarTooltipProps = {
   shortcut?: string
   children: React.ReactNode
 }
-
-
 
 function ToolbarTooltip({ label, shortcut, children }: ToolbarTooltipProps) {
   return (
@@ -46,20 +48,25 @@ function ToolbarTooltip({ label, shortcut, children }: ToolbarTooltipProps) {
   )
 }
 
-export default function Editor({ content = '', onChange }: EditorProps) {
-  
-
+export default function Editor({
+  content = '',
+  onChange,
+  placeholder = 'Type something...',
+  variant = 'default',
+  minHeight = 'h-40',
+}: EditorProps) {
   const editor = useEditor({
     extensions: [
       StarterKit,
-      Placeholder.configure({
-        placeholder: 'Write a comment...',
-      }),
+      Placeholder.configure({ placeholder }),
     ],
     content,
     editorProps: {
       attributes: {
-        class: 'max-h-40 h-40 p-4 text-sm focus:outline-none prose prose-sm max-w-none dark:prose-invert',
+        class: cn(
+          'p-4 focus:outline-none prose prose-sm prose-headings:font-normal prose-headings:font-heading max-w-none dark:prose-invert',
+          minHeight
+        ),
       },
     },
     onUpdate: ({ editor }) => {
@@ -72,25 +79,18 @@ export default function Editor({ content = '', onChange }: EditorProps) {
     editor,
     selector: (ctx) => {
       if (!ctx.editor) return {
-        isBold: false,
-        isItalic: false,
-        isStrike: false,
-        isBullet: false,
-        isOrdered: false,
-        isCode: false,
+        isBold: false, isItalic: false, isStrike: false,
+        isBullet: false, isOrdered: false, isCode: false,
         headingLevel: 'paragraph' as const,
       }
-
       return {
-        isBold: ctx.editor.isActive('bold'),
-        isItalic: ctx.editor.isActive('italic'),
-        isStrike: ctx.editor.isActive('strike'),
-        isBullet: ctx.editor.isActive('bulletList'),
+        isBold:    ctx.editor.isActive('bold'),
+        isItalic:  ctx.editor.isActive('italic'),
+        isStrike:  ctx.editor.isActive('strike'),
+        isBullet:  ctx.editor.isActive('bulletList'),
         isOrdered: ctx.editor.isActive('orderedList'),
-        isCode: ctx.editor.isActive('code'),
-        headingLevel: ctx.editor.isActive('heading', { level: 1 })
-          ? 'h1'
-          : ctx.editor.isActive('heading', { level: 2 })
+        isCode:    ctx.editor.isActive('code'),
+        headingLevel: ctx.editor.isActive('heading', { level: 2 })
           ? 'h2'
           : ctx.editor.isActive('heading', { level: 3 })
           ? 'h3'
@@ -99,19 +99,15 @@ export default function Editor({ content = '', onChange }: EditorProps) {
     },
   })
 
-
-
   if (!editor) return (
     <div className="flex flex-col w-full animate-pulse">
-      {/* Toolbar skeleton */}
       <div className="flex items-center gap-2 p-2 border-b border-input">
         <Skeleton className="h-8 w-40 rounded-md" />
         <Skeleton className="h-8 w-24 rounded-full" />
         <Skeleton className="h-8 w-16 rounded-full" />
         <Skeleton className="h-8 w-8 rounded-full" />
       </div>
-      {/* Editor area skeleton */}
-      <div className="h-40 p-4 flex flex-col gap-2">
+      <div className={cn('p-4 flex flex-col gap-2', minHeight)}>
         <Skeleton className="h-3 w-3/4 rounded" />
         <Skeleton className="h-3 w-1/2 rounded" />
         <Skeleton className="h-3 w-2/3 rounded" />
@@ -119,53 +115,52 @@ export default function Editor({ content = '', onChange }: EditorProps) {
     </div>
   )
 
-
   const formattingValue = [
-    editorState?.isBold ? 'bold' : null,
+    editorState?.isBold   ? 'bold'   : null,
     editorState?.isItalic ? 'italic' : null,
     editorState?.isStrike ? 'strike' : null,
   ].filter((v): v is string => v !== null)
 
-
   const listValue = editorState?.isBullet ? 'bullet' : editorState?.isOrdered ? 'ordered' : ''
+
+  const isGhost = variant === 'ghost'
 
   return (
     <TooltipProvider delayDuration={600}>
       <div className="flex flex-col w-full">
         {/* Toolbar */}
-        <div className="flex items-center gap-1 p-2 border-b border-input overflow-x-auto scrollbar-none">
-
+        <div className={cn(
+          'flex items-center gap-1 p-2 overflow-x-auto scrollbar-none',
+          isGhost
+            ? 'border-b border-transparent group-focus-within:border-input transition-colors'
+            : 'border-b border-input'
+        )}>
           <Select
             value={editorState?.headingLevel}
             onValueChange={(value) => {
               if (value === 'paragraph') {
                 editor.chain().focus().setParagraph().run()
               } else {
-                const level = parseInt(value.replace('h', '')) as 1 | 2 | 3
+                const level = parseInt(value.replace('h', '')) as 2 | 3
                 editor.chain().focus().toggleHeading({ level }).run()
               }
             }}
           >
-            <SelectTrigger className=" w-40 text-xs shadow-none focus:ring-0">
+            <SelectTrigger className={cn(
+              'w-40 text-xs shadow-none focus:ring-0',
+              isGhost && 'border-transparent bg-transparent hover:bg-accent'
+            )}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent className='p-1'>
               <SelectItem value="paragraph">Avsnitt</SelectItem>
-              <SelectItem value="h1">
-                <span className="">Overskrift 1</span>
-              </SelectItem>
-              <SelectItem value="h2">
-                <span className="">Overskrift 2</span>
-              </SelectItem>
-              <SelectItem value="h3">
-                <span className="">Overskrift 3</span>
-              </SelectItem>
+              <SelectItem value="h2">Overskrift 2</SelectItem>
+              <SelectItem value="h3">Overskrift 3</SelectItem>
             </SelectContent>
           </Select>
 
-          {/* Text Formatting */}
           <ToggleGroup
-            className='border rounded-full'
+            className={cn('border rounded-full', isGhost && 'border-transparent')}
             type="multiple"
             variant={'outlineBrand'}
             value={formattingValue}
@@ -173,7 +168,7 @@ export default function Editor({ content = '', onChange }: EditorProps) {
               const toggleIfChanged = (key: string, command: () => void) => {
                 if (formattingValue.includes(key) !== values.includes(key)) command()
               }
-              toggleIfChanged('bold', () => editor.chain().focus().toggleBold().run())
+              toggleIfChanged('bold',   () => editor.chain().focus().toggleBold().run())
               toggleIfChanged('italic', () => editor.chain().focus().toggleItalic().run())
               toggleIfChanged('strike', () => editor.chain().focus().toggleStrike().run())
             }}
@@ -195,9 +190,8 @@ export default function Editor({ content = '', onChange }: EditorProps) {
             </ToolbarTooltip>
           </ToggleGroup>
 
-          {/* Lists */}
           <ToggleGroup
-            className='border rounded-full'
+            className={cn('border rounded-full', isGhost && 'border-transparent')}
             type="single"
             variant={'outlineBrand'}
             value={listValue}
@@ -209,7 +203,7 @@ export default function Editor({ content = '', onChange }: EditorProps) {
                 if (editor.isActive('bulletList')) editor.chain().focus().toggleBulletList().run()
                 editor.chain().focus().toggleOrderedList().run()
               } else {
-                if (editor.isActive('bulletList')) editor.chain().focus().toggleBulletList().run()
+                if (editor.isActive('bulletList'))  editor.chain().focus().toggleBulletList().run()
                 if (editor.isActive('orderedList')) editor.chain().focus().toggleOrderedList().run()
               }
             }}
@@ -226,23 +220,21 @@ export default function Editor({ content = '', onChange }: EditorProps) {
             </ToolbarTooltip>
           </ToggleGroup>
 
-          {/* Horizontal Rule */}
           <ToolbarTooltip label="Divider">
             <Button
               size="icon-sm"
               variant={'ghost'}
               aria-label="Horizontal rule"
               onClick={() => editor.chain().focus().setHorizontalRule().run()}
-              className='border rounded-full border-border'
+              className={cn('border rounded-full border-border', isGhost && 'border-transparent')}
             >
               <Minus className="h-4 w-4" />
             </Button>
           </ToolbarTooltip>
-
         </div>
 
-        {/* Editor */}
-        <ScrollArea className="h-40">
+        {/* Editor content */}
+        <ScrollArea className={minHeight}>
           <EditorContent editor={editor} />
         </ScrollArea>
       </div>
