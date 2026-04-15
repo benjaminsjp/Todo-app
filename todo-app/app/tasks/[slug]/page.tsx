@@ -3,7 +3,7 @@ import { redirect, notFound } from 'next/navigation'
 import { db } from '@/lib/db'
 import { tasks, taskGroups } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
-import TaskDetails from '../TaskDetails'
+import TaskDetails from '@/components/TaskDetails/TaskDetails'
 export const dynamic = 'force-dynamic'
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {

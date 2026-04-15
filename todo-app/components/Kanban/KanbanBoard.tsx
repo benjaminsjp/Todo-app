@@ -15,9 +15,11 @@ import { CSS } from '@dnd-kit/utilities'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { CalendarDays, MessageCircle, CircleDashed, CircleEllipsis, CircleCheck } from 'lucide-react'
-import { bgToBorder } from '@/lib/utils/colors'
 import { useEffect, useState } from 'react'
 import { TaskCard } from './TaskCard'
+import { type Task, TaskGroup, Status, Comment, bgToBorder } from "@/lib/types"
+import { CreateTaskGroupButton } from '../CreateTaskGroup/CreateTaskGroupButton'
+import { CreateOrgButton } from '../CreateOrg/CreateOrgButton'
 
 const COLUMNS = [
   { key: 'Todo',        label: 'Todo',        icon: CircleDashed,   style: 'text-muted-foreground' },
@@ -25,52 +27,17 @@ const COLUMNS = [
   { key: 'Done',        label: 'Done',        icon: CircleCheck,    style: 'text-green-500' },
 ]
 
-type Comment = {
-  id:        number
-  content:   string
-  createdAt: Date | null
-  userId:    string
-  taskId:    number
-  updatedAt: Date | null
-}
-
-type Status = {
-  id:    number
-  label: string
-  color: string
-}
-
-type TaskGroup = {
-  id:    number
-  title: string
-  color: string
-  tasks?: Task[]
-}
-
-type Task = {
-  id:          number
-  title:       string
-  description: string | null
-  slug:        string
-  deadline:    string | null
-  createdAt:   Date | null
-  updatedAt:   Date | null
-  groupId:     number | null
-  statusId:    number | null
-  createdBy:   string | null
-  group?:      TaskGroup | null
-  status?:     Status | null
-  comments?:   Comment[]
-}
 
 interface KanbanBoardProps {
   tasks:      Task[]
   taskGroups: TaskGroup[]
+  orgSlug?:   string
+  orgId?:     number
 }
 
 // ─── Sortable Task Card ───────────────────────────────────────────────────────
 
-function SortableTaskCard({ task }: { task: Task }) {
+function SortableTaskCard({ task, orgSlug }: { task: Task; orgSlug?: string }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
   })
@@ -83,19 +50,22 @@ function SortableTaskCard({ task }: { task: Task }) {
       {...listeners}
       className={isDragging ? 'opacity-40' : ''}
     >
-      <TaskCard task={task} />
+      <TaskCard task={task} orgSlug={orgSlug} />
     </div>
   )
 }
+
 
 // ─── Kanban Column ────────────────────────────────────────────────────────────
 
 function KanbanColumn({
   col,
   tasks,
+  orgSlug,
 }: {
-  col:   (typeof COLUMNS)[number]
-  tasks: Task[]
+  col:     (typeof COLUMNS)[number]
+  tasks:   Task[]
+  orgSlug?: string
 }) {
   const Icon = col.icon
 
@@ -117,7 +87,7 @@ function KanbanColumn({
           {tasks.length === 0 ? (
             <p className="text-xs text-muted-foreground text-center py-6">Ingen tasks</p>
           ) : (
-            tasks.map((task) => <SortableTaskCard key={task.id} task={task} />)
+            tasks.map((task) => <SortableTaskCard key={task.id} task={task} orgSlug={orgSlug} />)
           )}
         </div>
       </SortableContext>
@@ -125,9 +95,10 @@ function KanbanColumn({
   )
 }
 
+
 // ─── Kanban Board ─────────────────────────────────────────────────────────────
 
-export function KanbanBoard({ tasks: initialTasks, taskGroups }: KanbanBoardProps) {
+export function KanbanBoard({ tasks: initialTasks, taskGroups, orgSlug, orgId }: KanbanBoardProps) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks)
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [isMounted, setIsMounted] = useState(false)
@@ -188,27 +159,31 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups }: KanbanBoardProp
     >
       <div className="flex flex-col gap-10">
         {/* Task Groups */}
-        {taskGroups.length > 0 && (
-          <div className="flex flex-wrap gap-3">
-            {taskGroups.map((group) => (
-              <div
-                key={group.id}
-                className={`flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium ${bgToBorder(group.color)} bg-card`}
-              >
-                <span className={`w-2 h-2 rounded-full ${group.color}`} />
-                {group.title}
-                <Badge variant="secondary" className="ml-1 rounded-full px-1.5 py-0 text-xs">
-                  {group.tasks?.length ?? 0}
-                </Badge>
-              </div>
-            ))}
-          </div>
-        )}
+        <div className="flex flex-wrap gap-3">
+          {taskGroups.length > 0 && (
+            <>
+              {taskGroups.map((group) => (
+                <div
+                  key={group.id}
+                  className={`flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium ${bgToBorder(group.color)} bg-card`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${group.color}`} />
+                  {group.title}
+                  <Badge variant="secondary" className="ml-1 rounded-full px-1.5 py-0 text-xs">
+                    {group.tasks?.length ?? 0}
+                  </Badge>
+                </div>
+              ))}
+            </>
+          )}
+          <CreateTaskGroupButton orgId={orgId} />
+          <CreateOrgButton />
+        </div>
 
         {/* Columns */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
           {COLUMNS.map((col) => (
-            <KanbanColumn key={col.key} col={col} tasks={tasksByStatus(col.key)} />
+            <KanbanColumn key={col.key} col={col} tasks={tasksByStatus(col.key)} orgSlug={orgSlug} />
           ))}
         </div>
       </div>
@@ -216,7 +191,7 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups }: KanbanBoardProp
       <DragOverlay>
         {activeTask && (
           <div className="rotate-2 opacity-95 shadow-xl scale-105">
-            <TaskCard task={activeTask} />
+            <TaskCard task={activeTask} orgSlug={orgSlug} />
           </div>
         )}
       </DragOverlay>

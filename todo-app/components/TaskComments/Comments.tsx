@@ -58,7 +58,7 @@ export default function Comments({ taskId, comments = [] }: CommentsProps) {
         ))}
       </div>
 
-      <div className="mt-auto">
+      <div className="mt-auto pt-6">
         <InputGroup>
           <Editor content={content} onChange={setContent} />
           <InputGroupAddon align="block-end" className="border-t">

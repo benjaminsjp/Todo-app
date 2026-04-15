@@ -1,19 +1,20 @@
+// components/CreateOrg/CreateOrgButton.tsx
 'use client'
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
-import { CreateTaskGroupModal } from './CreateTaskGroupModal'
+import { CreateOrgModal } from './CreateOrgModal'
 
-export function CreateTaskGroupButton() {
+export function CreateOrgButton() {
   const [open, setOpen] = useState(false)
 
   return (
     <>
       <Button onClick={() => setOpen(true)}>
-        <Plus className="size-4" /> Ny task
+        <Plus className="size-4" /> Ny organisasjon
       </Button>
-      <CreateTaskGroupModal open={open} onClose={() => setOpen(false)} />
+      <CreateOrgModal open={open} onClose={() => setOpen(false)} />
     </>
   )
 }

@@ -5,7 +5,9 @@ import { organizations, organizationMembers, statuses } from '@/lib/db/schema'
 import { auth } from '@/lib/auth/server'
 import { redirect } from 'next/navigation'
 
-export async function createOrganization(formData: FormData) {
+export async function createOrganization(_prev: { error: string } | null,
+  formData: FormData
+): Promise<{ error: string } | null> {
   const { data: session } = await auth.getSession()
   if (!session?.user) redirect('/auth/sign-in')
 
@@ -16,14 +18,12 @@ export async function createOrganization(formData: FormData) {
 
   const [org] = await db.insert(organizations).values({ name, slug }).returning()
 
-  // Legg til bruker som owner
   await db.insert(organizationMembers).values({
     orgId:  org.id,
     userId: session.user.id,
     role:   'owner',
   })
 
-  // Seed standard statuser
   await db.insert(statuses).values([
     { label: 'Todo',        color: 'gray',  order: 0, orgId: org.id },
     { label: 'In Progress', color: 'blue',  order: 1, orgId: org.id },

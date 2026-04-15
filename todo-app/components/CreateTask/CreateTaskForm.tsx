@@ -1,4 +1,3 @@
-// components/CreateTask/CreateTaskForm.tsx
 'use client'
 
 import { useActionState } from 'react'
@@ -13,9 +12,11 @@ import { CreateTaskDeadline } from './CreateTaskDeadline'
 
 interface Props {
   taskGroups: { id: number; title: string }[]
+  orgId?: number
+  orgSlug?: string
 }
 
-export function CreateTaskForm({ taskGroups }: Props) {
+export function CreateTaskForm({ taskGroups, orgId, orgSlug }: Props) {
   const [description, setDescription] = useState('')
   const [deadline, setDeadline] = useState<Date | undefined>()
   const [state, action, isPending] = useActionState(createTask, null)
@@ -37,6 +38,9 @@ export function CreateTaskForm({ taskGroups }: Props) {
               {state.error}
             </p>
           )}
+
+          {orgId && <input type="hidden" name="orgId" value={orgId} />}
+          {orgSlug && <input type="hidden" name="orgSlug" value={orgSlug} />}
 
           {/* Title — same classes as the h1 in TaskDetails */}
           <input
@@ -73,10 +77,10 @@ export function CreateTaskForm({ taskGroups }: Props) {
                     
                     <span className="w-1/2">Group:</span>
                     <Select name="groupId">
-                        <SelectTrigger className="border-none shadow-none focus:ring-0 p-0 h-auto">
-                        <SelectValue placeholder="Ingen gruppe" />
+                        <SelectTrigger className="">
+                        <SelectValue placeholder="No group" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className='p-1'>
                         {taskGroups.map((g) => (
                             <SelectItem key={g.id} value={String(g.id)}>
                             {g.title}

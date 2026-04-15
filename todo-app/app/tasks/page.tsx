@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth/server'
 import { redirect } from 'next/navigation'
 import { getTasksForUser, getTaskGroupsForUser } from '@/lib/db/queries'
 import { KanbanBoard } from '@/components/Kanban/KanbanBoard'
-import { CreateTaskButton } from '@/components/Kanban/CreateTaskButton'
+import { CreateTaskButton } from '@/components/CreateTask/CreateTaskButton'
 
 export const metadata: Metadata = { title: "Tasks | På'n" }
 export const dynamic = 'force-dynamic'
@@ -16,8 +16,6 @@ export default async function Page() {
     getTasksForUser(session.user.id),
     getTaskGroupsForUser(session.user.id),
   ])
-
-  console.log('første task:', JSON.stringify(tasks[0], null, 2))
 
   return (
     <div className="flex flex-1 flex-col">

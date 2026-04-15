@@ -14,6 +14,7 @@ import {
   SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { OrgSwitcher } from "@/components/sidebar/AppSidebarOrgSwitcher"
 import {
   Collapsible,
   CollapsibleContent,
@@ -41,48 +42,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       className="overflow-hidden *:data-[sidebar=sidebar]:flex-row"
       {...props}
     >
-      {/* <Sidebar
-        collapsible="none"
-        className="w-[calc(var(--sidebar-width-icon)+1px)]! border-r"
-      >
-        <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupContent className="px-1.5 md:px-0">
-              <SidebarMenu>
-                {data.navMain.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <a href={item.url}>
-                      <SidebarMenuButton
-                        tooltip={{
-                          children: item.title,
-                          hidden: false,
-                        }}
-                        onClick={() => {
-                          setActiveItem(item)
-                          const task = data.tasks.sort(() => Math.random() - 0.5)
-                          setTasks(
-                            task.slice(
-                              0,
-                              Math.max(5, Math.floor(Math.random() * 10) + 1)
-                            )
-                          )
-                          setOpen(true)
-                        }}
-                        isActive={activeItem?.title === item.title}
-                        className="p-2.5 md:p-2 h-8"
-                      >
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </SidebarMenuButton>
-                    </a>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        </SidebarContent>
-      </Sidebar> */}
-
       <Sidebar collapsible="none" className="hidden flex-1 md:flex">
         <SidebarHeader className="gap-3.5 p-4 border-b">
           <div className="flex w-full items-center justify-between">

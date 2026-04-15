@@ -5,91 +5,60 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import StatusSelect, { type StatusOption } from "@/components/status-select/StatusSelect"
 import Comments from "@/components/TaskComments/Comments"
-import { CreateTaskEditor } from "@/components/Kanban/CreateTaskEditor"
-import Link from "next/link"
-import { updateTask } from '@/lib/actions/tasks'
-import { useActionState } from 'react'
+import { CreateTaskEditor } from "@/components/CreateTask/CreateTaskEditor"
+import { updateTask } from "@/lib/actions/tasks"
+import { type Task, formatDate, mapComments } from "@/lib/types"
+import { Badge } from "@/components/ui/badge"
+import { Pencil, Eye } from "lucide-react"
 
-type User = {
-  id:          string
-  displayName: string | null
-  avatarUrl:   string | null
-  email:       string
-}
-
-type Comment = {
-  id:        number
-  content:   string
-  createdAt: Date | null
-  userId:    string
-  user?:     User | null
-}
-
-type Status = {
-  id:    number
-  label: string
-  color: string
-}
-
-type TaskGroup = {
-  id:    number
-  title: string
-  color: string
-}
-
-type Task = {
-  id:          number
-  title:       string
-  description: string | null
-  slug:        string
-  deadline:    string | null
-  createdAt:   Date | null
-  updatedAt:   Date | null
-  status?:     Status | null
-  group?:      TaskGroup | null
-  comments?:   Comment[]
-}
-
-function formatDate(date: Date | null | undefined): string {
-  if (!date) return '–'
-  return new Date(date).toLocaleDateString('no-NO', {
-    day:   '2-digit',
-    month: '2-digit',
-    year:  'numeric',
-  })
-}
-
-
-// Mapper DB-kommentarer til formatet Comments-komponenten forventer
-function mapComments(comments: Comment[] = []) {
-  return comments.map((c) => ({
-    id:                   c.id,
-    content:              c.content,
-    createdAt:            formatDate(c.createdAt),
-    author:               c.user?.displayName ?? c.user?.email ?? 'Ukjent',
-    authorProfilePicture: c.user?.avatarUrl ?? '',
-  }))
-}
-
-export default function TaskDetails({ task, taskGroup, taskGroupOptions }: {
-  task: Task
-  taskGroup: string | undefined
+export default function TaskDetails({
+  task,
+  taskGroup,
+  taskGroupOptions,
+}: {
+  task:             Task
+  taskGroup:        string | undefined
   taskGroupOptions: StatusOption[]
 }) {
   const router = useRouter()
-  const [isEditing,  setIsEditing]  = useState(false)
-  const [status,     setStatus]     = useState(task.status?.label ?? 'Todo')
-  const [assignedTaskGroup, setTaskGroup] = useState(taskGroup ?? '')
-  const [description, setDescription]    = useState(task.description ?? '')
-  const [title,       setTitle]           = useState(task.title)
-
-  const [state, action, isPending] = useActionState(updateTask, null)
-
+  const [isEditing,         setIsEditing]   = useState(false)
+  const [isSaving,          setIsSaving]    = useState(false)
+  const [error,             setError]       = useState<string | null>(null)
+  const [title,             setTitle]       = useState(task.title)
+  const [description,       setDescription] = useState(task.description ?? '')
+  const [status,            setStatus]      = useState(task.status?.label ?? 'Todo')
+  const [assignedGroupId,   setGroupId]     = useState(task.groupId ? String(task.groupId) : '')
 
   const handleSave = async () => {
-    // TODO: koble til updateTask Server Action
+    setIsSaving(true)
+    setError(null)
+
+    const result = await updateTask(task.id, { title, description })
+
+    setIsSaving(false)
+    if ('error' in result) { setError(result.error); return }
     setIsEditing(false)
     router.refresh()
+  }
+
+  const handleCancel = () => {
+    setTitle(task.title)
+    setDescription(task.description ?? '')
+    setIsEditing(false)
+    setError(null)
+  }
+
+  const handleStatusChange = async (newStatus: string) => {
+    setStatus(newStatus)
+    const statusOption = taskGroupOptions.find((o) => o.value === newStatus)
+    if (statusOption) {
+      await updateTask(task.id, { statusId: Number(statusOption.value) })
+    }
+  }
+
+  const handleGroupChange = async (newGroupId: string) => {
+    setGroupId(newGroupId)
+    await updateTask(task.id, { groupId: newGroupId ? Number(newGroupId) : null })
   }
 
   return (
@@ -99,8 +68,8 @@ export default function TaskDetails({ task, taskGroup, taskGroupOptions }: {
         {/* Hovedinnhold */}
         <div className="flex flex-1 flex-col gap-4 max-w-prose py-12 px-8 mx-auto">
           {isEditing ? (
-            // Redigeringsmodus – samme layout som CreateTaskForm
             <>
+              <Badge variant="secondary"><Pencil data-icon="inline-start" />Editing task</Badge>
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -109,10 +78,10 @@ export default function TaskDetails({ task, taskGroup, taskGroupOptions }: {
               <CreateTaskEditor content={description} onChange={setDescription} />
             </>
           ) : (
-            // Visningsmodus
             <>
+              <Badge variant="secondary"><Eye data-icon="inline-start" />Viewing</Badge>
               <h1 className="text-5xl font-medium text-center sm:text-left font-heading text-heading-strong mb-6">
-                {task.title}
+                {title}
               </h1>
               {description ? (
                 <div
@@ -126,6 +95,12 @@ export default function TaskDetails({ task, taskGroup, taskGroupOptions }: {
             </>
           )}
 
+          {error && (
+            <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-4 py-3">
+              {error}
+            </p>
+          )}
+
         </div>
 
         {/* Sidebar */}
@@ -133,21 +108,28 @@ export default function TaskDetails({ task, taskGroup, taskGroupOptions }: {
           <div className="flex gap-3 items-center">
             {isEditing ? (
               <>
-                <Button variant="brand" onClick={handleSave}>Lagre</Button>
-                <Button variant="ghost" onClick={() => setIsEditing(false)}>Avbryt</Button>
+                <Button variant="brand" onClick={handleSave} disabled={isSaving}>
+                  {isSaving ? 'Lagrer...' : 'Lagre'}
+                </Button>
+                <Button variant="ghost" onClick={handleCancel} disabled={isSaving}>
+                  Avbryt
+                </Button>
               </>
             ) : (
               <>
-                <Button variant="secondary" onClick={() => setIsEditing(true)}>Rediger</Button>
+                <Button variant="secondary" onClick={() => setIsEditing(true)}>
+                  Rediger
+                </Button>
                 <span className="text-sm font-medium text-muted-foreground">
                   Sist redigert: {formatDate(task.updatedAt)}
                 </span>
               </>
             )}
           </div>
+
           <div className="flex items-center">
             <span className="w-1/2">Status:</span>
-            <StatusSelect className="text-base" value={status} onChange={setStatus} />
+            <StatusSelect className="text-base" value={status} onChange={handleStatusChange} />
           </div>
           <div className="flex items-center">
             <span className="w-1/2">Opprettet:</span>
@@ -158,11 +140,11 @@ export default function TaskDetails({ task, taskGroup, taskGroupOptions }: {
             <p>{task.deadline ?? '–'}</p>
           </div>
           <div className="flex items-center">
-            <span className="w-1/2">Gruppe:</span>
+            <span className="w-1/2">Group:</span>
             <StatusSelect
               className="text-base"
-              value={assignedTaskGroup}
-              onChange={setTaskGroup}
+              value={assignedGroupId}
+              onChange={handleGroupChange}
               options={taskGroupOptions}
             />
           </div>
