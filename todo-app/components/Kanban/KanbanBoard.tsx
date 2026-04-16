@@ -198,7 +198,11 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, orgSlug, orgId }:
                   >
                     <span className={`w-2 h-2 rounded-full ${group.color}`} />
                     {group.title}
-                    <Badge variant="secondary" className="ml-1 rounded-full px-1.5 py-0 text-xs">
+                    <Badge 
+                      variant="secondary" 
+                      className={`
+                        ml-1 rounded-full px-1.5 py-0 items-center text-xs ${getGroupFilter === group.id.toString() ? getColor(group.color).bg : ''} ${getGroupFilter === group.id.toString() ? 'text-white' : ''} 
+                      `}>
                       {group.tasks?.length ?? 0}
                     </Badge>
                   </div>
