@@ -12,14 +12,14 @@ import {
 } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { CalendarDays, MessageCircle, CircleDashed, CircleEllipsis, CircleCheck } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { TaskCard } from './TaskCard'
-import { type Task, TaskGroup, Status, Comment, bgToBorder } from "@/lib/types"
+import { type Task, TaskGroup, Status, Comment, getColor } from "@/lib/types"
 import { CreateTaskGroupButton } from '../CreateTaskGroup/CreateTaskGroupButton'
-import { CreateOrgButton } from '../CreateOrg/CreateOrgButton'
+import { useSearchParams, usePathname, useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 const COLUMNS = [
   { key: 'Todo',        label: 'Todo',        icon: CircleDashed,   style: 'text-muted-foreground' },
@@ -103,6 +103,26 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, orgSlug, orgId }:
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [isMounted, setIsMounted] = useState(false)
 
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  
+  const createTaskGroupQuery = useCallback(
+    (group: string, value: string) => {
+      const params = new URLSearchParams(searchParams.toString())
+      const currentValue = params.get(group)
+
+      if (currentValue === value) {
+        params.delete(group) // toggle av
+      } else {
+        params.set(group, value) // toggle på
+      }
+
+      return params.toString()
+    },
+    [searchParams]
+  )
+
+
   useEffect(() => {
     setTasks(initialTasks)
   }, [initialTasks])
@@ -117,11 +137,19 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, orgSlug, orgId }:
     return task.status?.label ?? 'Todo'
   }
 
+  const getGroupFilter = searchParams.get('group')
+  const filteredTasks = getGroupFilter
+    ? tasks.filter((t) => String(t.groupId) === getGroupFilter)
+    : tasks
+
+  console.log('Group filter:', getGroupFilter)
+
   const tasksByStatus = (statusKey: string) =>
-    tasks.filter((t) => getStatusLabel(t) === statusKey)
+    filteredTasks.filter((t) => getStatusLabel(t) === statusKey)
+
 
   const handleDragStart = ({ active }: DragStartEvent) => {
-    setActiveTask(tasks.find((t) => t.id === active.id) ?? null)
+    setActiveTask(filteredTasks.find((t) => t.id === active.id) ?? null)
   }
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
@@ -163,21 +191,22 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, orgSlug, orgId }:
           {taskGroups.length > 0 && (
             <>
               {taskGroups.map((group) => (
-                <div
-                  key={group.id}
-                  className={`flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium ${bgToBorder(group.color)} bg-card`}
-                >
-                  <span className={`w-2 h-2 rounded-full ${group.color}`} />
-                  {group.title}
-                  <Badge variant="secondary" className="ml-1 rounded-full px-1.5 py-0 text-xs">
-                    {group.tasks?.length ?? 0}
-                  </Badge>
-                </div>
+                <Link key={group.id} href={`${pathname}?${createTaskGroupQuery('group', group.id.toString())}`}>
+                  <div
+                    key={group.id}
+                    className={`flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium ${getColor(group.color).border} ${getGroupFilter === group.id.toString() ? `${getColor(group.color).opacity}` : 'bg-card'}`}
+                  >
+                    <span className={`w-2 h-2 rounded-full ${group.color}`} />
+                    {group.title}
+                    <Badge variant="secondary" className="ml-1 rounded-full px-1.5 py-0 text-xs">
+                      {group.tasks?.length ?? 0}
+                    </Badge>
+                  </div>
+                </Link>
               ))}
             </>
           )}
           <CreateTaskGroupButton orgId={orgId} />
-          <CreateOrgButton />
         </div>
 
         {/* Columns */}

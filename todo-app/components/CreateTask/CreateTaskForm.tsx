@@ -64,7 +64,7 @@ export function CreateTaskForm({ taskGroups, orgId, orgSlug }: Props) {
                 {isPending ? 'Oppretter...' : 'Opprett task'}
                 </Button>
                 <Button variant="ghost" type="button" asChild>
-                <Link href="/tasks">Avbryt</Link>
+                  <Link href={orgSlug ? `/org/${orgSlug}` : '/tasks'}>Avbryt</Link>
                 </Button>
             </div>
             <div className="flex items-center">

@@ -45,9 +45,9 @@ export default function AuthPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-6 max-w-sm mx-auto px-4">
         <div className="text-center">
-          <h1 className="text-3xl font-heading font-medium mb-2">Sjekk innboksen</h1>
+          <h1 className="text-3xl font-heading font-medium mb-2">Check your inbox</h1>
           <p className="text-muted-foreground text-sm">
-            Vi sendte en kode til <span className="font-medium text-foreground">{email}</span>
+            We sent a code to <span className="font-medium text-foreground">{email}</span>
           </p>
         </div>
         <Input
@@ -66,34 +66,33 @@ export default function AuthPage() {
           onClick={handleResend}
           className="text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
-          Send koden på nytt
+          Resed code
         </button>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen gap-6 max-w-sm mx-auto px-4">
+    <div className="flex flex-col items-center justify-center min-h-screen gap-6 max-w-sm min-w-sm mx-auto px-4">
       <div className="text-center">
         <h1 className="text-3xl font-heading font-medium mb-1">
           {isSignUp ? 'Opprett konto' : 'Logg inn'}
         </h1>
-        <p className="text-muted-foreground text-sm">På'n – Få fart på oppgavelisten din</p>
       </div>
 
       <form action={isSignUp ? handleSignUp : signInAction} className="flex flex-col gap-4 w-full">
         {isSignUp && (
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="name">Navn</Label>
+            <Label htmlFor="name">Name</Label>
             <Input id="name" name="name" type="text" placeholder="Ola Nordmann" required />
           </div>
         )}
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="email">E-post</Label>
+          <Label htmlFor="email">Email</Label>
           <Input id="email" name="email" type="email" placeholder="ola@example.no" required />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="password">Passord</Label>
+          <Label htmlFor="password">Password</Label>
           <Input id="password" name="password" type="password" placeholder="••••••••" required />
         </div>
 
@@ -103,17 +102,17 @@ export default function AuthPage() {
           </p>
         )}
 
-        <Button type="submit" className="w-full">
-          {isSignUp ? 'Opprett konto' : 'Logg inn'}
+        <Button variant="brand" type="submit" className="w-full">
+          {isSignUp ? 'Create account' : 'Login'}
         </Button>
       </form>
 
-      <button
+      <Button variant="ghost"
         onClick={() => setIsSignUp(!isSignUp)}
         className="text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
-        {isSignUp ? 'Har du allerede konto? Logg inn' : 'Ingen konto? Registrer deg'}
-      </button>
+        {isSignUp ? 'Already have an account? Sign in' : 'No account? Sign up'}
+      </Button>
     </div>
   )
 }

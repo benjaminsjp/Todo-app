@@ -3,7 +3,7 @@ import { Geist, Geist_Mono, Outfit, Noto_Serif } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Providers } from "@/components/providers";
-import { AppSidebar } from "@/components/sidebar/AppSidebar";
+import { AppSidebarServer } from "@/components/sidebar/AppSidebarServer";
 import { SidebarInset } from "@/components/ui/sidebar";
 import AppMenubar from "@/components/menubar";
 
@@ -51,7 +51,7 @@ export default async function RootLayout({
           )}
         >
           <Providers>
-            <AppSidebar />
+            <AppSidebarServer />
               <main className="flex flex-1 flex-col">
                 <AppMenubar />
                 {children}

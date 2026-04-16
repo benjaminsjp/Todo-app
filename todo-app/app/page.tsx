@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   description: 'Planlegg og fullfør oppgaver effektivt med På\'n.',
 }
 import { syncUser } from '@/lib/db/users'
+import { Button } from '@/components/ui/button'
 
 
 export const dynamic = 'force-dynamic'
@@ -57,14 +58,16 @@ export default async function Home() {
   return(
     <div className="flex flex-col items-center justify-center min-h-screen gap-6 max-w-sm mx-auto px-4">
       <div className="text-center">
-        <h1 className="text-3xl font-heading font-medium mb-1">
+        <h1 className="text-4xl font-heading font-medium mb-1">
           Welcome to På'n!
         </h1>
-        <p className="text-muted-foreground text-sm">Planlegg og fullfør oppgaver effektivt med På'n.</p>
+        <p className="text-muted-foreground">Plan and organize your tasks efficiently.</p>
       </div>
-      <Link href="/api/auth/sign-in" className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover transition-colors">
-        Logg inn eller opprett konto
-      </Link>
+      <Button variant="brand" size="lg" asChild>
+        <Link href="/api/auth/sign-in">
+          Login or Sign Up to get started!
+        </Link>
+      </Button>
     </div>    
   )
 }

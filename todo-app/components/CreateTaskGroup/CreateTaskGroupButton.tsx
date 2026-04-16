@@ -5,14 +5,20 @@ import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 import { CreateTaskGroupModal } from './CreateTaskGroupModal'
 
-export function CreateTaskGroupButton({ orgId }: { orgId?: number }) {
+export function CreateTaskGroupButton({ orgId, children }: { orgId?: number; children?: React.ReactNode }) {
   const [open, setOpen] = useState(false)
 
   return (
     <>
-      <Button variant="outline" onClick={() => setOpen(true)}>
-        <Plus className="size-4" /> New group
-      </Button>
+      {!children ? (
+        <Button variant="ghost" className='border-dashed border-border' onClick={() => setOpen(true)}>
+          <Plus className="size-4" /> New group
+        </Button>
+      ) : (
+        <div onClick={() => setOpen(true)} >
+          {children}
+        </div>
+      )}
       <CreateTaskGroupModal open={open} onClose={() => setOpen(false)} orgId={orgId} />
     </>
   )

@@ -49,6 +49,11 @@ export type Task = {
   comments?:   Comment[]
 }
 
+export type Org = {
+  id: number; name: string; slug: string
+  tasks: Task[]; groups: TaskGroup[]
+}
+
 // Hjelpefunksjoner som brukes på tvers av komponenter
 export function formatDate(date: Date | null | undefined): string {
   if (!date) return '–'
@@ -73,6 +78,17 @@ export function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
-export function bgToBorder(bg: string): string {
-  return bg.replace('bg-', 'border-')
+export const colorMap: Record<string, { bg: string; border: string; text: string, opacity: string }> = {
+  'bg-pink-500':   { bg: 'bg-pink-500',   border: 'border-pink-500',   text: 'text-pink-500', opacity: 'bg-pink-500/20' },
+  'bg-purple-500': { bg: 'bg-purple-500', border: 'border-purple-500', text: 'text-purple-500', opacity: 'bg-purple-500/20' },
+  'bg-blue-500':   { bg: 'bg-blue-500',   border: 'border-blue-500',   text: 'text-blue-500', opacity: 'bg-blue-500/20' },
+  'bg-green-500':  { bg: 'bg-green-500',  border: 'border-green-500',  text: 'text-green-500', opacity: 'bg-green-500/20' },
+  'bg-orange-500': { bg: 'bg-orange-500', border: 'border-orange-500', text: 'text-orange-500', opacity: 'bg-orange-500/20' },
+  'bg-red-500':    { bg: 'bg-red-500',    border: 'border-red-500',    text: 'text-red-500', opacity: 'bg-red-500/20' },
+  'bg-yellow-500': { bg: 'bg-yellow-500', border: 'border-yellow-500', text: 'text-yellow-500', opacity: 'bg-yellow-500/20' },
+  'bg-gray-500':   { bg: 'bg-gray-500',   border: 'border-gray-500',   text: 'text-gray-500', opacity: 'bg-gray-500/20' },
+}
+
+export function getColor(bg: string) {
+  return colorMap[bg] ?? colorMap['bg-gray-500']
 }

@@ -6,14 +6,23 @@ import Link from 'next/link'
 
 interface Props {
   orgId?: number
+  children?: React.ReactNode
 }
 
-export function CreateTaskButton({ orgId }: Props) {
+export function CreateTaskButton({ orgId, children }: Props) {
   return (
-    <Button variant="brand" asChild>
+    <>
+    {!children ? (
+      <Button asChild variant="brand">
+        <Link  href={orgId ? `/tasks/create-task?orgId=${orgId}` : '/tasks/create-task'}>
+            <Plus className="size-4" /> New task
+          </Link>
+      </Button>
+    ) : (
       <Link href={orgId ? `/tasks/create-task?orgId=${orgId}` : '/tasks/create-task'}>
-        <Plus className="size-4" /> Ny task
+        {children}
       </Link>
-    </Button>
+    )}  
+    </>
   )
 }
