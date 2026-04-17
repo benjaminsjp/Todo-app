@@ -13,7 +13,7 @@ export function CreateTaskButton({ orgId, children }: Props) {
   return (
     <>
     {!children ? (
-      <Button asChild variant="brand">
+      <Button asChild >
         <Link  href={orgId ? `/tasks/create-task?orgId=${orgId}` : '/tasks/create-task'}>
             <Plus className="size-4" /> New task
           </Link>

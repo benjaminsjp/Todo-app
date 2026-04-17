@@ -21,7 +21,6 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
     const org = await db.query.organizations.findFirst({
         where: eq(organizations.slug, slug),
     })
-    console.log('Org funnet:', org)
     if (!org) redirect('/tasks')
 
     // Verify user is a member
@@ -31,8 +30,6 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
         eq(organizationMembers.userId, session.user.id)
         ),
     })
-    console.log('membership:', membership)
-    console.log('userId:', session.user.id)
     if (!membership) redirect('/tasks')
 
     const [tasks, taskGroups] = await Promise.all([

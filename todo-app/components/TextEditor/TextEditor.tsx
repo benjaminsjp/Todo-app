@@ -219,18 +219,6 @@ export default function Editor({
               </ToggleGroupItem>
             </ToolbarTooltip>
           </ToggleGroup>
-
-          <ToolbarTooltip label="Divider">
-            <Button
-              size="icon-sm"
-              variant={'ghost'}
-              aria-label="Horizontal rule"
-              onClick={() => editor.chain().focus().setHorizontalRule().run()}
-              className={cn('border rounded-full border-border', isGhost && 'border-transparent')}
-            >
-              <Minus className="h-4 w-4" />
-            </Button>
-          </ToolbarTooltip>
         </div>
 
         {/* Editor content */}

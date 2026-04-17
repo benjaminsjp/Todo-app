@@ -1,50 +1,51 @@
 'use client'
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { InputGroup, InputGroupAddon, InputGroupButton } from "@/components/ui/input-group"
-import Editor from "@/components/TextEditor/TextEditor"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { MessageCircle, SquarePen } from "lucide-react"
-import { type Task } from "@/app/data/test-data"
+import { useActionState, useEffect, useRef, useState } from 'react'
+import { createComment } from '@/lib/actions/comments'
+import { Button } from '@/components/ui/button'
+import { InputGroup, InputGroupAddon, InputGroupButton } from '@/components/ui/input-group'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { MessageCircle, SquarePen } from 'lucide-react'
+import Editor from '@/components/TextEditor/TextEditor'
 
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
-
-type Comment = NonNullable<Task['comments']>[number]
+type MappedComment = {
+  id:                   number
+  content:              string
+  createdAt:            string
+  author:               string
+  authorProfilePicture: string
+}
 
 interface CommentsProps {
-  taskId: number
-  comments?: Comment[]
+  taskId:    number
+  comments?: MappedComment[]
 }
 
 export default function Comments({ taskId, comments = [] }: CommentsProps) {
   const [content, setContent] = useState('')
+  const [state, action, isPending] = useActionState(createComment, null)
+  const editorKey = useRef(0)
 
-  const handleSubmit = () => {
-    if (!content.trim()) return
-    console.log('New comment for task', taskId, content)
-    setContent('')
-  }
+  useEffect(() => {
+    if (state && 'success' in state) {
+      setContent('')
+      editorKey.current += 1 // reset editor
+    }
+  }, [state])
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full animate-fade-up animate-once animate-duration-350">
       <h2 className="text-2xl font-heading mt-8 mb-4">Comments</h2>
+
       <div className="flex flex-col gap-4">
         {comments.length === 0 && (
-            <p className="text-sm text-muted-foreground">No comments yet.</p>
+          <p className="text-sm text-muted-foreground">Ingen kommentarer enda.</p>
         )}
-        {comments.map(comment => (
-          <div key={comment.id} className="rounded-xl p-4 bg-accent flex flex-col group">
+        {comments.map((comment) => (
+          <div key={comment.id} className="rounded-xl p-4 bg-surface-2 flex flex-col group">
             <div className="flex items-center gap-2 mb-2">
               <Avatar>
-                <AvatarImage src={comment.authorProfilePicture} alt={comment.author} className="rounded-full" />
+                <AvatarImage src={comment.authorProfilePicture} alt={comment.author} />
                 <AvatarFallback>{comment.author[0]}</AvatarFallback>
               </Avatar>
               <span className="text-base font-semibold text-primary">{comment.author}</span>
@@ -53,25 +54,41 @@ export default function Comments({ taskId, comments = [] }: CommentsProps) {
                 <SquarePen className="size-4" />
               </Button>
             </div>
-            <p className="pl-10">{comment.content}</p>
+            <div
+              className="pl-10 prose-headings:font-heading prose-headings:font-medium prose prose-sm max-w-none dark:prose-invert"
+              dangerouslySetInnerHTML={{ __html: comment.content }}
+            />
           </div>
         ))}
       </div>
 
-      <div className="mt-auto pt-6">
-        <InputGroup>
-          <Editor content={content} onChange={setContent} />
-          <InputGroupAddon align="block-end" className="border-t">
-            <InputGroupButton
-              size="sm"
-              className="ml-auto bg-brand text-brand-foreground hover:bg-brand/90"
-              variant="default"
-              onClick={handleSubmit}
-            >
-              <MessageCircle /> Add comment
-            </InputGroupButton>
-          </InputGroupAddon>
-        </InputGroup>
+      <div className="mt-auto pt-12">
+        <form  action={action}>
+          <input type="hidden" name="taskId" value={taskId} />
+          <input type="hidden" name="content" value={content} />
+          <InputGroup className='bg-surface-2 border-border'>
+            <Editor
+              key={editorKey.current}
+              content={content}
+              onChange={setContent}
+            />
+            <InputGroupAddon align="block-end" className="border-t">
+              {state && 'error' in state && (
+                <p className="text-xs text-destructive px-2">{state.error}</p>
+              )}
+              <Button asChild className='ml-auto'>
+                <InputGroupButton
+                  type="submit"
+                  size="sm"
+                  variant="default"
+                  disabled={isPending || !content.trim()}
+                >
+                  <MessageCircle /> {isPending ? 'Sender...' : 'Add comment'}
+                </InputGroupButton>
+              </Button>
+            </InputGroupAddon>
+          </InputGroup>
+        </form>
       </div>
     </div>
   )

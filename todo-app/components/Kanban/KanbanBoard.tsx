@@ -71,7 +71,7 @@ function KanbanColumn({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2 px-1">
+      <div className="flex items-center gap-2 px-1 ">
         <Icon className={`size-4 ${col.style}`} />
         <span className="text-sm font-semibold">{col.label}</span>
         <Badge variant="secondary" className="ml-auto rounded-full px-1.5 py-0 text-xs">
@@ -82,7 +82,7 @@ function KanbanColumn({
       <SortableContext id={col.key} items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
         <div
           id={col.key}
-          className="rounded-xl bg-muted/40 border border-dashed p-3 flex flex-col gap-2 min-h-32"
+          className="rounded-xl bg-muted/40 border border-dashed p-3 flex flex-col gap-2 min-h-32 "
         >
           {tasks.length === 0 ? (
             <p className="text-xs text-muted-foreground text-center py-6">Ingen tasks</p>
@@ -142,8 +142,6 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, orgSlug, orgId }:
     ? tasks.filter((t) => String(t.groupId) === getGroupFilter)
     : tasks
 
-  console.log('Group filter:', getGroupFilter)
-
   const tasksByStatus = (statusKey: string) =>
     filteredTasks.filter((t) => getStatusLabel(t) === statusKey)
 
@@ -187,7 +185,7 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, orgSlug, orgId }:
     >
       <div className="flex flex-col gap-10">
         {/* Task Groups */}
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-3 animate-fade-right animate-once animate-duration-300">
           {taskGroups.length > 0 && (
             <>
               {taskGroups.map((group) => (
@@ -223,7 +221,7 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, orgSlug, orgId }:
 
       <DragOverlay>
         {activeTask && (
-          <div className="rotate-2 opacity-95 shadow-xl scale-105">
+          <div className="rotate-2 opacity-95 shadow-xl scale-105 ">
             <TaskCard task={activeTask} orgSlug={orgSlug} />
           </div>
         )}

@@ -1,9 +1,8 @@
 import { auth } from '@/lib/auth/server'
 import { redirect, notFound } from 'next/navigation'
-import { db } from '@/lib/db'
-import { tasks, taskGroups } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { getTaskBySlug, getTaskGroupOptions } from '@/lib/db/queries'
 import TaskDetails from '@/components/TaskDetails/TaskDetails'
+
 export const dynamic = 'force-dynamic'
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
@@ -12,28 +11,12 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
 
   const { slug } = await params
 
-  const task = await db.query.tasks.findFirst({
-    where: eq(tasks.slug, slug),
-    with: {
-      group:    true,
-      status:   true,
-      comments: {
-        with: { user: true },
-      },
-    },
-  })
+  const [task, taskGroupOptions] = await Promise.all([
+    getTaskBySlug(slug, session.user.id),
+    getTaskGroupOptions(session.user.id),
+  ])
 
   if (!task) notFound()
-
-  const allTaskGroups = await db.query.taskGroups.findMany({
-    where: eq(taskGroups.createdBy, session.user.id),
-  })
-
-  const taskGroupOptions = allTaskGroups.map((g) => ({
-    value: String(g.id),
-    label: g.title,
-    color: g.color,
-  }))
 
   return (
     <TaskDetails

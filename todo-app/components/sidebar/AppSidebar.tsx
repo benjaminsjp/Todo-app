@@ -73,7 +73,7 @@ function GroupCollapsible({ group, baseUrl }: { group: TaskGroup; baseUrl: strin
       <SidebarGroup className={`py-0 px-2 border-l-2 ${getColor(group.color).border}`}>
         <SidebarGroupLabel
           asChild
-          className="w-full text-sm cursor-pointer py-4 px-3 h-auto hover:bg-accent group-data-[state=open]/collapsible:bg-accent group-data-[state=open]/collapsible:text-accent-foreground"
+          className="w-full text-sm cursor-pointer py-4 px-3 h-auto hover:bg-sidebar-accent group-data-[state=open]/collapsible:bg-sidebar-accent group-data-[state=open]/collapsible:text-sidebar-accent-foreground"
         >
           <CollapsibleTrigger>
             <FolderOpen className={`mr-2 size-4 hidden group-data-[state=open]/collapsible:block ${getColor(group.color).text}`} />
@@ -120,7 +120,7 @@ export function AppSidebar({ personalTasks, personalGroups, orgs }: AppSidebarPr
           <CreateTaskButton orgId={activeOrg?.id}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="brand" size="sm">
+                <Button variant="default" size="sm">
                   <Plus />New task
                 </Button>
               </TooltipTrigger>
@@ -130,7 +130,7 @@ export function AppSidebar({ personalTasks, personalGroups, orgs }: AppSidebarPr
           <CreateTaskGroupButton orgId={activeOrg?.id}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="brand" size="icon-sm">
+                <Button variant="default" size="icon-sm">
                   <FolderPlus />
                 </Button>
               </TooltipTrigger>
@@ -143,11 +143,12 @@ export function AppSidebar({ personalTasks, personalGroups, orgs }: AppSidebarPr
           {activeOrg ? (
             <>
               {activeOrg.tasks.filter((t) => !t.group).map((task) => (
-                <TaskItem
-                  key={task.id}
-                  task={task}
-                  href={`/org/${activeOrg.slug}/${task.slug}`}
-                />
+                <div key={task.id} className="px-2">
+                  <TaskItem
+                    task={task}
+                    href={`/org/${activeOrg.slug}/${task.slug}`}
+                  />
+                </div>
               ))}
               {activeOrg.groups.map((group) => (
                 <GroupCollapsible
@@ -163,7 +164,9 @@ export function AppSidebar({ personalTasks, personalGroups, orgs }: AppSidebarPr
           ) : (
             <>
               {ungroupedPersonal.map((task) => (
-                <TaskItem key={task.id} task={task} href={`/tasks/${task.slug}`} />
+                <div className="px-2">
+                  <TaskItem  key={task.id} task={task} href={`/tasks/${task.slug}`} />
+                </div>
               ))}
               {personalGroups.map((group) => (
                 <GroupCollapsible key={group.id} group={group} baseUrl="/tasks" />
