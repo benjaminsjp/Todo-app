@@ -41,13 +41,13 @@ export const invitations = pgTable('invitations', {
   createdAt: timestamp('created_at').defaultNow(),
 })
 
-// Statuser per org
 export const statuses = pgTable('statuses', {
-  id:    serial('id').primaryKey(),
-  label: text('label').notNull(),
-  color: text('color').notNull().default('gray'),
-  order: integer('order').notNull().default(0),
-  orgId: integer('org_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  id:     serial('id').primaryKey(),
+  label:  text('label').notNull(),
+  color:  text('color').notNull().default('gray'),
+  order:  integer('order').notNull().default(0),
+  orgId:  integer('org_id').references(() => organizations.id, { onDelete: 'cascade' }),
+  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),           
 })
 
 // Task groups / prosjekter per org

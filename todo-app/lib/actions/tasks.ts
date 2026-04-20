@@ -1,7 +1,7 @@
 'use server'
 
 import { db } from '@/lib/db'
-import { tasks } from '@/lib/db/schema'
+import { tasks, statuses } from '@/lib/db/schema'
 import { auth } from '@/lib/auth/server'
 import { revalidatePath } from 'next/cache'
 import { eq, and } from 'drizzle-orm'
@@ -76,6 +76,36 @@ export async function updateTask(
   }
 }
 
-export async function updateTaskStatus(taskId: number, statusId: number) {
-  return updateTask(taskId, { statusId })
+export async function updateTaskStatus(
+  taskId: number,
+  statusLabel: string,
+  orgId?: number,
+  userId?: string
+): Promise<{ error: string } | { success: true }> {
+  try {
+    console.log('updateTaskStatus called:', { taskId, statusLabel, orgId, userId })
+
+    const status = await db.query.statuses.findFirst({
+      where: orgId
+        ? and(eq(statuses.orgId, orgId), eq(statuses.label, statusLabel))
+        : and(eq(statuses.userId, userId!), eq(statuses.label, statusLabel)),
+    })
+
+    console.log('found status:', status)
+
+    if (!status) return { error: 'Status not found' }
+
+    await db
+      .update(tasks)
+      .set({ statusId: status.id, updatedAt: new Date() })
+      .where(eq(tasks.id, taskId))
+
+    return { success: true }
+  } catch (e) {
+    console.error('updateTaskStatus error:', e)
+    return { error: e instanceof Error ? e.message : 'Something went wrong' }
+  }
 }
+
+
+

@@ -1,23 +1,15 @@
-// components/sidebar/AppSidebar.tsx
 "use client"
 
-import * as React from "react"
 import { usePathname } from "next/navigation"
+import Link from "next/link"
+
 import {
-  Sidebar, SidebarContent, SidebarHeader, SidebarMenu,
-  SidebarMenuButton, SidebarMenuItem, SidebarSeparator,
-  SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
-  SidebarMenuSub,
+  Sidebar, SidebarContent, SidebarHeader, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenuSub,
 } from "@/components/ui/sidebar"
 import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { OrgSwitcher } from "@/components/sidebar/AppSidebarOrgSwitcher"
-import {
-  ChevronRight, Folder, FolderOpen, CircleDashed,
-  CircleEllipsis, CircleCheck, Plus, FolderPlus
-} from "lucide-react"
-import Link from "next/link"
 import {
   Tooltip,
   TooltipContent,
@@ -27,20 +19,16 @@ import { Button } from "@/components/ui/button"
 import { CreateTaskButton } from "@/components/CreateTask/CreateTaskButton"
 import { CreateTaskGroupButton } from "@/components/CreateTaskGroup/CreateTaskGroupButton"
 
+import {
+  ChevronRight, Folder, FolderOpen, Plus, FolderPlus
+} from "lucide-react"
 
-import { getColor, Task, Status, TaskGroup, Org } from "@/lib/types"
-
+import { getColor, Task, TaskGroup, Org } from "@/lib/types"
 
 interface AppSidebarProps {
   personalTasks:  Task[]
   personalGroups: TaskGroup[]
   orgs:           Org[]
-}
-
-function StatusIcon({ label }: { label?: string | null }) {
-  if (label === 'Done')        return <CircleCheck    className="size-3 text-green-500 shrink-0" />
-  if (label === 'In Progress') return <CircleEllipsis className="size-3 text-blue-500 shrink-0" />
-  return                              <CircleDashed   className="size-3 text-muted-foreground shrink-0" />
 }
 
 function TaskItem({ task, href }: { task: Task; href: string }) {
@@ -55,7 +43,6 @@ function TaskItem({ task, href }: { task: Task; href: string }) {
         ${isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : ''}`}
     >
       <div className="flex items-center gap-2">
-        <StatusIcon label={task.status?.label} />
         <span className="font-medium truncate">{task.title}</span>
         {task.deadline && (
           <span className="ml-auto text-xs text-muted-foreground shrink-0">
@@ -143,7 +130,7 @@ export function AppSidebar({ personalTasks, personalGroups, orgs }: AppSidebarPr
           {activeOrg ? (
             <>
               {activeOrg.tasks.filter((t) => !t.group).map((task) => (
-                <div key={task.id} className="px-2">
+                <div key={task.id} className="px-2 pb-1">
                   <TaskItem
                     task={task}
                     href={`/org/${activeOrg.slug}/${task.slug}`}
@@ -158,21 +145,21 @@ export function AppSidebar({ personalTasks, personalGroups, orgs }: AppSidebarPr
                 />
               ))}
               {activeOrg.tasks.length === 0 && (
-                <p className="text-xs text-muted-foreground px-4 py-3">Ingen tasks</p>
+                <p className="text-xs text-muted-foreground px-4 py-3">No tasks</p>
               )}
             </>
           ) : (
             <>
               {ungroupedPersonal.map((task) => (
-                <div className="px-2">
-                  <TaskItem  key={task.id} task={task} href={`/tasks/${task.slug}`} />
+                <div key={task.id} className="px-2 pb-1">
+                  <TaskItem task={task} href={`/tasks/${task.slug}`} />
                 </div>
               ))}
               {personalGroups.map((group) => (
                 <GroupCollapsible key={group.id} group={group} baseUrl="/tasks" />
               ))}
               {personalTasks.length === 0 && (
-                <p className="text-xs text-muted-foreground px-4 py-3">Ingen tasks</p>
+                <p className="text-xs text-muted-foreground px-4 py-3">No tasks</p>
               )}
             </>
           )}

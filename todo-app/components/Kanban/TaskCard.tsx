@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { CalendarDays, MessageCircle } from 'lucide-react'
-import { type Task, TaskGroup, Comment } from "@/lib/types"
+import { type Task } from "@/lib/types"
 
 
 interface TaskCardProps {

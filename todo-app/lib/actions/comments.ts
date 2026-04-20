@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { comments } from '@/lib/db/schema'
 import { auth } from '@/lib/auth/server'
 import { revalidatePath } from 'next/cache'
+import { eq, and } from 'drizzle-orm'
 
 export async function createComment(
   _prev: { error: string } | { success: true } | null,
@@ -25,10 +26,54 @@ export async function createComment(
       userId: session.user.id,
     })
 
-    revalidatePath(`/tasks`)
+    revalidatePath('/tasks')
     return { success: true }
   } catch (e) {
     console.error('createComment feil:', e)
+    return { error: e instanceof Error ? e.message : 'Noe gikk galt' }
+  }
+}
+
+export async function updateComment(
+  commentId: number,
+  content: string
+): Promise<{ error: string } | { success: true }> {
+  try {
+    const { data: session } = await auth.getSession()
+    if (!session?.user) return { error: 'Ikke innlogget' }
+
+    await db.update(comments)
+      .set({ content, updatedAt: new Date() })
+      .where(and(
+        eq(comments.id, commentId),
+        eq(comments.userId, session.user.id)
+      ))
+
+    revalidatePath('/tasks')
+    return { success: true }
+  } catch (e) {
+    console.error('updateComment feil:', e)
+    return { error: e instanceof Error ? e.message : 'Noe gikk galt' }
+  }
+}
+
+export async function deleteComment(
+  commentId: number
+): Promise<{ error: string } | { success: true }> {
+  try {
+    const { data: session } = await auth.getSession()
+    if (!session?.user) return { error: 'Ikke innlogget' }
+
+    await db.delete(comments)
+      .where(and(
+        eq(comments.id, commentId),
+        eq(comments.userId, session.user.id)
+      ))
+
+    revalidatePath('/tasks')
+    return { success: true }
+  } catch (e) {
+    console.error('deleteComment feil:', e)
     return { error: e instanceof Error ? e.message : 'Noe gikk galt' }
   }
 }

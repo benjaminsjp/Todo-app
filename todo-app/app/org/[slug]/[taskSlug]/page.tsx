@@ -1,9 +1,8 @@
-// app/org/[slug]/[taskSlug]/page.tsx
 import { auth } from '@/lib/auth/server'
 import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
-import { organizations, organizationMembers } from '@/lib/db/schema'
-import { tasks, taskGroups } from '@/lib/db/schema'
+import { organizations, organizationMembers, tasks, taskGroups } from '@/lib/db/schema'
+import { getStatusesForOrg } from '@/lib/db/queries'
 import { and, eq } from 'drizzle-orm'
 import TaskDetails from '@/components/TaskDetails/TaskDetails'
 export const dynamic = 'force-dynamic'
@@ -54,11 +53,21 @@ export default async function OrgTaskPage({
 
   const taskGroup = task.group?.title
 
+  const statuses = await getStatusesForOrg(org.id)
+
+  const statusOptions = statuses.map((s) => ({
+    value: String(s.id),
+    label: s.label,
+    color: s.color,
+  }))
+
+
   return (
     <TaskDetails
       task={task}
       taskGroup={taskGroup}
       taskGroupOptions={taskGroupOptions}
+      statusOptions={statusOptions}
     />
   )
 }

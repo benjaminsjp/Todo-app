@@ -76,7 +76,7 @@ export default function AuthPage() {
     <div className="flex flex-col items-center justify-center min-h-screen gap-6 max-w-sm min-w-sm mx-auto px-4">
       <div className="text-center">
         <h1 className="text-3xl font-heading font-medium mb-1">
-          {isSignUp ? 'Opprett konto' : 'Logg inn'}
+          {isSignUp ? 'Create an account' : 'Login to your account'}
         </h1>
       </div>
 

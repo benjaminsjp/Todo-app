@@ -1,6 +1,6 @@
 import 'server-only'
 import { db } from '@/lib/db'
-import { tasks, taskGroups } from '@/lib/db/schema'
+import { tasks, taskGroups, statuses } from '@/lib/db/schema'
 import { eq, or, isNull, and } from 'drizzle-orm'
 
 export async function getTasksForUser(userId: string) {
@@ -29,9 +29,11 @@ export async function getTaskBySlug(slug: string, userId: string) {
   })
 }
 
-export async function getTaskGroupOptions(userId: string) {
+export async function getTaskGroupOptions(userId: string, orgId?: number | null) {
   const groups = await db.query.taskGroups.findMany({
-    where: eq(taskGroups.createdBy, userId),
+    where: orgId
+      ? eq(taskGroups.orgId, orgId)
+      : and(eq(taskGroups.createdBy, userId), isNull(taskGroups.orgId)),
   })
   return groups.map((g) => ({
     value: String(g.id),
@@ -56,5 +58,19 @@ export async function getTaskGroupsForOrg(orgId: number) {
   return db.query.taskGroups.findMany({
     where: eq(taskGroups.orgId, orgId),
     with: { tasks: true },
+  })
+}
+
+export async function getStatusesForUser(userId: string) {
+  return db.query.statuses.findMany({
+    where: eq(statuses.userId, userId),
+    orderBy: (s, { asc }) => [asc(s.order)],
+  })
+}
+
+export async function getStatusesForOrg(orgId: number) {
+  return db.query.statuses.findMany({
+    where: eq(statuses.orgId, orgId),
+    orderBy: (s, { asc }) => [asc(s.order)],
   })
 }

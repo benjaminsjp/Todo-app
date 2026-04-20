@@ -4,8 +4,8 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Providers } from "@/components/providers";
 import { AppSidebarServer } from "@/components/sidebar/AppSidebarServer";
-import { SidebarInset } from "@/components/ui/sidebar";
 import AppMenubar from "@/components/menubar";
+import { Toaster } from '@/components/ui/sonner'
 
 import { auth } from '@/lib/auth/server'
 export const dynamic = 'force-dynamic'
@@ -52,9 +52,10 @@ export default async function RootLayout({
         >
           <Providers>
             <AppSidebarServer />
-              <main className="flex flex-1 flex-col">
+              <main className="flex flex-1 flex-col overflow-hidden">
                 <AppMenubar />
                 {children}
+                <Toaster position="top-center" />
               </main>
           </Providers>
         </body>
@@ -73,7 +74,7 @@ export default async function RootLayout({
         )}
       >
         <Providers>
-            <main className="flex flex-1 flex-col">
+            <main className="flex flex-1 flex-col overflow-hidden">
               {children}
             </main>
         </Providers>

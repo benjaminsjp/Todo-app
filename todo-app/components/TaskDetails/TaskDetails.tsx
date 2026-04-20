@@ -2,39 +2,52 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import StatusSelect, { type StatusOption } from "@/components/status-select/StatusSelect"
+import { Badge } from "@/components/ui/badge"
+import { Pencil, Eye } from "lucide-react"
+import { StatusOption } from "@/lib/types"
 import Comments from "@/components/TaskComments/Comments"
 import { CreateTaskEditor } from "@/components/CreateTask/CreateTaskEditor"
 import { updateTask } from "@/lib/actions/tasks"
-import { type Task, formatDate, mapComments } from "@/lib/types"
-import { Badge } from "@/components/ui/badge"
-import { Pencil, Eye } from "lucide-react"
+import { type Task, mapComments } from "@/lib/types"
+import { useDebounce } from "@/lib/hooks/useDebounce"
+import { TaskSidebar } from "./TaskSidebar"
 
 export default function TaskDetails({
   task,
   taskGroup,
   taskGroupOptions,
+  statusOptions,
 }: {
   task:             Task
   taskGroup:        string | undefined
   taskGroupOptions: StatusOption[]
+  statusOptions:    StatusOption[]
 }) {
   const router = useRouter()
-  const [isEditing,         setIsEditing]   = useState(false)
-  const [isSaving,          setIsSaving]    = useState(false)
-  const [error,             setError]       = useState<string | null>(null)
-  const [title,             setTitle]       = useState(task.title)
-  const [description,       setDescription] = useState(task.description ?? '')
-  const [status,            setStatus]      = useState(task.status?.label ?? 'Todo')
-  const [assignedGroupId,   setGroupId]     = useState(task.groupId ? String(task.groupId) : '')
+  const [isEditing,       setIsEditing]   = useState(false)
+  const [isSaving,        setIsSaving]    = useState(false)
+  const [error,           setError]       = useState<string | null>(null)
+  const [title,           setTitle]       = useState(task.title)
+  const [description,     setDescription] = useState(task.description ?? '')
+  const [status,          setStatus]      = useState(task.status?.label ?? 'Todo')
+  const [assignedGroupId, setGroupId]     = useState(task.groupId ? String(task.groupId) : 'none')
+  const [deadline,        setDeadline]    = useState<Date | undefined>(
+    task.deadline ? new Date(task.deadline) : undefined
+  )
+
+  // Debounced save – 600ms etter siste endring
+  const debouncedUpdate = useDebounce(
+    async (data: Parameters<typeof updateTask>[1]) => {
+      await updateTask(task.id, data)
+      router.refresh()
+    },
+    600
+  )
 
   const handleSave = async () => {
     setIsSaving(true)
     setError(null)
-
     const result = await updateTask(task.id, { title, description })
-
     setIsSaving(false)
     if ('error' in result) { setError(result.error); return }
     setIsEditing(false)
@@ -48,18 +61,23 @@ export default function TaskDetails({
     setError(null)
   }
 
-  const handleStatusChange = async (newStatus: string) => {
+  const handleStatusChange = (newStatus: string) => {
     setStatus(newStatus)
-    const statusOption = taskGroupOptions.find((o) => o.value === newStatus)
-    if (statusOption) {
-      await updateTask(task.id, { statusId: Number(statusOption.value) })
-    }
+    const match = statusOptions.find((o) => o.label === newStatus)
+    if (match) debouncedUpdate({ statusId: Number(match.value) })
   }
 
-  const handleGroupChange = async (newGroupId: string) => {
+  const handleGroupChange = (newGroupId: string) => {
     setGroupId(newGroupId)
-    await updateTask(task.id, { groupId: newGroupId ? Number(newGroupId) : null })
+    debouncedUpdate({ groupId: newGroupId === 'none' ? null : Number(newGroupId) })
   }
+
+  const handleDeadlineChange = (date: Date | undefined) => {
+    setDeadline(date)
+    debouncedUpdate({ deadline: date ? date.toISOString().split('T')[0] : null })
+  }
+
+
 
   return (
     <div className="flex flex-1 flex-col">
@@ -89,7 +107,7 @@ export default function TaskDetails({
                   dangerouslySetInnerHTML={{ __html: description }}
                 />
               ) : (
-                <p className="text-muted-foreground text-sm italic">Ingen beskrivelse enda.</p>
+                <p className="text-muted-foreground text-sm italic">No description yet.</p>
               )}
               <Comments taskId={task.id} comments={mapComments(task.comments)} />
             </>
@@ -100,55 +118,25 @@ export default function TaskDetails({
               {error}
             </p>
           )}
-
         </div>
 
         {/* Sidebar */}
-        <div className="flex flex-col gap-4 min-w-sm max-w-lg border-l px-8 py-12">
-          <div className="flex gap-3 items-center">
-            {isEditing ? (
-              <>
-                <Button variant="brand" onClick={handleSave} disabled={isSaving}>
-                  {isSaving ? 'Lagrer...' : 'Lagre'}
-                </Button>
-                <Button variant="ghost" onClick={handleCancel} disabled={isSaving}>
-                  Avbryt
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button variant="secondary" onClick={() => setIsEditing(true)}>
-                  Rediger
-                </Button>
-                <span className="text-sm font-medium text-muted-foreground">
-                  Sist redigert: {formatDate(task.updatedAt)}
-                </span>
-              </>
-            )}
-          </div>
-
-          <div className="flex items-center">
-            <span className="w-1/2">Status:</span>
-            <StatusSelect className="text-base" value={status} onChange={handleStatusChange} />
-          </div>
-          <div className="flex items-center">
-            <span className="w-1/2">Opprettet:</span>
-            <p>{formatDate(task.createdAt)}</p>
-          </div>
-          <div className="flex items-center">
-            <span className="w-1/2">Deadline:</span>
-            <p>{task.deadline ?? '–'}</p>
-          </div>
-          <div className="flex items-center">
-            <span className="w-1/2">Group:</span>
-            <StatusSelect
-              className="text-base"
-              value={assignedGroupId}
-              onChange={handleGroupChange}
-              options={taskGroupOptions}
-            />
-          </div>
-        </div>
+        <TaskSidebar
+          mode={isEditing ? 'edit' : 'view'}
+          status={status}
+          deadline={deadline}
+          groupId={assignedGroupId}
+          createdAt={task.createdAt}
+          updatedAt={task.updatedAt}
+          statusOptions={taskGroupOptions}
+          taskGroupOptions={taskGroupOptions}
+          onStatusChange={handleStatusChange}
+          onDeadlineChange={handleDeadlineChange}
+          onGroupChange={handleGroupChange}
+          onSave={isEditing ? handleSave : () => setIsEditing(true)}
+          onCancel={handleCancel}
+          isSaving={isSaving}
+        />
       </div>
     </div>
   )

@@ -1,4 +1,3 @@
-// components/sidebar/AppSidebarServer.tsx
 import { auth } from '@/lib/auth/server'
 import { db } from '@/lib/db'
 import { organizationMembers, taskGroups, tasks } from '@/lib/db/schema'
@@ -11,7 +10,6 @@ export async function AppSidebarServer() {
 
   const userId = session.user.id
 
-  // Personal tasks and groups
   const [personalTasks, personalGroups, memberships] = await Promise.all([
     db.query.tasks.findMany({
         where: and(eq(tasks.createdBy, userId), isNull(tasks.orgId)),
@@ -30,7 +28,6 @@ export async function AppSidebarServer() {
     }),
   ])
 
-  // Fetch tasks and groups for each org
   const orgs = await Promise.all(
     memberships.map(async (m) => {
       const [orgTasks, orgGroups] = await Promise.all([

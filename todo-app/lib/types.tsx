@@ -19,7 +19,9 @@ export type Status = {
   id:    number
   label: string
   color: string
+  order: number
 }
+
 
 export type TaskGroup = {
   id:        number
@@ -91,4 +93,16 @@ export const colorMap: Record<string, { bg: string; border: string; text: string
 
 export function getColor(bg: string) {
   return colorMap[bg] ?? colorMap['bg-gray-500']
+}
+
+export type StatusOption = {
+  value: string
+  label: string
+  color: string
+}
+export type StatusSelectProps = {
+  value: string
+  onChange: (value: string) => void
+  options?: StatusOption[]
+  className?: string
 }

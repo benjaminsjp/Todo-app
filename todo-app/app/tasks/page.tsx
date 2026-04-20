@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { getTasksForUser, getTaskGroupsForUser } from '@/lib/db/queries'
 import { KanbanBoard } from '@/components/Kanban/KanbanBoard'
 import { CreateTaskButton } from '@/components/CreateTask/CreateTaskButton'
+import { getStatusesForUser } from '@/lib/db/queries'
 
 export const metadata: Metadata = { title: "Tasks | På'n" }
 export const dynamic = 'force-dynamic'
@@ -12,9 +13,10 @@ export default async function Page() {
   const { data: session } = await auth.getSession()
   if (!session?.user) redirect('/auth/sign-in')
 
-  const [tasks, taskGroups] = await Promise.all([
+  const [tasks, taskGroups, statuses] = await Promise.all([
     getTasksForUser(session.user.id),
     getTaskGroupsForUser(session.user.id),
+    getStatusesForUser(session.user.id),
   ])
 
   return (
@@ -24,7 +26,7 @@ export default async function Page() {
           <h1 className="text-5xl font-medium font-heading text-heading-strong">Tasks</h1>
           <CreateTaskButton />
         </div>
-        <KanbanBoard tasks={tasks} taskGroups={taskGroups} />
+        <KanbanBoard tasks={tasks} taskGroups={taskGroups} statuses={statuses} userId={session.user.id} />
       </div>
 
       

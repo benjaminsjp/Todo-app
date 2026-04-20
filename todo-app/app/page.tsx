@@ -1,13 +1,15 @@
 import { Metadata } from 'next'
 import { TasksWidget } from '@/components/Dashboard/TasksWidget'
 import { PlaceholderWidget } from '@/components/Dashboard/PlaceholderWidget'
-import { NotebookPen, Calendar, BarChart2 } from 'lucide-react'
+import { NotebookPen, Calendar } from 'lucide-react'
 import { auth } from '@/lib/auth/server'
 import Link from 'next/link'
+
 export const metadata: Metadata = {
   title: "På'n – Få fart på oppgavelisten din",
   description: 'Planlegg og fullfør oppgaver effektivt med På\'n.',
 }
+
 import { syncUser } from '@/lib/db/users'
 import { Button } from '@/components/ui/button'
 
@@ -15,8 +17,7 @@ import { Button } from '@/components/ui/button'
 export const dynamic = 'force-dynamic'
 
 export default async function Home() {
-
-
+  
   let session = null
   try {
     const result = await auth.getSession()

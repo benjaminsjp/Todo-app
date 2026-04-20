@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/tooltip"
 import Link from "next/link"
 
-import { Group, Plus, Kanban, FolderPlus } from "lucide-react"
+import { Plus, FolderPlus } from "lucide-react"
 
 export function AddNewTask() {
   return (

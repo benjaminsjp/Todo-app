@@ -1,19 +1,8 @@
 "use client"
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { StatusOption, StatusSelectProps } from "@/lib/types"
 
-export type StatusOption = {
-  value: string
-  label: string
-  color: string
-}
-
-type StatusSelectProps = {
-  value: string
-  onChange: (value: string) => void
-  options?: StatusOption[]
-  className?: string
-}
 
 export const DEFAULT_STATUS_OPTIONS: StatusOption[] = [
   { value: "Todo",        label: "Todo",        color: "bg-muted-foreground"   },

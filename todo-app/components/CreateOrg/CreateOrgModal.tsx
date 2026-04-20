@@ -3,7 +3,7 @@
 
 import { useActionState } from 'react'
 import { createOrganization } from '@/lib/actions/orgs'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -18,14 +18,17 @@ export function CreateOrgModal({ open, onClose }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-sm gap-2">
         <DialogHeader>
-          <DialogTitle>Ny organisasjon</DialogTitle>
+          <DialogTitle>New organization</DialogTitle>
         </DialogHeader>
+        <DialogDescription className='mb-4'>
+          Create a new organization to manage your tasks.
+        </DialogDescription>
         <form action={action} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="name">Navn *</Label>
-            <Input id="name" name="name" placeholder="F.eks. Acme AS" required />
+            <Label htmlFor="name">Name *</Label>
+            <Input id="name" name="name" placeholder="Organization name" required />
           </div>
 
           {state?.error && (
@@ -33,9 +36,9 @@ export function CreateOrgModal({ open, onClose }: Props) {
           )}
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={onClose}>Avbryt</Button>
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
             <Button type="submit" disabled={isPending}>
-              {isPending ? 'Oppretter...' : 'Opprett organisasjon'}
+              {isPending ? 'Creating...' : 'Create Organization'}
             </Button>
           </div>
         </form>

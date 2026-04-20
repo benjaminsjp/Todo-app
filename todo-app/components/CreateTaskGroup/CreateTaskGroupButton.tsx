@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
-import { CreateTaskGroupModal } from './CreateTaskGroupModal'
+import { TaskGroupModal } from './TaskGroupModal'
 
 export function CreateTaskGroupButton({ orgId, children }: { orgId?: number; children?: React.ReactNode }) {
   const [open, setOpen] = useState(false)
@@ -19,7 +19,7 @@ export function CreateTaskGroupButton({ orgId, children }: { orgId?: number; chi
           {children}
         </div>
       )}
-      <CreateTaskGroupModal open={open} onClose={() => setOpen(false)} orgId={orgId} />
+      <TaskGroupModal open={open} onClose={() => setOpen(false)} orgId={orgId} />
     </>
   )
 }

@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
 import { organizations, organizationMembers } from '@/lib/db/schema'
 import { and, eq } from 'drizzle-orm'
-import { getTasksForOrg, getTaskGroupsForOrg } from '@/lib/db/queries'
+import { getTasksForOrg, getTaskGroupsForOrg, getStatusesForOrg } from '@/lib/db/queries'
 import { KanbanBoard } from '@/components/Kanban/KanbanBoard'
 import { CreateTaskButton } from '@/components/CreateTask/CreateTaskButton'
 
@@ -32,9 +32,10 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
     })
     if (!membership) redirect('/tasks')
 
-    const [tasks, taskGroups] = await Promise.all([
-        getTasksForOrg(org.id),
-        getTaskGroupsForOrg(org.id),
+    const [tasks, taskGroups, statuses] = await Promise.all([
+    getTasksForOrg(org.id),
+    getTaskGroupsForOrg(org.id),
+    getStatusesForOrg(org.id),
     ])
 
     return (
@@ -46,7 +47,7 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
             </h1>
             <CreateTaskButton orgId={org.id} />
             </div>
-            <KanbanBoard tasks={tasks} taskGroups={taskGroups} orgSlug={org.slug} orgId={org.id} />
+            <KanbanBoard tasks={tasks} taskGroups={taskGroups} statuses={statuses} orgSlug={org.slug} orgId={org.id} />
         </div>
         </div>
     )
