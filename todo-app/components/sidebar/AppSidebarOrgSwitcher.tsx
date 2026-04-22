@@ -29,8 +29,8 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
         <SidebarMenuItem>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <SidebarMenuButton className="w-fit h-fit px-1.5">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
+              <SidebarMenuButton className="w-fit h-fit p-2">
+                <div className="flex aspect-square size-8 items-center justify-center rounded-sm bg-primary text-primary-foreground">
                   <Building2 className="size-3" />
                 </div>
                 <span className="truncate font-medium">

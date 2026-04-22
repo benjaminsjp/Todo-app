@@ -1,13 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Outfit, Noto_Serif } from "next/font/google";
-import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Providers } from "@/components/providers";
-import { AppSidebarServer } from "@/components/sidebar/AppSidebarServer";
-import AppMenubar from "@/components/menubar";
-import { Toaster } from '@/components/ui/sonner'
+import './globals.css'
 
-import { auth } from '@/lib/auth/server'
 export const dynamic = 'force-dynamic'
 
 const notoSerifHeading = Noto_Serif({subsets:['latin'],variable:'--font-heading'});
@@ -29,54 +25,13 @@ export const metadata: Metadata = {
   description: "A simple TODO app built with Next.js 13 and styled with Tailwind CSS. Features include adding, editing, and deleting tasks, as well as a dark mode toggle for a better user experience.",
 };
 
-export default async function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
 
-  
-  const { data: session } = await auth.getSession()
-
-  if (session?.user) {
-    return (
-      <html lang="en" suppressHydrationWarning>
-        <body
-          className={cn(
-            "min-h-screen flex flex-col antialiased font-sans",
-            outfit.variable,
-            notoSerifHeading.variable,
-            geistSans.variable,
-            geistMono.variable
-          )}
-        >
-          <Providers>
-            <AppSidebarServer />
-              <main className="flex flex-1 flex-col overflow-hidden">
-                <AppMenubar />
-                {children}
-                <Toaster position="top-center" />
-              </main>
-          </Providers>
-        </body>
-      </html>
-    );
-  }
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={cn(
-          "min-h-screen flex flex-col antialiased font-sans",
-          outfit.variable,
-          notoSerifHeading.variable,
-          geistSans.variable,
-          geistMono.variable
-        )}
-      >
+    <html lang="en" suppressHydrationWarning className={cn(geistSans.variable, geistMono.variable, outfit.variable, notoSerifHeading.variable)}>
+      <body className={cn('min-h-screen flex flex-col antialiased font-sans')}>
         <Providers>
-            <main className="flex flex-1 flex-col overflow-hidden">
-              {children}
-            </main>
+            {children}
         </Providers>
       </body>
     </html>

@@ -68,6 +68,8 @@ export default async function OrgTaskPage({
       taskGroup={taskGroup}
       taskGroupOptions={taskGroupOptions}
       statusOptions={statusOptions}
+      statuses={statuses}
+
     />
   )
 }

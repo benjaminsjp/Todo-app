@@ -2,28 +2,37 @@
 
 import { usePathname } from "next/navigation"
 import Link from "next/link"
+import { useState } from "react"
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  useDroppable,
+  useDraggable,
+} from '@dnd-kit/core'
+import { CSS } from '@dnd-kit/utilities'
+import { toast } from 'sonner'
 
 import {
-  Sidebar, SidebarContent, SidebarHeader, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenuSub,
+  Sidebar, SidebarContent, SidebarHeader, SidebarGroup,
+  SidebarGroupContent, SidebarGroupLabel, SidebarMenuSub,
 } from "@/components/ui/sidebar"
 import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { OrgSwitcher } from "@/components/sidebar/AppSidebarOrgSwitcher"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Button } from "@/components/ui/button"
 import { CreateTaskButton } from "@/components/CreateTask/CreateTaskButton"
 import { CreateTaskGroupButton } from "@/components/CreateTaskGroup/CreateTaskGroupButton"
-
-import {
-  ChevronRight, Folder, FolderOpen, Plus, FolderPlus
-} from "lucide-react"
-
+import { ChevronRight, Folder, FolderOpen, Plus, FolderPlus, GripVertical } from "lucide-react"
 import { getColor, Task, TaskGroup, Org } from "@/lib/types"
+import { updateTaskGroup } from "@/lib/actions/tasks"
+import { cn } from "@/lib/utils"
 
 interface AppSidebarProps {
   personalTasks:  Task[]
@@ -35,36 +44,80 @@ function TaskItem({ task, href }: { task: Task; href: string }) {
   const pathname = usePathname()
   const isActive = pathname === href
 
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id:   `task-${task.id}`,
+    data: { taskId: task.id, groupId: task.groupId },
+  })
+
+  const style = transform ? {
+    transform: CSS.Translate.toString(transform),
+    zIndex: 50,
+  } : undefined
+
   return (
-    <Link
-      href={href}
-      className={`flex flex-col gap-1 rounded-xl px-4 py-3 text-sm last:border-b-0
-        hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors
-        ${isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : ''}`}
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className={cn(isDragging && 'opacity-40', 'cursor-grab active:cursor-grabbing')}
     >
-      <div className="flex items-center gap-2">
+      <Link
+        href={href}
+        onClick={(e) => isDragging && e.preventDefault()}
+        className={cn(
+          'flex items-center gap-2 rounded-xl px-4 py-3 text-sm transition-colors',
+          'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+          isActive && 'bg-sidebar-accent text-sidebar-accent-foreground'
+        )}
+      >
         <span className="font-medium truncate">{task.title}</span>
         {task.deadline && (
           <span className="ml-auto text-xs text-muted-foreground shrink-0">
             {task.deadline}
           </span>
         )}
-      </div>
-    </Link>
+      </Link>
+    </div>
   )
 }
 
-function GroupCollapsible({ group, baseUrl }: { group: TaskGroup; baseUrl: string }) {
+function GroupCollapsible({
+  group,
+  baseUrl,
+  isOver,
+}: {
+  group:   TaskGroup
+  baseUrl: string
+  isOver:  boolean
+}) {
+  const { setNodeRef } = useDroppable({
+    id:   `group-${group.id}`,
+    data: { groupId: group.id },
+  })
+
   return (
     <Collapsible className="group/collapsible">
-      <SidebarGroup className={`py-0 px-2 border-l-2 ${getColor(group.color).border}`}>
+      <SidebarGroup
+        ref={setNodeRef}
+        className={cn(
+          'py-0 px-2 border-l-2 transition-colors',
+          getColor(group.color).border,
+          isOver && 'bg-sidebar-accent/50'
+        )}
+      >
         <SidebarGroupLabel
           asChild
-          className="w-full text-sm cursor-pointer py-4 px-3 h-auto hover:bg-sidebar-accent group-data-[state=open]/collapsible:bg-sidebar-accent group-data-[state=open]/collapsible:text-sidebar-accent-foreground"
+          className={cn(
+            'w-full text-sm cursor-pointer py-4 px-3 h-auto transition-colors',
+            'hover:bg-sidebar-accent group-data-[state=open]/collapsible:bg-sidebar-accent',
+            'group-data-[state=open]/collapsible:text-sidebar-accent-foreground',
+            isOver && 'bg-sidebar-accent text-sidebar-accent-foreground'
+          )}
         >
           <CollapsibleTrigger>
-            <FolderOpen className={`mr-2 size-4 hidden group-data-[state=open]/collapsible:block ${getColor(group.color).text}`} />
-            <Folder     className={`mr-2 size-4 group-data-[state=open]/collapsible:hidden`} />
+            <FolderOpen className={cn('mr-2 size-4 hidden group-data-[state=open]/collapsible:block', getColor(group.color).text)} />
+            <Folder     className={cn("mr-2 size-4 group-data-[state=open]/collapsible:hidden", isOver && getColor(group.color).text)} />
             <span className="truncate">{group.title}</span>
             <span className="ml-auto text-xs text-muted-foreground mr-2">
               {group.tasks?.length}
@@ -74,9 +127,14 @@ function GroupCollapsible({ group, baseUrl }: { group: TaskGroup; baseUrl: strin
         </SidebarGroupLabel>
         <CollapsibleContent>
           <SidebarMenuSub className="my-2">
-            <SidebarGroupContent >
+            <SidebarGroupContent>
               {group.tasks?.length === 0 ? (
-                <p className="text-xs text-muted-foreground px-4 py-3">Ingen tasks</p>
+                <p className={cn(
+                  'text-xs px-4 py-3 rounded-lg transition-colors',
+                  isOver ? 'text-foreground bg-sidebar-accent' : 'text-muted-foreground'
+                )}>
+                  {isOver ? 'Drop here' : 'No tasks'}
+                </p>
               ) : (
                 group.tasks?.map((task) => (
                   <TaskItem key={task.id} task={task} href={`${baseUrl}/${task.slug}`} />
@@ -90,26 +148,179 @@ function GroupCollapsible({ group, baseUrl }: { group: TaskGroup; baseUrl: strin
   )
 }
 
-export function AppSidebar({ personalTasks, personalGroups, orgs }: AppSidebarProps) {
-  const pathname = usePathname()
-  const currentOrgSlug = pathname.startsWith('/org/')
-    ? pathname.split('/')[2]
-    : undefined
-
-  const activeOrg = orgs.find((o) => o.slug === currentOrgSlug) ?? null
-  const ungroupedPersonal = personalTasks.filter((t) => !t.group)
+function UngroupedZone({
+  tasks,
+  baseUrl,
+  isOver,
+}: {
+  tasks:   Task[]
+  baseUrl: string
+  isOver:  boolean
+}) {
+  const { setNodeRef } = useDroppable({
+    id:   'ungrouped',
+    data: { groupId: null },
+  })
 
   return (
-     <Sidebar collapsible="icon" className="overflow-hidden *:data-[sidebar=sidebar]:flex-row">
+    <div
+      ref={setNodeRef}
+      className={cn(
+        'rounded-xl transition-colors mx-2',
+        isOver && 'bg-sidebar-accent/50 ring-1 ring-dashed ring-border'
+      )}
+    >
+      {tasks.map((task) => (
+        <TaskItem key={task.id} task={task} href={`${baseUrl}/${task.slug}`} />
+      ))}
+      {isOver && tasks.length === 0 && (
+        <p className="text-xs text-foreground bg-sidebar-accent px-4 py-3 rounded-lg">
+          Drop here to ungroup
+        </p>
+      )}
+    </div>
+  )
+}
+
+function SidebarDndContent({
+  ungroupedTasks,
+  groups,
+  baseUrl,
+  orgId,
+}: {
+  ungroupedTasks: Task[]
+  groups:         TaskGroup[]
+  baseUrl:        string
+  orgId?:         number
+}) {
+  const [localTasks,  setLocalTasks]  = useState(ungroupedTasks)
+  const [localGroups, setLocalGroups] = useState(groups)
+  const [activeTask,  setActiveTask]  = useState<Task | null>(null)
+  const [overId,      setOverId]      = useState<string | null>(null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  )
+
+  const handleDragStart = ({ active }: DragStartEvent) => {
+    const taskId = active.data.current?.taskId as number
+    const task =
+      localTasks.find((t) => t.id === taskId) ??
+      localGroups.flatMap((g) => g.tasks ?? []).find((t) => t.id === taskId) ??
+      null
+    setActiveTask(task)
+  }
+
+  const handleDragOver = ({ over }: { over: any }) => {
+    setOverId(over?.id ?? null)
+  }
+
+  const handleDragEnd = async ({ active, over }: DragEndEvent) => {
+    setActiveTask(null)
+    setOverId(null)
+    if (!over) return
+
+    const taskId      = active.data.current?.taskId    as number
+    const fromGroupId = active.data.current?.groupId   as number | null
+    const toGroupId   = over.data.current?.groupId     as number | null | undefined
+
+    if (fromGroupId === toGroupId) return
+    if (toGroupId === undefined)   return
+
+    setLocalTasks((prev) => {
+      if (toGroupId === null) {
+        const task = localGroups.flatMap((g) => g.tasks ?? []).find((t) => t.id === taskId)
+        if (task) return [...prev, { ...task, groupId: null, group: null }]
+        return prev
+      }
+      return prev.filter((t) => t.id !== taskId)
+    })
+
+    setLocalGroups((prev) =>
+      prev.map((g) => {
+        if (g.id === fromGroupId) {
+          return { ...g, tasks: (g.tasks ?? []).filter((t) => t.id !== taskId) }
+        }
+        if (g.id === toGroupId) {
+          const task =
+            localTasks.find((t) => t.id === taskId) ??
+            prev.flatMap((g) => g.tasks ?? []).find((t) => t.id === taskId)
+          if (task) return { ...g, tasks: [...(g.tasks ?? []), { ...task, groupId: toGroupId }] }
+        }
+        return g
+      })
+    )
+
+    const result = await updateTaskGroup(taskId, toGroupId)
+    if ('error' in result) {
+      toast.error('Failed to move task')
+      setLocalTasks(ungroupedTasks)
+      setLocalGroups(groups)
+    }
+  }
+
+  return (
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
+    >
+      <UngroupedZone
+        tasks={localTasks}
+        baseUrl={baseUrl}
+        isOver={overId === 'ungrouped'}
+      />
+
+      {localGroups.map((group) => (
+        <GroupCollapsible
+          key={group.id}
+          group={group}
+          baseUrl={baseUrl}
+          isOver={overId === `group-${group.id}`}
+        />
+      ))}
+
+      {localGroups.length === 0 && localTasks.length === 0 && (
+        <p className="text-xs text-muted-foreground px-4 py-3">No tasks</p>
+      )}
+
+      <DragOverlay>
+        {activeTask && (
+          <div className="rounded-xl px-4 py-3 text-sm bg-sidebar-accent shadow-lg border border-border opacity-95 flex items-center gap-2">
+            <span className="font-medium truncate">{activeTask.title}</span>
+            {activeTask.deadline && (
+              <span className="ml-auto text-xs text-muted-foreground shrink-0">
+                {activeTask.deadline}
+              </span>
+            )}
+          </div>
+        )}
+      </DragOverlay>
+    </DndContext>
+  )
+}
+
+export function AppSidebar({ personalTasks, personalGroups, orgs }: AppSidebarProps) {
+  const pathname       = usePathname()
+  const currentOrgSlug = pathname.startsWith('/org/') ? pathname.split('/')[2] : undefined
+  const activeOrg      = orgs.find((o) => o.slug === currentOrgSlug) ?? null
+
+  const ungroupedPersonal = personalTasks.filter((t) => !t.group)
+
+  const baseUrl      = activeOrg ? `/org/${activeOrg.slug}` : '/tasks'
+  const ungrouped    = activeOrg ? activeOrg.tasks.filter((t) => !t.group) : ungroupedPersonal
+  const groups       = activeOrg ? activeOrg.groups : personalGroups
+
+  return (
+    <Sidebar collapsible="icon" className="overflow-hidden *:data-[sidebar=sidebar]:flex-row">
       <Sidebar collapsible="none" className="hidden flex-1 md:flex">
         <SidebarHeader className="gap-1 p-4 border-b flex flex-row items-center">
           <OrgSwitcher orgs={orgs} />
           <CreateTaskButton orgId={activeOrg?.id}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="default" size="sm">
-                  <Plus />New task
-                </Button>
+                <Button variant="default" size="sm"><Plus />New task</Button>
               </TooltipTrigger>
               <TooltipContent><p>Create a new task</p></TooltipContent>
             </Tooltip>
@@ -117,9 +328,7 @@ export function AppSidebar({ personalTasks, personalGroups, orgs }: AppSidebarPr
           <CreateTaskGroupButton orgId={activeOrg?.id}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="default" size="icon-sm">
-                  <FolderPlus />
-                </Button>
+                <Button variant="default" size="icon-sm"><FolderPlus /></Button>
               </TooltipTrigger>
               <TooltipContent><p>Create a new group</p></TooltipContent>
             </Tooltip>
@@ -127,42 +336,13 @@ export function AppSidebar({ personalTasks, personalGroups, orgs }: AppSidebarPr
         </SidebarHeader>
 
         <SidebarContent className="pt-3 gap-0">
-          {activeOrg ? (
-            <>
-              {activeOrg.tasks.filter((t) => !t.group).map((task) => (
-                <div key={task.id} className="px-2 pb-1">
-                  <TaskItem
-                    task={task}
-                    href={`/org/${activeOrg.slug}/${task.slug}`}
-                  />
-                </div>
-              ))}
-              {activeOrg.groups.map((group) => (
-                <GroupCollapsible
-                  key={group.id}
-                  group={group}
-                  baseUrl={`/org/${activeOrg.slug}`}
-                />
-              ))}
-              {activeOrg.tasks.length === 0 && (
-                <p className="text-xs text-muted-foreground px-4 py-3">No tasks</p>
-              )}
-            </>
-          ) : (
-            <>
-              {ungroupedPersonal.map((task) => (
-                <div key={task.id} className="px-2 pb-1">
-                  <TaskItem task={task} href={`/tasks/${task.slug}`} />
-                </div>
-              ))}
-              {personalGroups.map((group) => (
-                <GroupCollapsible key={group.id} group={group} baseUrl="/tasks" />
-              ))}
-              {personalTasks.length === 0 && (
-                <p className="text-xs text-muted-foreground px-4 py-3">No tasks</p>
-              )}
-            </>
-          )}
+          <SidebarDndContent
+            key={activeOrg?.id ?? 'personal'}
+            ungroupedTasks={ungrouped}
+            groups={groups}
+            baseUrl={baseUrl}
+            orgId={activeOrg?.id}
+          />
         </SidebarContent>
       </Sidebar>
     </Sidebar>

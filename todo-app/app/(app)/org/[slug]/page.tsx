@@ -8,6 +8,9 @@ import { and, eq } from 'drizzle-orm'
 import { getTasksForOrg, getTaskGroupsForOrg, getStatusesForOrg } from '@/lib/db/queries'
 import { KanbanBoard } from '@/components/Kanban/KanbanBoard'
 import { CreateTaskButton } from '@/components/CreateTask/CreateTaskButton'
+import { Settings } from 'lucide-react'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
 
 export const metadata: Metadata = { title: "Org | På'n" }
 export const dynamic = 'force-dynamic'
@@ -23,7 +26,6 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
     })
     if (!org) redirect('/tasks')
 
-    // Verify user is a member
     const membership = await db.query.organizationMembers.findFirst({
         where: and(
         eq(organizationMembers.orgId, org.id),
@@ -41,11 +43,24 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
     return (
         <div className="flex flex-1 flex-col">
         <div className="container mx-auto flex-1 flex flex-col px-8 py-12">
-            <div className="flex items-center justify-between mb-8">
-            <h1 className="text-5xl font-medium font-heading text-heading-strong">
-                {org.name}
-            </h1>
-            <CreateTaskButton orgId={org.id} />
+            
+            {['owner', 'admin'].includes(membership.role) && (
+                <div className='mb-6 gap-4 flex items-center'>
+                    <CreateTaskButton orgId={org.id} />
+                    <Button variant="secondary" asChild>
+                        <Link href={`/org/${org.slug}/settings`}>
+                        <Settings className="size-4" /> Manage organization
+                        </Link>
+                    </Button>
+                </div>
+            )}
+            <div className="flex items-center mb-8 gap-3">
+                <h1 className="text-5xl font-medium font-heading text-heading-strong">
+                    {org.name}
+                </h1>
+                <div className='ml-auto'>
+                    
+                </div>
             </div>
             <KanbanBoard tasks={tasks} taskGroups={taskGroups} statuses={statuses} orgSlug={org.slug} orgId={org.id} />
         </div>

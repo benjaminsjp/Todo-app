@@ -1,62 +1,32 @@
 import { auth } from '@/lib/auth/server'
-import { db } from '@/lib/db'
-import { organizationMembers, taskGroups, tasks } from '@/lib/db/schema'
-import { and, eq, isNull } from 'drizzle-orm'
 import { AppSidebar } from './AppSidebar'
+import {
+  getPersonalTasksForSidebar,
+  getPersonalGroupsForSidebar,
+  getOrgsForSidebar,
+} from '@/lib/db/queries'
 
 export async function AppSidebarServer() {
-  const { data: session } = await auth.getSession()
-  if (!session?.user) return null
+  try {
+    const { data: session } = await auth.getSession()
+    if (!session?.user) return null
 
-  const userId = session.user.id
+    const userId = session.user.id
 
-  const [personalTasks, personalGroups, memberships] = await Promise.all([
-    db.query.tasks.findMany({
-        where: and(eq(tasks.createdBy, userId), isNull(tasks.orgId)),
-        with: { group: true, status: true },
-        orderBy: (tasks, { desc }) => [desc(tasks.createdAt)],
-    }),
-    db.query.taskGroups.findMany({
-        where: and(eq(taskGroups.createdBy, userId), isNull(taskGroups.orgId)),
-        with: { tasks: { with: { status: true } } },
-    }),
-    db.query.organizationMembers.findMany({
-      where: eq(organizationMembers.userId, userId),
-      with: {
-        org: true,
-      },
-    }),
-  ])
+    const [personalTasks, personalGroups, orgs] = await Promise.all([
+      getPersonalTasksForSidebar(userId),
+      getPersonalGroupsForSidebar(userId),
+      getOrgsForSidebar(userId),
+    ])
 
-  const orgs = await Promise.all(
-    memberships.map(async (m) => {
-      const [orgTasks, orgGroups] = await Promise.all([
-        db.query.tasks.findMany({
-          where: eq(tasks.orgId, m.org.id),
-          with: { group: true, status: true },
-          orderBy: (tasks, { desc }) => [desc(tasks.createdAt)],
-        }),
-        db.query.taskGroups.findMany({
-          where: eq(taskGroups.orgId, m.org.id),
-          with: { tasks: { with: { status: true } } },
-        }),
-      ])
-
-      return {
-        id:     m.org.id,
-        name:   m.org.name,
-        slug:   m.org.slug,
-        tasks:  orgTasks,
-        groups: orgGroups,
-      }
-    })
-  )
-
-  return (
-    <AppSidebar
-      personalTasks={personalTasks}
-      personalGroups={personalGroups}
-      orgs={orgs}
-    />
-  )
+    return (
+      <AppSidebar
+        personalTasks={personalTasks}
+        personalGroups={personalGroups}
+        orgs={orgs}
+      />
+    )
+  } catch {
+    return null
+  }
 }

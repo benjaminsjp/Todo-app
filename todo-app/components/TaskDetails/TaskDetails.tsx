@@ -8,7 +8,7 @@ import { StatusOption } from "@/lib/types"
 import Comments from "@/components/TaskComments/Comments"
 import { CreateTaskEditor } from "@/components/CreateTask/CreateTaskEditor"
 import { updateTask } from "@/lib/actions/tasks"
-import { type Task, mapComments } from "@/lib/types"
+import { type Task, mapComments, Status } from "@/lib/types"
 import { useDebounce } from "@/lib/hooks/useDebounce"
 import { TaskSidebar } from "./TaskSidebar"
 
@@ -17,11 +17,13 @@ export default function TaskDetails({
   taskGroup,
   taskGroupOptions,
   statusOptions,
+  statuses,
 }: {
   task:             Task
   taskGroup:        string | undefined
   taskGroupOptions: StatusOption[]
   statusOptions:    StatusOption[]
+  statuses:         Status[]
 }) {
   const router = useRouter()
   const [isEditing,       setIsEditing]   = useState(false)
@@ -63,8 +65,8 @@ export default function TaskDetails({
 
   const handleStatusChange = (newStatus: string) => {
     setStatus(newStatus)
-    const match = statusOptions.find((o) => o.label === newStatus)
-    if (match) debouncedUpdate({ statusId: Number(match.value) })
+    const match = statuses.find((s) => s.label === newStatus)
+    if (match) debouncedUpdate({ statusId: match.id })
   }
 
   const handleGroupChange = (newGroupId: string) => {
@@ -129,6 +131,7 @@ export default function TaskDetails({
           createdAt={task.createdAt}
           updatedAt={task.updatedAt}
           statusOptions={taskGroupOptions}
+          statuses={statuses}
           taskGroupOptions={taskGroupOptions}
           onStatusChange={handleStatusChange}
           onDeadlineChange={handleDeadlineChange}

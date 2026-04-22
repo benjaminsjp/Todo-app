@@ -1,27 +1,24 @@
 // lib/db/schema.ts
 import { pgTable, serial, text, timestamp, integer, boolean, pgEnum } from 'drizzle-orm/pg-core'
 
-// Synkronisert automatisk fra Neon Auth
 export const users = pgTable('users', {
-  id:          text('id').primaryKey(),       // Stack Auth sin user ID
+  id:          text('id').primaryKey(), 
   email:       text('email').notNull().unique(),
   displayName: text('display_name'),
   avatarUrl:   text('avatar_url'),
   createdAt:   timestamp('created_at').defaultNow(),
 })
 
-// Organisasjoner / workspaces
 export const organizations = pgTable('organizations', {
   id:        serial('id').primaryKey(),
   name:      text('name').notNull(),
-  slug:      text('slug').notNull().unique(),  // på-n.app/org/mitt-firma
+  slug:      text('slug').notNull().unique(),
   avatarUrl: text('avatar_url'),
   createdAt: timestamp('created_at').defaultNow(),
 })
 
 export const orgRoleEnum = pgEnum('org_role', ['owner', 'admin', 'member', 'viewer'])
 
-// Medlemskap – hvem er med i hvilken org og med hvilken rolle
 export const organizationMembers = pgTable('organization_members', {
   id:        serial('id').primaryKey(),
   orgId:     integer('org_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
@@ -30,7 +27,6 @@ export const organizationMembers = pgTable('organization_members', {
   joinedAt:  timestamp('joined_at').defaultNow(),
 })
 
-// Invitasjoner
 export const invitations = pgTable('invitations', {
   id:        serial('id').primaryKey(),
   orgId:     integer('org_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
@@ -50,7 +46,6 @@ export const statuses = pgTable('statuses', {
   userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),           
 })
 
-// Task groups / prosjekter per org
 export const taskGroups = pgTable('task_groups', {
   id:        serial('id').primaryKey(),
   title:     text('title').notNull(),
@@ -73,6 +68,7 @@ export const tasks = pgTable('tasks', {
   createdBy:   text('created_by').references(() => users.id),
   createdAt:   timestamp('created_at').defaultNow(),
   updatedAt:   timestamp('updated_at').defaultNow(),
+  order:       integer('order').notNull().default(0),
 })
 
 export const comments = pgTable('comments', {
@@ -84,7 +80,6 @@ export const comments = pgTable('comments', {
   updatedAt: timestamp('updated_at').defaultNow(),
 })
 
-// Notater – klar for når du bygger den ut
 export const notes = pgTable('notes', {
   id:        serial('id').primaryKey(),
   title:     text('title').notNull(),
@@ -125,4 +120,8 @@ export const commentsRelations = relations(comments, ({ one }) => ({
 export const organizationMembersRelations = relations(organizationMembers, ({ one }) => ({
   org:  one(organizations, { fields: [organizationMembers.orgId],  references: [organizations.id] }),
   user: one(users,         { fields: [organizationMembers.userId], references: [users.id] }),
+}))
+
+export const invitationsRelations = relations(invitations, ({ one }) => ({
+  org: one(organizations, { fields: [invitations.orgId], references: [organizations.id] }),
 }))

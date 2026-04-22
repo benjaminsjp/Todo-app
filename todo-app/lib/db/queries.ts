@@ -1,13 +1,13 @@
 import 'server-only'
 import { db } from '@/lib/db'
-import { tasks, taskGroups, statuses } from '@/lib/db/schema'
+import { tasks, taskGroups, statuses, organizationMembers } from '@/lib/db/schema'
 import { eq, or, isNull, and } from 'drizzle-orm'
 
 export async function getTasksForUser(userId: string) {
   return db.query.tasks.findMany({
     where: and(eq(tasks.createdBy, userId), isNull(tasks.orgId)),
     with: { group: true, status: true, comments: true },
-    orderBy: (tasks, { desc }) => [desc(tasks.createdAt)],
+    orderBy: (tasks, { asc }) => [asc(tasks.order)], 
   })
 }
 
@@ -50,7 +50,7 @@ export async function getTasksForOrg(orgId: number) {
       status:   true,
       comments: true,
     },
-    orderBy: (tasks, { desc }) => [desc(tasks.createdAt)],
+    orderBy: (tasks, { asc }) => [asc(tasks.order)],
   })
 }
 
@@ -73,4 +73,51 @@ export async function getStatusesForOrg(orgId: number) {
     where: eq(statuses.orgId, orgId),
     orderBy: (s, { asc }) => [asc(s.order)],
   })
+}
+
+
+export async function getPersonalTasksForSidebar(userId: string) {
+  return db.query.tasks.findMany({
+    where: and(eq(tasks.createdBy, userId), isNull(tasks.orgId)),
+    with: { group: true, status: true },
+    orderBy: (tasks, { asc }) => [asc(tasks.order)],
+  })
+}
+
+export async function getPersonalGroupsForSidebar(userId: string) {
+  return db.query.taskGroups.findMany({
+    where: and(eq(taskGroups.createdBy, userId), isNull(taskGroups.orgId)),
+    with: { tasks: { with: { status: true } } },
+  })
+}
+
+export async function getOrgsForSidebar(userId: string) {
+  const memberships = await db.query.organizationMembers.findMany({
+    where: eq(organizationMembers.userId, userId),
+    with: { org: true },
+  })
+
+  return Promise.all(
+    memberships.map(async (m) => {
+      const [orgTasks, orgGroups] = await Promise.all([
+        db.query.tasks.findMany({
+          where: eq(tasks.orgId, m.org.id),
+          with: { group: true, status: true },
+          orderBy: (tasks, { asc }) => [asc(tasks.order)],
+        }),
+        db.query.taskGroups.findMany({
+          where: eq(taskGroups.orgId, m.org.id),
+          with: { tasks: { with: { status: true } } },
+        }),
+      ])
+
+      return {
+        id:     m.org.id,
+        name:   m.org.name,
+        slug:   m.org.slug,
+        tasks:  orgTasks,
+        groups: orgGroups,
+      }
+    })
+  )
 }

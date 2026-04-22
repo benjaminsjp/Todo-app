@@ -27,7 +27,7 @@ import { EditStatusMenu } from '../Status/EditStatusMenu'
 import { CircleDashed, CircleEllipsis, CircleCheck, Circle, Plus } from 'lucide-react'
 
 import { type Task, TaskGroup, Status } from "@/lib/types"
-import { updateTaskStatus } from '@/lib/actions/tasks'
+import { updateTaskStatus, updateTaskOrder } from '@/lib/actions/tasks'
 
 import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams, usePathname } from 'next/navigation'
@@ -166,39 +166,43 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, statuses, orgSlug
   }
 
   const handleDragEnd = async ({ active, over }: DragEndEvent) => {
-  setActiveTask(null)
-  if (!over) return
+    setActiveTask(null)
+    if (!over) return
 
-  let newStatusKey = statuses.find((s) => s.label === over.id)?.label
+    let newStatusKey = statuses.find((s) => s.label === over.id)?.label
 
-  if (!newStatusKey) {
-    const overTask = tasks.find((t) => t.id === over.id)
-    if (overTask) newStatusKey = getStatusLabel(overTask)
-  }
+    if (!newStatusKey) {
+      const overTask = tasks.find((t) => t.id === over.id)
+      if (overTask) newStatusKey = getStatusLabel(overTask)
+    }
 
-  if (!newStatusKey) return
+    if (!newStatusKey) return
 
-  const task = tasks.find((t) => t.id === active.id)
+    const task = tasks.find((t) => t.id === active.id)
     if (!task) return
 
     const isSameColumn = task.status?.label === newStatusKey
     const isOverTask   = tasks.some((t) => t.id === over.id)
 
     if (isSameColumn && isOverTask) {
-      setTasks((prev) => {
-        const oldIndex = prev.findIndex((t) => t.id === active.id)
-        const newIndex = prev.findIndex((t) => t.id === over.id)
-        return arrayMove(prev, oldIndex, newIndex)
-      })
+      // Reorder within same column
+      const reordered = arrayMove(
+        tasks,
+        tasks.findIndex((t) => t.id === active.id),
+        tasks.findIndex((t) => t.id === over.id)
+      )
+      setTasks(reordered)
+
+      await updateTaskOrder(reordered.map((t) => t.id))
       return
     }
 
-    const newStatus = statuses.find((status) => status.label === newStatusKey)
-    if (!newStatus) return
-
     setTasks((prev) =>
       prev.map((t) =>
-        t.id !== active.id ? t : { ...t, status: newStatus }
+        t.id !== active.id ? t : {
+          ...t,
+          status: { id: t.statusId ?? 0, label: newStatusKey!, color: 'gray', order: 0 },
+        }
       )
     )
 
@@ -211,6 +215,7 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, statuses, orgSlug
       )
     }
   }
+
 
 
   if (!isMounted) return (

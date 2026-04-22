@@ -4,7 +4,7 @@ import { db } from '@/lib/db'
 import { tasks, statuses } from '@/lib/db/schema'
 import { auth } from '@/lib/auth/server'
 import { revalidatePath } from 'next/cache'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, isNull } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 
 export async function createTask(
@@ -20,10 +20,13 @@ export async function createTask(
     const title = formData.get('title') as string
     if (!title?.trim()) return { error: 'Tittel er påkrevd' }
 
-    slug = title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+    const baseSlug = title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+    
     const orgId   = formData.get('orgId')   ? Number(formData.get('orgId'))   : null
     const groupId = formData.get('groupId') ? Number(formData.get('groupId')) : null
-
+    
+    const slug     = await generateUniqueSlug(baseSlug, orgId)
+    
     await db.insert(tasks).values({
       title,
       description: (formData.get('description') as string) || null,
@@ -107,5 +110,54 @@ export async function updateTaskStatus(
   }
 }
 
+export async function updateTaskOrder(
+  taskIds: number[]
+): Promise<{ error: string } | { success: true }> {
+  try {
+    await Promise.all(
+      taskIds.map((id, index) =>
+        db.update(tasks).set({ order: index }).where(eq(tasks.id, id))
+      )
+    )
+    return { success: true }
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Something went wrong' }
+  }
+}
 
+export async function updateTaskGroup(
+  taskId: number,
+  groupId: number | null
+): Promise<{ error: string } | { success: true }> {
+  try {
+    await db
+      .update(tasks)
+      .set({ groupId, updatedAt: new Date() })
+      .where(eq(tasks.id, taskId))
+    
+    revalidatePath('/tasks')
+    revalidatePath('/org/[slug]', 'page')
+    return { success: true }
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Something went wrong' }
+  }
+}
 
+async function generateUniqueSlug(baseSlug: string, orgId: number | null): Promise<string> {
+  let slug    = baseSlug
+  let counter = 1
+
+  while (true) {
+    const existing = await db.query.tasks.findFirst({
+      where: and(
+        eq(tasks.slug, slug),
+        orgId ? eq(tasks.orgId, orgId) : isNull(tasks.orgId)
+      ),
+    })
+
+    if (!existing) return slug
+
+    slug = `${baseSlug}-${counter}`
+    counter++
+  }
+}

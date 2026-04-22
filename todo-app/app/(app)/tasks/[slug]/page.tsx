@@ -11,14 +11,14 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
 
   const { slug } = await params
 
-  const [task, taskGroupOptions] = await Promise.all([
+  const [task, taskGroupOptions, statuses] = await Promise.all([
     getTaskBySlug(slug, session.user.id),
     getTaskGroupOptions(session.user.id, null),
+    getStatusesForUser(session.user.id),
   ])
 
   if (!task) notFound()
 
-  const statuses = await getStatusesForUser(session.user.id)
 
 
   const statusOptions = statuses.map((s) => ({
@@ -33,6 +33,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
       taskGroup={task.group?.title}
       taskGroupOptions={taskGroupOptions}
       statusOptions={statusOptions}
+      statuses={statuses}
     />
   )
 }

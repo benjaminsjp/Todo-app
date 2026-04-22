@@ -1,36 +1,48 @@
 'use client'
 
-import { useState, useActionState } from 'react'
+import { useState, useActionState, useEffect } from 'react'
 import { authClient } from '@/lib/auth/client'
-import { signInWithEmail, signUpWithEmail } from './actions'
+import { signInWithEmail, signUpWithEmail, seedStatusesForCurrentUser } from './actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 export default function AuthPage() {
-  const [isSignUp, setIsSignUp]   = useState(false)
-  const [step, setStep]           = useState<'auth' | 'verify'>('auth')
-  const [email, setEmail]         = useState('')
-  const [otp, setOtp]             = useState('')
-  const [otpError, setOtpError]   = useState('')
-  const [isPending, setIsPending] = useState(false)
+  const [isSignUp, setIsSignUp]     = useState(false)
+  const [step, setStep]             = useState<'auth' | 'verify'>('auth')
+  const [email, setEmail]           = useState('')
+  const [otp, setOtp]               = useState('')
+  const [otpError, setOtpError]     = useState('')
+  const [isPending, setIsPending]   = useState(false)
+  const [submitted, setSubmitted]   = useState(false)
 
-  const [signInState, signInAction]   = useActionState(signInWithEmail, null)
-  const [signUpState, signUpAction]   = useActionState(signUpWithEmail, null)
+  const [signInState, signInAction] = useActionState(signInWithEmail, null)
+  const [signUpState, signUpAction] = useActionState(signUpWithEmail, null)
 
-  const handleSignUp = async (formData: FormData) => {
+  // Transition to verify step when signup succeeds (state === null, no error)
+  useEffect(() => {
+    if (submitted && signUpState === null) {
+      setStep('verify')
+      setSubmitted(false)
+    }
+  }, [signUpState, submitted])
+
+  const handleSignUp = (formData: FormData) => {
     setEmail(formData.get('email') as string)
-    await signUpAction(formData)
-    // Hvis e-post ikke er verifisert → vis OTP-steg
-    if (!signUpState?.error) setStep('verify')
+    setSubmitted(true)
+    signUpAction(formData)
   }
 
   const handleVerifyOtp = async () => {
     setIsPending(true)
     setOtpError('')
     const { error } = await authClient.emailOtp.verifyEmail({ email, otp })
-    setIsPending(false)
-    if (error) return setOtpError(error.message || 'Ugyldig kode')
+    if (error) {
+      setIsPending(false)
+      return setOtpError(error.message || 'Invalid code')
+    }
+
+    await seedStatusesForCurrentUser()
     window.location.href = '/'
   }
 
@@ -59,14 +71,18 @@ export default function AuthPage() {
           maxLength={6}
         />
         {otpError && <p className="text-sm text-destructive">{otpError}</p>}
-        <Button className="w-full" onClick={handleVerifyOtp} disabled={isPending || otp.length < 6}>
-          {isPending ? 'Verifiserer...' : 'Bekreft kode'}
+        <Button
+          className="w-full"
+          onClick={handleVerifyOtp}
+          disabled={isPending || otp.length < 6}
+        >
+          {isPending ? 'Verifying...' : 'Confirm code'}
         </Button>
         <button
           onClick={handleResend}
           className="text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
-          Resed code
+          Resend code
         </button>
       </div>
     )
@@ -107,7 +123,8 @@ export default function AuthPage() {
         </Button>
       </form>
 
-      <Button variant="ghost"
+      <Button
+        variant="ghost"
         onClick={() => setIsSignUp(!isSignUp)}
         className="text-sm text-muted-foreground hover:text-foreground transition-colors"
       >

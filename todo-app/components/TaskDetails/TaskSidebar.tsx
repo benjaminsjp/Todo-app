@@ -6,7 +6,7 @@ import {
 import { Button } from '@/components/ui/button'
 import StatusSelect from '@/components/status-select/StatusSelect'
 import { CreateTaskDeadline } from '@/components/CreateTask/CreateTaskDeadline'
-import { formatDate } from '@/lib/types'
+import { formatDate, Status } from '@/lib/types'
 import Link from 'next/link'
 import { StatusOption } from '@/lib/types'
 interface TaskSidebarProps {
@@ -18,6 +18,7 @@ interface TaskSidebarProps {
   createdAt?:     Date | null
   updatedAt?:     Date | null
 
+  statuses?:         Status[]
   statusOptions?:    StatusOption[]
   taskGroupOptions?: StatusOption[]
 
@@ -40,6 +41,7 @@ export function TaskSidebar({
   createdAt,
   updatedAt,
   statusOptions = [],
+  statuses = [],
   taskGroupOptions = [],
   onStatusChange,
   onDeadlineChange,
@@ -91,11 +93,18 @@ export function TaskSidebar({
       {mode !== 'create' && onStatusChange && (
         <div className="flex items-center">
           <span className="w-1/2">Status:</span>
-          <StatusSelect
-            className="text-base"
-            value={status ?? 'Todo'}
-            onChange={onStatusChange}
-          />
+          <Select value={status ?? 'Todo'} onValueChange={onStatusChange}>
+            <SelectTrigger className="shadow-none focus:ring-0 h-auto">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="p-1">
+              {statuses.map((s) => (
+                <SelectItem key={s.id} value={s.label}>
+                  {s.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       )}
 

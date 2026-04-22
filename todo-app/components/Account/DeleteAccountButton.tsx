@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
@@ -12,7 +11,6 @@ import { deleteAccount } from '@/lib/actions/users'
 import { Trash2 } from 'lucide-react'
 
 export function DeleteAccountButton() {
-  const router = useRouter()
   const [open,      setOpen]      = useState(false)
   const [confirm,   setConfirm]   = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
@@ -24,7 +22,7 @@ export function DeleteAccountButton() {
     setIsDeleting(false)
 
     if ('error' in result) { setError(result.error ?? null); return }
-    router.push('/')
+    window.location.href = '/'
   }
 
   return (
