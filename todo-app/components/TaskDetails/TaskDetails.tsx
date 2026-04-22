@@ -1,16 +1,19 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { Pencil, Eye } from "lucide-react"
 import { StatusOption } from "@/lib/types"
 import Comments from "@/components/TaskComments/Comments"
 import { CreateTaskEditor } from "@/components/CreateTask/CreateTaskEditor"
-import { updateTask } from "@/lib/actions/tasks"
+import { acquireTaskLock, releaseTaskLock, updateTask } from "@/lib/actions/tasks"
 import { type Task, mapComments, Status } from "@/lib/types"
 import { useDebounce } from "@/lib/hooks/useDebounce"
 import { TaskSidebar } from "./TaskSidebar"
+import { useOrgRealtime } from "@/lib/hooks/useOrgRealtime"
+import { useTaskPresence } from "@/lib/hooks/useTaskPresence"
+import { TaskRevisionHistory } from "./TaskRevisionHistory"
 
 export default function TaskDetails({
   task,
@@ -18,12 +21,14 @@ export default function TaskDetails({
   taskGroupOptions,
   statusOptions,
   statuses,
+  currentUserId,
 }: {
   task:             Task
   taskGroup:        string | undefined
   taskGroupOptions: StatusOption[]
   statusOptions:    StatusOption[]
   statuses:         Status[]
+  currentUserId?:   string
 }) {
   const router = useRouter()
   const [isEditing,       setIsEditing]   = useState(false)
@@ -36,6 +41,18 @@ export default function TaskDetails({
   const [deadline,        setDeadline]    = useState<Date | undefined>(
     task.deadline ? new Date(task.deadline) : undefined
   )
+
+  const orgRealtime = useOrgRealtime(task.orgId ?? undefined)
+  const editingUsers = (orgRealtime.presenceByTaskId.get(task.id) ?? []).filter((p) => p.userId !== currentUserId)
+  const isLockedByOther = Boolean(task.orgId) && editingUsers.length > 0
+
+  useTaskPresence({ orgId: task.orgId, taskId: task.id, enabled: isEditing && Boolean(task.orgId), mode: 'editing' })
+
+  useEffect(() => {
+    if (isLockedByOther && isEditing) {
+      setIsEditing(false)
+    }
+  }, [isLockedByOther, isEditing])
 
   // Debounced save – 600ms etter siste endring
   const debouncedUpdate = useDebounce(
@@ -53,6 +70,7 @@ export default function TaskDetails({
     setIsSaving(false)
     if ('error' in result) { setError(result.error); return }
     setIsEditing(false)
+    await releaseTaskLock(task.id)
     router.refresh()
   }
 
@@ -61,6 +79,21 @@ export default function TaskDetails({
     setDescription(task.description ?? '')
     setIsEditing(false)
     setError(null)
+    void releaseTaskLock(task.id)
+  }
+
+  const handleStartEditing = async () => {
+    setError(null)
+    if (!task.orgId) { setIsEditing(true); return }
+
+    const res = await acquireTaskLock(task.id)
+    if ('error' in res) { setError(res.error); return }
+    if (res.success === false) {
+      const who = res.lockedBy?.displayName ?? res.lockedBy?.email ?? 'another user'
+      setError(`Task is currently locked (being edited by ${who}).`)
+      return
+    }
+    setIsEditing(true)
   }
 
   const handleStatusChange = (newStatus: string) => {
@@ -100,6 +133,11 @@ export default function TaskDetails({
           ) : (
             <>
               <Badge variant="secondary"><Eye data-icon="inline-start" />Viewing</Badge>
+              {editingUsers.length > 0 && (
+                <div className="rounded-xl border bg-amber-500/10 border-amber-500/20 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
+                  This task is being edited by {editingUsers.map((u) => u.user?.displayName ?? u.user?.email ?? 'Someone').join(', ')}.
+                </div>
+              )}
               <h1 className="text-5xl font-medium text-center sm:text-left font-heading text-heading-strong mb-6">
                 {title}
               </h1>
@@ -133,12 +171,13 @@ export default function TaskDetails({
           statusOptions={taskGroupOptions}
           statuses={statuses}
           taskGroupOptions={taskGroupOptions}
-          onStatusChange={handleStatusChange}
-          onDeadlineChange={handleDeadlineChange}
-          onGroupChange={handleGroupChange}
-          onSave={isEditing ? handleSave : () => setIsEditing(true)}
+          onStatusChange={isEditing ? handleStatusChange : undefined}
+          onDeadlineChange={isEditing ? handleDeadlineChange : undefined}
+          onGroupChange={isEditing ? handleGroupChange : undefined}
+          onSave={isEditing ? handleSave : handleStartEditing}
           onCancel={handleCancel}
           isSaving={isSaving}
+          headerSlot={<TaskRevisionHistory taskId={task.id} />}
         />
       </div>
     </div>

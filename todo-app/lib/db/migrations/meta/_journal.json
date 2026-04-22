@@ -29,6 +29,34 @@
       "when": 1776759281050,
       "tag": "0003_flowery_morph",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1776830000000,
+      "tag": "0004_task_presence",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1776862693181,
+      "tag": "0005_easy_deathbird",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1776864000000,
+      "tag": "0006_task_revisions",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1776866098903,
+      "tag": "0007_fixed_spacker_dave",
+      "breakpoints": true
     }
   ]
 }

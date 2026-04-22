@@ -16,14 +16,29 @@ import {
 interface CreateTaskDeadlineProps {
   value?: Date
   onChange?: (date: Date | undefined) => void
+  disabled?: boolean
 }
 
-export function CreateTaskDeadline({ value, onChange }: CreateTaskDeadlineProps) {
+export function CreateTaskDeadline({ value, onChange, disabled }: CreateTaskDeadlineProps) {
   const [date, setDate] = React.useState<Date | undefined>(value)
 
   const handleDateSelect = (selectedDate: Date | undefined) => {
     setDate(selectedDate)
     onChange?.(selectedDate)
+  }
+
+  if (disabled) {
+    return (
+      <Button
+        variant="outline"
+        disabled
+        data-empty={!date}
+        className="grow justify-start text-left font-normal data-[empty=true]:text-muted-foreground"
+      >
+        <CalendarIcon />
+        {date ? format(date, "PPP") : <span>Pick a date</span>}
+      </Button>
+    )
   }
 
   return (

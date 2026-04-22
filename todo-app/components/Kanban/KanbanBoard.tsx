@@ -32,6 +32,7 @@ import { updateTaskStatus, updateTaskOrder } from '@/lib/actions/tasks'
 import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams, usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { useOrgRealtime } from '@/lib/hooks/useOrgRealtime'
 
 
 interface KanbanBoardProps {
@@ -57,7 +58,17 @@ export function getStatusStyle(color: string) {
   return map[color] ?? map.gray
 }
 
-function SortableTaskCard({ task, orgSlug }: { task: Task; orgSlug?: string }) {
+function SortableTaskCard({
+  task,
+  orgSlug,
+  editingUsers,
+  currentUserId,
+}: {
+  task: Task
+  orgSlug?: string
+  editingUsers?: { userId: string; user?: { displayName: string | null; email: string; avatarUrl: string | null } | null }[]
+  currentUserId?: string
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
   })
@@ -70,7 +81,7 @@ function SortableTaskCard({ task, orgSlug }: { task: Task; orgSlug?: string }) {
       {...listeners}
       className={isDragging ? 'opacity-40' : ''}
     >
-      <TaskCard task={task} orgSlug={orgSlug} />
+      <TaskCard task={task} orgSlug={orgSlug} editingUsers={editingUsers} currentUserId={currentUserId} />
     </div>
   )
 }
@@ -79,10 +90,14 @@ function KanbanColumn({
   status,
   tasks,
   orgSlug,
+  presenceByTaskId,
+  currentUserId,
 }: {
   status:   Status
   tasks:    Task[]
   orgSlug?: string
+  presenceByTaskId: Map<number, { userId: string; user?: { displayName: string | null; email: string; avatarUrl: string | null } | null }[]>
+  currentUserId?: string
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status.label })
   const { icon: Icon, class: iconClass } = getStatusStyle(status.color)
@@ -112,7 +127,15 @@ function KanbanColumn({
           {tasks.length === 0 ? (
             <p className="text-xs text-muted-foreground text-center py-6 my-auto ">No tasks</p>
           ) : (
-            tasks.map((task) => <SortableTaskCard key={task.id} task={task} orgSlug={orgSlug} />)
+            tasks.map((task) => (
+              <SortableTaskCard
+                key={task.id}
+                task={task}
+                orgSlug={orgSlug}
+                editingUsers={presenceByTaskId.get(task.id) ?? []}
+                currentUserId={currentUserId}
+              />
+            ))
           )}
         </div>
       </SortableContext>
@@ -125,6 +148,10 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, statuses, orgSlug
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [isMounted, setIsMounted]   = useState(false)
   const [statusModalOpen, setStatusModalOpen] = useState(false)
+  const [liveStatuses, setLiveStatuses] = useState<Status[]>(statuses)
+  const [liveTaskGroups, setLiveTaskGroups] = useState<TaskGroup[]>(taskGroups)
+
+  const orgRealtime = useOrgRealtime(orgId)
 
 
   const pathname     = usePathname()
@@ -145,7 +172,19 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, statuses, orgSlug
   )
 
   useEffect(() => { setTasks(initialTasks) }, [initialTasks])
+  useEffect(() => { setLiveStatuses(statuses) }, [statuses])
+  useEffect(() => { setLiveTaskGroups(taskGroups) }, [taskGroups])
   useEffect(() => { setIsMounted(true) },     [])
+
+  useEffect(() => {
+    if (!orgId) return
+    if (!orgRealtime.tasks || !orgRealtime.statuses || !orgRealtime.taskGroups) return
+    if (activeTask) return // don't clobber state mid-drag
+
+    setTasks(orgRealtime.tasks)
+    setLiveStatuses(orgRealtime.statuses)
+    setLiveTaskGroups(orgRealtime.taskGroups)
+  }, [orgId, orgRealtime.tasks, orgRealtime.statuses, orgRealtime.taskGroups, activeTask])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -169,7 +208,7 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, statuses, orgSlug
     setActiveTask(null)
     if (!over) return
 
-    let newStatusKey = statuses.find((s) => s.label === over.id)?.label
+    let newStatusKey = liveStatuses.find((s) => s.label === over.id)?.label
 
     if (!newStatusKey) {
       const overTask = tasks.find((t) => t.id === over.id)
@@ -218,14 +257,14 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, statuses, orgSlug
 
 
 
-  if (!isMounted) return (
+    if (!isMounted) return (
     <div className="flex flex-col gap-10 h-full">
       <div className="flex flex-wrap gap-3">
         <Skeleton className="w-28 h-9 rounded-full" />
       </div>
       <div className='h-full p-6 bg-card border border-border rounded-2xl animate-fade animate-once animate-duration-200  animate-ease-in-out'>
         <div className="flex flex-row gap-6">
-          {statuses.map((s) => (
+          {liveStatuses.map((s) => (
             <div key={s.id} className="flex flex-col gap-2 min-w-80">
               <div className='flex'>
                 <Skeleton className="w-24 h-7 mb-4" />
@@ -249,9 +288,9 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, statuses, orgSlug
     >
       <div className="flex flex-col gap-10 h-full">
         <div className="flex flex-wrap gap-3 animate-fade-right animate-once animate-duration-300 animate-ease-in-out">
-          {taskGroups.length > 0 && (
+          {liveTaskGroups.length > 0 && (
             <div className="flex flex-wrap gap-3">
-              {taskGroups.map((group) => (
+              {liveTaskGroups.map((group) => (
                 <TaskGroupPill
                   key={group.id}
                   group={group}
@@ -267,12 +306,14 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, statuses, orgSlug
           className="h-full bg-card border border-border rounded-2xl animate-fade animate-once animate-duration-200  animate-ease-in-out"
         >
           <div className="flex flex-row gap-6 items-start h-full p-6">
-            {statuses.map((status) => (
+            {liveStatuses.map((status) => (
               <div key={status.id} className="min-w-80">
                 <KanbanColumn
                   status={status}
                   tasks={tasksByStatus(status.label)}
                   orgSlug={orgSlug}
+                  presenceByTaskId={orgRealtime.presenceByTaskId}
+                  currentUserId={userId}
                 />
               </div>
             ))}

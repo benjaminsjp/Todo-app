@@ -62,7 +62,14 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
                     
                 </div>
             </div>
-            <KanbanBoard tasks={tasks} taskGroups={taskGroups} statuses={statuses} orgSlug={org.slug} orgId={org.id} />
+            <KanbanBoard
+              tasks={tasks}
+              taskGroups={taskGroups}
+              statuses={statuses}
+              orgSlug={org.slug}
+              orgId={org.id}
+              userId={session.user.id}
+            />
         </div>
         </div>
     )

@@ -4,13 +4,14 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import StatusSelect from '@/components/status-select/StatusSelect'
 import { CreateTaskDeadline } from '@/components/CreateTask/CreateTaskDeadline'
 import { formatDate, Status } from '@/lib/types'
 import Link from 'next/link'
 import { StatusOption } from '@/lib/types'
+import React from 'react'
 interface TaskSidebarProps {
   mode: 'create' | 'edit' | 'view'
+  headerSlot?: React.ReactNode
 
   status?:        string
   deadline?:      Date | undefined
@@ -35,6 +36,7 @@ interface TaskSidebarProps {
 
 export function TaskSidebar({
   mode,
+  headerSlot,
   status,
   deadline,
   groupId = 'none',
@@ -56,6 +58,7 @@ export function TaskSidebar({
     <div className="flex flex-col gap-4 min-w-sm max-w-lg border-l px-8 py-12">
 
       <div className="flex gap-3 items-center">
+        {headerSlot}
         {mode === 'create' && (
           <>
             <Button variant="brand" type="submit" disabled={isPending}>
@@ -90,10 +93,14 @@ export function TaskSidebar({
         )}
       </div>
 
-      {mode !== 'create' && onStatusChange && (
+      {mode !== 'create' && (
         <div className="flex items-center">
           <span className="w-1/2">Status:</span>
-          <Select value={status ?? 'Todo'} onValueChange={onStatusChange}>
+          <Select
+            value={status ?? 'Todo'}
+            onValueChange={onStatusChange ?? (() => {})}
+            disabled={!onStatusChange}
+          >
             <SelectTrigger className="shadow-none focus:ring-0 h-auto">
               <SelectValue />
             </SelectTrigger>
@@ -120,13 +127,14 @@ export function TaskSidebar({
         <CreateTaskDeadline
           value={deadline}
           onChange={onDeadlineChange ?? (() => {})}
+          disabled={mode !== 'create' && !onDeadlineChange}
           {...(mode === 'create' ? { name: 'deadline' } : {})}
         />
       </div>
 
       <div className="flex items-center">
         <span className="w-1/2">Group:</span>
-          <Select value={groupId} onValueChange={onGroupChange}>
+          <Select value={groupId} onValueChange={onGroupChange ?? (() => {})} disabled={!onGroupChange}>
             <SelectTrigger className="shadow-none focus:ring-0 h-auto">
               <SelectValue />
             </SelectTrigger>

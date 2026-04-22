@@ -69,6 +69,7 @@ export default async function OrgTaskPage({
       taskGroupOptions={taskGroupOptions}
       statusOptions={statusOptions}
       statuses={statuses}
+      currentUserId={session.user.id}
 
     />
   )

@@ -1,5 +1,5 @@
 import { auth } from '@/lib/auth/server'
-import { AppSidebar } from './AppSidebar'
+import { AppSidebarClientOnly } from './AppSidebarClientOnly'
 import {
   getPersonalTasksForSidebar,
   getPersonalGroupsForSidebar,
@@ -20,7 +20,7 @@ export async function AppSidebarServer() {
     ])
 
     return (
-      <AppSidebar
+      <AppSidebarClientOnly
         personalTasks={personalTasks}
         personalGroups={personalGroups}
         orgs={orgs}

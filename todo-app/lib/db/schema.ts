@@ -1,5 +1,5 @@
 // lib/db/schema.ts
-import { pgTable, serial, text, timestamp, integer, boolean, pgEnum } from 'drizzle-orm/pg-core'
+import { pgTable, serial, text, timestamp, integer, boolean, pgEnum, uniqueIndex, jsonb } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('users', {
   id:          text('id').primaryKey(), 
@@ -80,6 +80,29 @@ export const comments = pgTable('comments', {
   updatedAt: timestamp('updated_at').defaultNow(),
 })
 
+export const taskPresence = pgTable('task_presence', {
+  id:         serial('id').primaryKey(),
+  orgId:      integer('org_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  taskId:     integer('task_id').notNull().references(() => tasks.id, { onDelete: 'cascade' }),
+  userId:     text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  mode:       text('mode').notNull().default('editing'),
+  lastSeenAt: timestamp('last_seen_at').notNull().defaultNow(),
+}, (t) => ({
+  taskUserUnique: uniqueIndex('task_presence_task_id_user_id_unique').on(t.taskId, t.userId),
+  orgTaskIdx:     uniqueIndex('task_presence_org_id_task_id_user_id_unique').on(t.orgId, t.taskId, t.userId),
+}))
+
+export const taskRevisions = pgTable('task_revisions', {
+  id:        serial('id').primaryKey(),
+  orgId:     integer('org_id').references(() => organizations.id, { onDelete: 'cascade' }),
+  taskId:    integer('task_id').notNull().references(() => tasks.id, { onDelete: 'cascade' }),
+  userId:    text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  action:    text('action').notNull().default('update'),
+  before:    jsonb('before').notNull(),
+  after:     jsonb('after').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+})
+
 export const notes = pgTable('notes', {
   id:        serial('id').primaryKey(),
   title:     text('title').notNull(),
@@ -115,6 +138,18 @@ export const tasksRelations = relations(tasks, ({ one, many }) => ({
 export const commentsRelations = relations(comments, ({ one }) => ({
   task: one(tasks, { fields: [comments.taskId], references: [tasks.id] }),
   user: one(users, { fields: [comments.userId], references: [users.id] }),
+}))
+
+export const taskPresenceRelations = relations(taskPresence, ({ one }) => ({
+  org:  one(organizations, { fields: [taskPresence.orgId], references: [organizations.id] }),
+  task: one(tasks,         { fields: [taskPresence.taskId], references: [tasks.id] }),
+  user: one(users,         { fields: [taskPresence.userId], references: [users.id] }),
+}))
+
+export const taskRevisionsRelations = relations(taskRevisions, ({ one }) => ({
+  org:  one(organizations, { fields: [taskRevisions.orgId], references: [organizations.id] }),
+  task: one(tasks,         { fields: [taskRevisions.taskId], references: [tasks.id] }),
+  user: one(users,         { fields: [taskRevisions.userId], references: [users.id] }),
 }))
 
 export const organizationMembersRelations = relations(organizationMembers, ({ one }) => ({
