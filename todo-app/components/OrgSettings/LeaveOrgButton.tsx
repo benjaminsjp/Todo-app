@@ -23,7 +23,7 @@ export function LeaveOrgButton({ orgSlug, orgName }: { orgSlug: string; orgName:
     setIsPending(false)
 
     if ('error' in result) {
-      setError(result.error)
+      setError(result.error ?? 'Could not leave organization')
       return
     }
 

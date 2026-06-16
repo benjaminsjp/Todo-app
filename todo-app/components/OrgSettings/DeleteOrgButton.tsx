@@ -23,7 +23,7 @@ export function DeleteOrgButton({ orgSlug, orgName }: { orgSlug: string; orgName
     setIsPending(false)
 
     if ('error' in result) {
-      setError(result.error)
+      setError(result.error ?? 'Could not delete organization')
       return
     }
 

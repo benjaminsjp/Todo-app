@@ -45,7 +45,7 @@ export async function createStatus(
 
 export async function updateStatus(
   statusId: number,
-  data: { label?: string; color?: string }
+  data: { label?: string; color?: string; icon?: string | null }
 ): Promise<{ error: string } | { success: true }> {
   try {
     const { data: session } = await auth.getSession()

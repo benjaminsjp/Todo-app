@@ -16,6 +16,7 @@ import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { updateStatus, deleteStatus } from '@/lib/actions/statuses'
 import { cn } from '@/lib/utils'
 import { type Status } from '@/lib/types'
+import { STATUS_ICON_OPTIONS, type StatusIconName } from '@/lib/statusIcons'
 
 const COLORS = [
   { label: 'Gray',   value: 'gray',   class: 'bg-gray-500'   },
@@ -36,11 +37,14 @@ export function EditStatusMenu({ status }: { status: Status }) {
   const [error,      setError]      = useState<string | null>(null)
   const [label,      setLabel]      = useState(status.label)
   const [color,      setColor]      = useState(status.color)
+  const [icon,       setIcon]       = useState<StatusIconName>(
+    (status.icon as StatusIconName) ?? STATUS_ICON_OPTIONS[0].name
+  )
 
   const handleSave = async () => {
     setIsSaving(true)
     setError(null)
-    const result = await updateStatus(status.id, { label, color })
+    const result = await updateStatus(status.id, { label, color, icon })
     setIsSaving(false)
     if ('error' in result) { setError(result.error); return }
     setEditOpen(false)
@@ -96,6 +100,26 @@ export function EditStatusMenu({ status }: { status: Status }) {
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
               />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label className="pb-2">Icon</Label>
+              <div className="flex flex-wrap gap-2">
+                {STATUS_ICON_OPTIONS.map(({ name, icon: Icon, label: iconLabel }) => (
+                  <button
+                    key={name}
+                    type="button"
+                    title={iconLabel}
+                    onClick={() => setIcon(name)}
+                    className={cn(
+                      'flex size-9 items-center justify-center rounded-lg border transition-all hover:bg-accent',
+                      icon === name && 'ring-2 ring-foreground bg-accent'
+                    )}
+                  >
+                    <Icon className="size-4" />
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="flex flex-col gap-1.5">

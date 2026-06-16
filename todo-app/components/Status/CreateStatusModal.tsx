@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import { STATUS_ICON_OPTIONS } from '@/lib/statusIcons'
+import { STATUS_ICON_OPTIONS, type StatusIconName } from '@/lib/statusIcons'
 
 const COLORS = [
   { label: 'Gray',   value: 'gray',   class: 'bg-gray-500' },
@@ -28,7 +28,7 @@ interface Props {
 
 export function CreateStatusModal({ open, onClose, orgId }: Props) {
   const [selectedColor, setSelectedColor] = useState(COLORS[0].value)
-  const [selectedIcon, setSelectedIcon] = useState(STATUS_ICON_OPTIONS[0].name)
+  const [selectedIcon, setSelectedIcon] = useState<StatusIconName>(STATUS_ICON_OPTIONS[0].name)
 
   const [state, action, isPending] = useActionState(
     async (_prev: { error: string } | null, formData: FormData) => {
