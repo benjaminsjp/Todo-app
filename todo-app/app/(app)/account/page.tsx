@@ -28,7 +28,7 @@ export default async function Page() {
     }),
   ])
 
-  if (!user) redirect('/api/auth/sign-in')
+  if (!user) redirect('/auth/sign-in')
 
   const stats = {
     total:      allTasks.length,

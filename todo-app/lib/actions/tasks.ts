@@ -16,13 +16,11 @@ async function requireCanEditTask(userId: string, taskId: number) {
   })
   if (!task) throw new Error('Task not found')
 
-  // Personal task: only creator can edit
   if (!task.orgId) {
     if (task.createdBy !== userId) throw new Error('Unauthorized')
     return { orgId: null as number | null }
   }
 
-  // Org task: any non-viewer member can edit
   const membership = await db.query.organizationMembers.findFirst({
     where: and(eq(organizationMembers.orgId, task.orgId), eq(organizationMembers.userId, userId)),
     columns: { role: true },
@@ -49,33 +47,42 @@ async function requireNotLocked(userId: string, taskId: number) {
 }
 
 function snapshotTaskRow(task: {
-  title: string
+  title:       string
   description: string | null
-  deadline: string | null
-  statusId: number | null
-  groupId: number | null
-  assigneeId: string | null
-  order: number
-  updatedAt: Date | null
-  orgId: number | null
+  deadline:    string | null
+  statusId:    number | null
+  groupId:     number | null
+  assigneeId:  string | null
+  order:       number
+  updatedAt:   Date | null
+  orgId:       number | null
 }) {
   return {
-    title: task.title,
+    title:       task.title,
     description: task.description,
-    deadline: task.deadline,
-    statusId: task.statusId,
-    groupId: task.groupId,
-    assigneeId: task.assigneeId,
-    order: task.order,
-    updatedAt: task.updatedAt,
-    orgId: task.orgId,
+    deadline:    task.deadline,
+    statusId:    task.statusId,
+    groupId:     task.groupId,
+    assigneeId:  task.assigneeId,
+    order:       task.order,
+    updatedAt:   task.updatedAt,
+    orgId:       task.orgId,
   }
+}
+
+const TRACKED_FIELDS = ['title', 'description', 'deadline', 'statusId', 'groupId'] as const
+
+function hasTrackedChanges(
+  before: ReturnType<typeof snapshotTaskRow>,
+  after:  ReturnType<typeof snapshotTaskRow>
+): boolean {
+  return TRACKED_FIELDS.some((key) => before[key] !== after[key])
 }
 
 function isMissingRevisionsTableError(err: unknown): boolean {
   if (!err || typeof err !== 'object') return false
   const anyErr = err as any
-  const code = anyErr.code ?? anyErr.cause?.code
+  const code   = anyErr.code ?? anyErr.cause?.code
   if (code === '42P01') return true
   const msg = String(anyErr.message ?? anyErr.cause?.message ?? '')
   return msg.includes('relation "task_revisions" does not exist')
@@ -89,7 +96,7 @@ export async function acquireTaskLock(taskId: number) {
     const { orgId } = await requireCanEditTask(session.user.id, taskId)
     if (!orgId) return { error: 'Locks are only used for org tasks' as const }
 
-    const cutoff = new Date(Date.now() - LOCK_TTL_MS)
+    const cutoff   = new Date(Date.now() - LOCK_TTL_MS)
     const existing = await db.query.taskPresence.findFirst({
       where: and(
         eq(taskPresence.taskId, taskId),
@@ -102,12 +109,12 @@ export async function acquireTaskLock(taskId: number) {
 
     if (existing) {
       return {
-        success: false as const,
+        success:  false as const,
         lockedBy: {
-          userId: existing.userId,
+          userId:      existing.userId,
           displayName: existing.user?.displayName ?? null,
-          email: existing.user?.email ?? null,
-          avatarUrl: existing.user?.avatarUrl ?? null,
+          email:       existing.user?.email ?? null,
+          avatarUrl:   existing.user?.avatarUrl ?? null,
         },
       }
     }
@@ -115,12 +122,12 @@ export async function acquireTaskLock(taskId: number) {
     await db.insert(taskPresence).values({
       orgId,
       taskId,
-      userId: session.user.id,
-      mode: 'editing',
+      userId:     session.user.id,
+      mode:       'editing',
       lastSeenAt: new Date(),
     }).onConflictDoUpdate({
       target: [taskPresence.taskId, taskPresence.userId],
-      set: { orgId, mode: 'editing', lastSeenAt: new Date() },
+      set:    { orgId, mode: 'editing', lastSeenAt: new Date() },
     })
 
     return { success: true as const }
@@ -153,6 +160,10 @@ export async function createTask(
   _prev: { error: string } | null,
   formData: FormData
 ): Promise<{ error: string } | null> {
+  // Deklarer slug utenfor try så den er tilgjengelig for redirect
+  let slug    = ''
+  let orgSlug = ''
+
   try {
     const { data: session } = await auth.getSession()
     if (!session?.user) return { error: 'Ikke innlogget' }
@@ -161,12 +172,14 @@ export async function createTask(
     if (!title?.trim()) return { error: 'Tittel er påkrevd' }
 
     const baseSlug = title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-    
-    const orgId   = formData.get('orgId')   ? Number(formData.get('orgId'))   : null
-    const groupId = formData.get('groupId') ? Number(formData.get('groupId')) : null
-    
-    const slug = await generateUniqueSlug(baseSlug, orgId)
-    
+    const orgId    = formData.get('orgId')   ? Number(formData.get('orgId'))   : null
+    const groupId  = formData.get('groupId') && formData.get('groupId') !== 'none'
+      ? Number(formData.get('groupId'))
+      : null
+
+    slug    = await generateUniqueSlug(baseSlug, orgId)
+    orgSlug = (formData.get('orgSlug') as string) ?? ''
+
     await db.insert(tasks).values({
       title,
       description: (formData.get('description') as string) || null,
@@ -174,19 +187,18 @@ export async function createTask(
       deadline:    (formData.get('deadline') as string) || null,
       groupId,
       orgId,
-      createdBy: session.user.id,
+      createdBy:   session.user.id,
     })
 
     revalidatePath('/tasks')
+    if (orgSlug) revalidatePath(`/org/${orgSlug}`)
   } catch (e) {
     console.error('createTask feil:', e)
     return { error: e instanceof Error ? e.message : 'Noe gikk galt' }
   }
 
-  const orgSlug = formData.get('orgSlug') as string | null
-
+  // redirect må være utenfor try/catch
   redirect(orgSlug ? `/org/${orgSlug}/${slug}` : `/tasks/${slug}`)
-
 }
 
 export async function updateTask(
@@ -209,15 +221,15 @@ export async function updateTask(
     const beforeRow = await db.query.tasks.findFirst({
       where: eq(tasks.id, taskId),
       columns: {
-        title: true,
+        title:       true,
         description: true,
-        deadline: true,
-        statusId: true,
-        groupId: true,
-        assigneeId: true,
-        order: true,
-        updatedAt: true,
-        orgId: true,
+        deadline:    true,
+        statusId:    true,
+        groupId:     true,
+        assigneeId:  true,
+        order:       true,
+        updatedAt:   true,
+        orgId:       true,
       },
     })
     if (!beforeRow) return { error: 'Task not found' }
@@ -226,26 +238,26 @@ export async function updateTask(
       .set({ ...data, updatedAt: new Date() })
       .where(eq(tasks.id, taskId))
       .returning({
-        title: tasks.title,
+        title:       tasks.title,
         description: tasks.description,
-        deadline: tasks.deadline,
-        statusId: tasks.statusId,
-        groupId: tasks.groupId,
-        assigneeId: tasks.assigneeId,
-        order: tasks.order,
-        updatedAt: tasks.updatedAt,
-        orgId: tasks.orgId,
+        deadline:    tasks.deadline,
+        statusId:    tasks.statusId,
+        groupId:     tasks.groupId,
+        assigneeId:  tasks.assigneeId,
+        order:       tasks.order,
+        updatedAt:   tasks.updatedAt,
+        orgId:       tasks.orgId,
       })
 
-    if (afterRow) {
+    if (afterRow && hasTrackedChanges(snapshotTaskRow(beforeRow), snapshotTaskRow(afterRow))) {
       try {
         await db.insert(taskRevisions).values({
-          orgId: afterRow.orgId ?? null,
+          orgId:  afterRow.orgId ?? null,
           taskId,
           userId: session.user.id,
           action: 'update',
           before: snapshotTaskRow(beforeRow) as any,
-          after: snapshotTaskRow(afterRow) as any,
+          after:  snapshotTaskRow(afterRow)  as any,
         })
       } catch (e) {
         if (!isMissingRevisionsTableError(e)) throw e
@@ -262,10 +274,10 @@ export async function updateTask(
 }
 
 export async function updateTaskStatus(
-  taskId: number,
+  taskId:      number,
   statusLabel: string,
-  orgId?: number,
-  userId?: string
+  orgId?:      number,
+  userId?:     string
 ): Promise<{ error: string } | { success: true }> {
   try {
     const { data: session } = await auth.getSession()
@@ -273,46 +285,48 @@ export async function updateTaskStatus(
 
     const { orgId: taskOrgId } = await requireCanEditTask(session.user.id, taskId)
     await requireNotLocked(session.user.id, taskId)
+
     const resolvedOrgId = taskOrgId ?? orgId ?? null
 
     const status = await db.query.statuses.findFirst({
       where: resolvedOrgId
-        ? and(eq(statuses.orgId, resolvedOrgId), eq(statuses.label, statusLabel))
-        : and(eq(statuses.userId, session.user.id), eq(statuses.label, statusLabel)),
+        ? and(eq(statuses.orgId, resolvedOrgId),          eq(statuses.label, statusLabel))
+        : and(eq(statuses.userId, session.user.id),       eq(statuses.label, statusLabel)),
     })
-
     if (!status) return { error: 'Status not found' }
 
     const beforeRow = await db.query.tasks.findFirst({
       where: eq(tasks.id, taskId),
       columns: {
-        title: true,
+        title:       true,
         description: true,
-        deadline: true,
-        statusId: true,
-        groupId: true,
-        assigneeId: true,
-        order: true,
-        updatedAt: true,
-        orgId: true,
+        deadline:    true,
+        statusId:    true,
+        groupId:     true,
+        assigneeId:  true,
+        order:       true,
+        updatedAt:   true,
+        orgId:       true,
       },
     })
     if (!beforeRow) return { error: 'Task not found' }
 
-    await db
-      .update(tasks)
+    // Ingen endring
+    if (beforeRow.statusId === status.id) return { success: true }
+
+    await db.update(tasks)
       .set({ statusId: status.id, updatedAt: new Date() })
       .where(eq(tasks.id, taskId))
 
     const afterRow = { ...beforeRow, statusId: status.id, updatedAt: new Date() }
     try {
       await db.insert(taskRevisions).values({
-        orgId: beforeRow.orgId ?? null,
+        orgId:  beforeRow.orgId ?? null,
         taskId,
         userId: session.user.id,
         action: 'status',
         before: snapshotTaskRow(beforeRow) as any,
-        after: snapshotTaskRow(afterRow) as any,
+        after:  snapshotTaskRow(afterRow)  as any,
       })
     } catch (e) {
       if (!isMissingRevisionsTableError(e)) throw e
@@ -332,7 +346,6 @@ export async function updateTaskOrder(
     const { data: session } = await auth.getSession()
     if (!session?.user) return { error: 'Not logged in' }
 
-    // Ensure user can edit all tasks being reordered
     await Promise.all(taskIds.map((id) => requireCanEditTask(session.user.id, id)))
 
     await Promise.all(
@@ -347,7 +360,7 @@ export async function updateTaskOrder(
 }
 
 export async function updateTaskGroup(
-  taskId: number,
+  taskId:  number,
   groupId: number | null
 ): Promise<{ error: string } | { success: true }> {
   try {
@@ -360,38 +373,40 @@ export async function updateTaskGroup(
     const beforeRow = await db.query.tasks.findFirst({
       where: eq(tasks.id, taskId),
       columns: {
-        title: true,
+        title:       true,
         description: true,
-        deadline: true,
-        statusId: true,
-        groupId: true,
-        assigneeId: true,
-        order: true,
-        updatedAt: true,
-        orgId: true,
+        deadline:    true,
+        statusId:    true,
+        groupId:     true,
+        assigneeId:  true,
+        order:       true,
+        updatedAt:   true,
+        orgId:       true,
       },
     })
     if (!beforeRow) return { error: 'Task not found' }
 
-    await db
-      .update(tasks)
+    // Ingen endring
+    if (beforeRow.groupId === groupId) return { success: true }
+
+    await db.update(tasks)
       .set({ groupId, updatedAt: new Date() })
       .where(eq(tasks.id, taskId))
 
     const afterRow = { ...beforeRow, groupId, updatedAt: new Date() }
     try {
       await db.insert(taskRevisions).values({
-        orgId: beforeRow.orgId ?? null,
+        orgId:  beforeRow.orgId ?? null,
         taskId,
         userId: session.user.id,
         action: 'group',
         before: snapshotTaskRow(beforeRow) as any,
-        after: snapshotTaskRow(afterRow) as any,
+        after:  snapshotTaskRow(afterRow)  as any,
       })
     } catch (e) {
       if (!isMissingRevisionsTableError(e)) throw e
     }
-    
+
     revalidatePath('/tasks')
     revalidatePath('/org/[slug]', 'page')
     return { success: true }

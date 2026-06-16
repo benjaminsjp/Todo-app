@@ -19,7 +19,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <>
       <AppSidebarServer />
-      <main className="flex flex-1 flex-col">
+      <main className="flex flex-1 flex-col w-full overflow-hidden">
         <AppMenubar />
         {children}
       </main>

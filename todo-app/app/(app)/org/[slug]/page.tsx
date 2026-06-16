@@ -44,16 +44,15 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
         <div className="flex flex-1 flex-col">
         <div className="container mx-auto flex-1 flex flex-col px-8 py-12">
             
-            {['owner', 'admin'].includes(membership.role) && (
-                <div className='mb-6 gap-4 flex items-center'>
+            <div className='mb-6 gap-4 flex items-center'>
                     <CreateTaskButton orgId={org.id} />
                     <Button variant="secondary" asChild>
                         <Link href={`/org/${org.slug}/settings`}>
-                        <Settings className="size-4" /> Manage organization
+                        <Settings className="size-4" />
+                        {['owner', 'admin'].includes(membership.role) ? 'Manage organization' : 'Organization settings'}
                         </Link>
                     </Button>
                 </div>
-            )}
             <div className="flex items-center mb-8 gap-3">
                 <h1 className="text-5xl font-medium font-heading text-heading-strong">
                     {org.name}

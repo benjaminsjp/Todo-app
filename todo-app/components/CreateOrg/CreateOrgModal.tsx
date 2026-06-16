@@ -1,7 +1,7 @@
 // components/CreateOrg/CreateOrgModal.tsx
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useEffect } from 'react'
 import { createOrganization } from '@/lib/actions/orgs'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -15,6 +15,12 @@ interface Props {
 
 export function CreateOrgModal({ open, onClose }: Props) {
   const [state, action, isPending] = useActionState(createOrganization, null)
+
+  useEffect(() => {
+    if (state && 'slug' in state) {
+      window.location.href = `/org/${state.slug}`
+    }
+  }, [state])
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -31,7 +37,7 @@ export function CreateOrgModal({ open, onClose }: Props) {
             <Input id="name" name="name" placeholder="Organization name" required />
           </div>
 
-          {state?.error && (
+          {state && 'error' in state && (
             <p className="text-sm text-destructive">{state.error}</p>
           )}
 

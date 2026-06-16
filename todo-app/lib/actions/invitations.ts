@@ -7,6 +7,8 @@ import { redirect } from 'next/navigation'
 import { eq, and } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { randomBytes } from 'crypto'
+import { getAppBaseUrl } from '@/lib/utils/appUrl'
+import { transferOrDeleteOrg } from '@/lib/db/orgOwnership'
 
 async function requireOrgAdmin(userId: string, orgId: number) {
   const membership = await db.query.organizationMembers.findFirst({
@@ -74,7 +76,7 @@ export async function createInvitation(
 
   revalidatePath(`/org/${formData.get('orgSlug')}/settings`)
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const baseUrl = await getAppBaseUrl()
   return { link: `${baseUrl}/invite/${token}` }
 }
 
@@ -114,7 +116,13 @@ export async function removeMember(memberId: number, orgSlug: string) {
     return { error: 'Unauthorized' }
   }
 
-  if (member.role === 'owner') return { error: 'Cannot remove the owner' }
+  if (member.role === 'owner') {
+    await transferOrDeleteOrg(member.orgId, member.userId)
+    await db.delete(organizationMembers).where(eq(organizationMembers.id, memberId))
+    revalidatePath('/', 'layout')
+    revalidatePath(`/org/${orgSlug}/settings`)
+    return { success: true }
+  }
 
   await db.delete(organizationMembers).where(eq(organizationMembers.id, memberId))
   revalidatePath(`/org/${orgSlug}/settings`)

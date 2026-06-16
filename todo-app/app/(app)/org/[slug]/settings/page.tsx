@@ -29,19 +29,21 @@ export default async function SettingsPage({
       eq(organizationMembers.userId, session.user.id)
     ),
   })
-  if (!membership || !['owner', 'admin'].includes(membership.role)) {
-    redirect(`/org/${slug}`)
-  }
+  if (!membership) redirect(`/org/${slug}`)
 
-  const [members, pendingInvites] = await Promise.all([
-    db.query.organizationMembers.findMany({
-      where: eq(organizationMembers.orgId, org.id),
-      with: { user: true },
-    }),
-    db.query.invitations.findMany({
-      where: eq(invitations.orgId, org.id),
-    }),
-  ])
+  const isAdmin = ['owner', 'admin'].includes(membership.role)
+
+  const [members, pendingInvites] = isAdmin
+    ? await Promise.all([
+        db.query.organizationMembers.findMany({
+          where: eq(organizationMembers.orgId, org.id),
+          with: { user: true },
+        }),
+        db.query.invitations.findMany({
+          where: eq(invitations.orgId, org.id),
+        }),
+      ])
+    : [[], []]
 
   return (
     <OrgSettingsPage

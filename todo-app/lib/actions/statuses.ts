@@ -17,6 +17,7 @@ export async function createStatus(
   if (!label?.trim()) return { error: 'Label is required' }
 
   const color  = (formData.get('color') as string) || 'gray'
+  const icon   = (formData.get('icon') as string) || null
   const orgId  = formData.get('orgId')  ? Number(formData.get('orgId'))  : null
   const userId = !orgId ? session.user.id : null
 
@@ -30,6 +31,7 @@ export async function createStatus(
   await db.insert(statuses).values({
     label,
     color,
+    icon:   icon ?? undefined,
     order:  existing.length,
     orgId:  orgId  ?? undefined,
     userId: userId ?? undefined,

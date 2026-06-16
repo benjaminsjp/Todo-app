@@ -41,6 +41,7 @@ export const statuses = pgTable('statuses', {
   id:     serial('id').primaryKey(),
   label:  text('label').notNull(),
   color:  text('color').notNull().default('gray'),
+  icon:   text('icon'),
   order:  integer('order').notNull().default(0),
   orgId:  integer('org_id').references(() => organizations.id, { onDelete: 'cascade' }),
   userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),           

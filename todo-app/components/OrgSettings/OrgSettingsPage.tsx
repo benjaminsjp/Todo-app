@@ -9,10 +9,12 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Copy, Check, Trash2, Settings, ArrowLeft } from 'lucide-react'
+import { Copy, Check, Trash2, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { formatDate } from '@/lib/types'
+import { LeaveOrgButton } from '@/components/OrgSettings/LeaveOrgButton'
+import { DeleteOrgButton } from '@/components/OrgSettings/DeleteOrgButton'
 
 type User = { id: string; displayName: string | null; email: string; avatarUrl: string | null }
 type Member = { id: number; role: string; joinedAt: Date | null; user: User }
@@ -156,6 +158,8 @@ export function OrgSettingsPage({
     else toast.success('Invitation revoked')
   }
 
+  const isAdmin = ['owner', 'admin'].includes(currentRole)
+
   return (
     <div className="container mx-auto max-w-2xl py-12 px-8 flex flex-col gap-10">
 
@@ -171,6 +175,7 @@ export function OrgSettingsPage({
       </div>
 
       {/* Members */}
+      {isAdmin && (
       <section className="flex flex-col gap-6">
         <div>
           <h2 className="text-xl font-medium mb-1">Members</h2>
@@ -210,10 +215,10 @@ export function OrgSettingsPage({
                     defaultValue={member.role}
                     onValueChange={(role) => handleRoleChange(member.id, role)}
                   >
-                    <SelectTrigger className="w-28 h-7 text-xs">
+                    <SelectTrigger className="w-28 h-7 text-xs ">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className='p-1'>
                       <SelectItem value="admin">Admin</SelectItem>
                       <SelectItem value="member">Member</SelectItem>
                       <SelectItem value="viewer">Viewer</SelectItem>
@@ -240,8 +245,10 @@ export function OrgSettingsPage({
           })}
         </div>
       </section>
+      )}
 
       {/* Invite */}
+      {isAdmin && (
       <section className="flex flex-col gap-4">
         <div>
           <h2 className="text-xl font-medium mb-1">Invite members</h2>
@@ -249,9 +256,10 @@ export function OrgSettingsPage({
         </div>
         <InviteForm orgId={org.id} orgSlug={org.slug} />
       </section>
+      )}
 
       {/* Pending invites */}
-      {pendingInvites.length > 0 && (
+      {isAdmin && pendingInvites.length > 0 && (
         <section className="flex flex-col gap-4">
           <h2 className="text-xl font-medium">Pending invitations</h2>
           <div className="flex flex-col gap-2">
@@ -277,6 +285,22 @@ export function OrgSettingsPage({
           </div>
         </section>
       )}
+
+      {/* Danger zone */}
+      <section className="flex flex-col gap-4 pt-6 border-t">
+        <div>
+          <h2 className="text-xl font-medium mb-1 text-destructive">Danger zone</h2>
+          <p className="text-sm text-muted-foreground">
+            Leave this organization or permanently delete it.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <LeaveOrgButton orgSlug={org.slug} orgName={org.name} />
+          {currentRole === 'owner' && (
+            <DeleteOrgButton orgSlug={org.slug} orgName={org.name} />
+          )}
+        </div>
+      </section>
     </div>
   )
 }

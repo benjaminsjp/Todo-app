@@ -1,47 +1,47 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 
-export function useTaskPresence(opts: { orgId?: number | null; taskId: number; enabled: boolean; mode?: 'editing' | 'viewing' }) {
-  const { orgId, taskId, enabled, mode = 'editing' } = opts
-  const stopRef = useRef<(() => void) | null>(null)
+export function useTaskPresence(opts: {
+  orgId?:   number | null
+  taskId:   number
+  enabled:  boolean
+  mode?:    'editing' | 'viewing'
+}) {
+  const { orgId, taskId, enabled, mode = 'viewing' } = opts
 
   useEffect(() => {
     if (!enabled || !orgId) return
 
-    let stopped = false
-
     const ping = async () => {
       try {
         await fetch('/api/presence/task', {
-          method: 'POST',
+          method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ orgId, taskId, mode }),
+          body:    JSON.stringify({ orgId, taskId, mode }),
         })
       } catch {
-        // ignore network errors; next ping will retry
       }
     }
-
-    const stop = async () => {
-      if (stopped) return
-      stopped = true
-      try {
-        await fetch(`/api/presence/task?orgId=${orgId}&taskId=${taskId}`, { method: 'DELETE' })
-      } catch {
-        // ignore
-      }
-    }
-
-    stopRef.current = () => { void stop() }
 
     void ping()
-    const interval = setInterval(() => { void ping() }, 5000)
+    const interval = setInterval(() => void ping(), 5000)
+
+    return () => clearInterval(interval)
+
+  }, [enabled, orgId, taskId, mode])
+
+  useEffect(() => {
+    if (!enabled || !orgId) return
 
     return () => {
-      clearInterval(interval)
-      void stop()
+      navigator.sendBeacon(
+        `/api/presence/task?orgId=${orgId}&taskId=${taskId}`,
+      )
+      void fetch(`/api/presence/task?orgId=${orgId}&taskId=${taskId}`, {
+        method:    'DELETE',
+        keepalive: true, // sender requesten selv om siden lukkes
+      })
     }
-  }, [enabled, orgId, taskId, mode])
+  }, [])
 }
-

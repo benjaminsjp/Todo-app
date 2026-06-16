@@ -24,16 +24,16 @@ import { CreateStatusModal } from '../Status/CreateStatusModal'
 import { Skeleton } from '../ui/skeleton'
 import { EditStatusMenu } from '../Status/EditStatusMenu'
 
-import { CircleDashed, CircleEllipsis, CircleCheck, Circle, Plus } from 'lucide-react'
+import { Circle, Plus } from 'lucide-react'
+import { resolveStatusIcon } from '@/lib/statusIcons'
 
 import { type Task, TaskGroup, Status } from "@/lib/types"
 import { updateTaskStatus, updateTaskOrder } from '@/lib/actions/tasks'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import { useSearchParams, usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { useOrgRealtime } from '@/lib/hooks/useOrgRealtime'
-
+import { useOrgRealtime, type TaskPresence } from '@/lib/hooks/useOrgRealtime'
 
 interface KanbanBoardProps {
   tasks:      Task[]
@@ -44,29 +44,20 @@ interface KanbanBoardProps {
   userId?:    string
 }
 
-export function getStatusStyle(color: string) {
-  const map: Record<string, { icon: typeof CircleDashed; class: string }> = {
-    gray:   { icon: CircleDashed,   class: 'text-muted-foreground' },
-    blue:   { icon: CircleEllipsis, class: 'text-blue-500' },
-    green:  { icon: CircleCheck,    class: 'text-green-500' },
-    yellow: { icon: Circle,         class: 'text-yellow-500' },
-    orange: { icon: Circle,         class: 'text-orange-500' },
-    red:    { icon: Circle,         class: 'text-red-500' },
-    purple: { icon: Circle,         class: 'text-purple-500' },
-    pink:   { icon: Circle,         class: 'text-pink-500' },
-  }
-  return map[color] ?? map.gray
+export function getStatusStyle(color: string, icon?: string | null) {
+  const { Icon, className } = resolveStatusIcon(icon, color)
+  return { icon: Icon, class: className }
 }
 
 function SortableTaskCard({
   task,
   orgSlug,
-  editingUsers,
+  presenceUsers,
   currentUserId,
 }: {
   task: Task
   orgSlug?: string
-  editingUsers?: { userId: string; user?: { displayName: string | null; email: string; avatarUrl: string | null } | null }[]
+  presenceUsers?: TaskPresence[]
   currentUserId?: string
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -81,7 +72,7 @@ function SortableTaskCard({
       {...listeners}
       className={isDragging ? 'opacity-40' : ''}
     >
-      <TaskCard task={task} orgSlug={orgSlug} editingUsers={editingUsers} currentUserId={currentUserId} />
+      <TaskCard task={task} orgSlug={orgSlug} presenceUsers={presenceUsers} currentUserId={currentUserId} />
     </div>
   )
 }
@@ -93,14 +84,14 @@ function KanbanColumn({
   presenceByTaskId,
   currentUserId,
 }: {
-  status:   Status
-  tasks:    Task[]
+  status: Status
+  tasks: Task[]
   orgSlug?: string
-  presenceByTaskId: Map<number, { userId: string; user?: { displayName: string | null; email: string; avatarUrl: string | null } | null }[]>
+  presenceByTaskId: Map<number, TaskPresence[]>
   currentUserId?: string
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status.label })
-  const { icon: Icon, class: iconClass } = getStatusStyle(status.color)
+  const { icon: Icon, class: iconClass } = getStatusStyle(status.color, status.icon)
 
   return (
     <div className="flex flex-col gap-3">
@@ -132,7 +123,7 @@ function KanbanColumn({
                 key={task.id}
                 task={task}
                 orgSlug={orgSlug}
-                editingUsers={presenceByTaskId.get(task.id) ?? []}
+                presenceUsers={presenceByTaskId.get(task.id) ?? []}
                 currentUserId={currentUserId}
               />
             ))
@@ -148,38 +139,38 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, statuses, orgSlug
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [isMounted, setIsMounted]   = useState(false)
   const [statusModalOpen, setStatusModalOpen] = useState(false)
-  const [liveStatuses, setLiveStatuses] = useState<Status[]>(statuses)
-  const [liveTaskGroups, setLiveTaskGroups] = useState<TaskGroup[]>(taskGroups)
+  const [liveStatuses, setLiveStatuses]       = useState<Status[]>(statuses)
+  const [liveTaskGroups, setLiveTaskGroups]   = useState<TaskGroup[]>(taskGroups)
+
+  // Sporer antall pågående optimistiske oppdateringer
+  const pendingCount = useRef(0)
 
   const orgRealtime = useOrgRealtime(orgId)
-
-
-  const pathname     = usePathname()
+  const pathname    = usePathname()
   const searchParams = useSearchParams()
 
   const createTaskGroupQuery = useCallback(
     (group: string, value: string) => {
       const params       = new URLSearchParams(searchParams.toString())
       const currentValue = params.get(group)
-      if (currentValue === value) {
-        params.delete(group)
-      } else {
-        params.set(group, value)
-      }
+      if (currentValue === value) params.delete(group)
+      else params.set(group, value)
       return params.toString()
     },
     [searchParams]
   )
 
-  useEffect(() => { setTasks(initialTasks) }, [initialTasks])
-  useEffect(() => { setLiveStatuses(statuses) }, [statuses])
+  useEffect(() => { setTasks(initialTasks) },    [initialTasks])
+  useEffect(() => { setLiveStatuses(statuses) },  [statuses])
   useEffect(() => { setLiveTaskGroups(taskGroups) }, [taskGroups])
-  useEffect(() => { setIsMounted(true) },     [])
+  useEffect(() => { setIsMounted(true) },         [])
 
+  // Realtime – ignorer hvis drag pågår eller vi har ubekreftede oppdateringer
   useEffect(() => {
     if (!orgId) return
     if (!orgRealtime.tasks || !orgRealtime.statuses || !orgRealtime.taskGroups) return
-    if (activeTask) return // don't clobber state mid-drag
+    if (activeTask) return
+    if (pendingCount.current > 0) return
 
     setTasks(orgRealtime.tasks)
     setLiveStatuses(orgRealtime.statuses)
@@ -209,12 +200,10 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, statuses, orgSlug
     if (!over) return
 
     let newStatusKey = liveStatuses.find((s) => s.label === over.id)?.label
-
     if (!newStatusKey) {
       const overTask = tasks.find((t) => t.id === over.id)
       if (overTask) newStatusKey = getStatusLabel(overTask)
     }
-
     if (!newStatusKey) return
 
     const task = tasks.find((t) => t.id === active.id)
@@ -223,50 +212,66 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, statuses, orgSlug
     const isSameColumn = task.status?.label === newStatusKey
     const isOverTask   = tasks.some((t) => t.id === over.id)
 
+    // ── Reorder innen samme kolonne ──────────────────────────────────────────
     if (isSameColumn && isOverTask) {
-      // Reorder within same column
+      const prevTasks = [...tasks]
       const reordered = arrayMove(
         tasks,
         tasks.findIndex((t) => t.id === active.id),
         tasks.findIndex((t) => t.id === over.id)
       )
+
+      pendingCount.current++
       setTasks(reordered)
 
-      await updateTaskOrder(reordered.map((t) => t.id))
+      try {
+        await updateTaskOrder(reordered.map((t) => t.id))
+      } catch {
+        toast.error('Failed to reorder tasks')
+        setTasks(prevTasks)
+      } finally {
+        pendingCount.current--
+      }
       return
     }
 
+    // ── Flytt til ny kolonne ─────────────────────────────────────────────────
+    const newStatus = liveStatuses.find((s) => s.label === newStatusKey)
+    if (!newStatus) return
+
+    const prevTasks = [...tasks]
+
+    pendingCount.current++
     setTasks((prev) =>
       prev.map((t) =>
-        t.id !== active.id ? t : {
-          ...t,
-          status: { id: t.statusId ?? 0, label: newStatusKey!, color: 'gray', order: 0 },
-        }
+        t.id !== active.id ? t : { ...t, status: newStatus }
       )
     )
 
-    const result = await updateTaskStatus(Number(active.id), newStatusKey, orgId, userId)
-
-    if ('error' in result) {
+    try {
+      const result = await updateTaskStatus(Number(active.id), newStatusKey, orgId, userId)
+      if ('error' in result) {
+        toast.error('Failed to update status')
+        setTasks(prevTasks)
+      }
+    } catch {
       toast.error('Failed to update status')
-      setTasks((prev) =>
-        prev.map((t) => t.id !== active.id ? t : { ...t, status: task.status })
-      )
+      setTasks(prevTasks)
+    } finally {
+      pendingCount.current--
     }
   }
 
-
-
-    if (!isMounted) return (
+  if (!isMounted) return (
     <div className="flex flex-col gap-10 h-full">
       <div className="flex flex-wrap gap-3">
         <Skeleton className="w-28 h-9 rounded-full" />
       </div>
-      <div className='h-full p-6 bg-card border border-border rounded-2xl animate-fade animate-once animate-duration-200  animate-ease-in-out'>
+      <div className="h-full p-6 bg-card border border-border rounded-2xl animate-fade animate-once animate-duration-200 animate-ease-in-out">
         <div className="flex flex-row gap-6">
           {liveStatuses.map((s) => (
             <div key={s.id} className="flex flex-col gap-2 min-w-80">
-              <div className='flex'>
+              <div className="flex">
                 <Skeleton className="w-24 h-7 mb-4" />
                 <Skeleton className="ml-auto w-7 h-7 mb-4" />
               </div>
@@ -277,7 +282,6 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, statuses, orgSlug
       </div>
     </div>
   )
-
 
   return (
     <DndContext
@@ -302,12 +306,13 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, statuses, orgSlug
           )}
           <CreateTaskGroupButton orgId={orgId} />
         </div>
-        <ScrollArea 
-          className="h-full bg-card border border-border rounded-2xl animate-fade animate-once animate-duration-200  animate-ease-in-out"
+
+        <ScrollArea
+          className="h-full bg-card border border-border rounded-2xl animate-fade animate-once animate-duration-200 animate-ease-in-out"
         >
           <div className="flex flex-row gap-6 items-start h-full p-6">
             {liveStatuses.map((status) => (
-              <div key={status.id} className="min-w-80">
+              <div key={status.id} className="max-w-90 min-w-90">
                 <KanbanColumn
                   status={status}
                   tasks={tasksByStatus(status.label)}
@@ -328,7 +333,7 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, statuses, orgSlug
               </button>
             </div>
           </div>
-          <ScrollBar orientation='horizontal' className='mx-2 mb-2' />
+          <ScrollBar orientation="horizontal" className="mx-2 mb-2" />
         </ScrollArea>
       </div>
 

@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth/server'
 import { NextRequest } from 'next/server'
 
 const middleware = auth.middleware({
-  loginUrl: '/api/auth/sign-in',
+  loginUrl: '/auth/sign-in',
 })
 
 export default function handler(req: NextRequest) {

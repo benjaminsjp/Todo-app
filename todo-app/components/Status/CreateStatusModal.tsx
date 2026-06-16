@@ -1,13 +1,13 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import { createStatus } from '@/lib/actions/statuses'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useState } from 'react'
 import { cn } from '@/lib/utils'
+import { STATUS_ICON_OPTIONS } from '@/lib/statusIcons'
 
 const COLORS = [
   { label: 'Gray',   value: 'gray',   class: 'bg-gray-500' },
@@ -28,6 +28,7 @@ interface Props {
 
 export function CreateStatusModal({ open, onClose, orgId }: Props) {
   const [selectedColor, setSelectedColor] = useState(COLORS[0].value)
+  const [selectedIcon, setSelectedIcon] = useState(STATUS_ICON_OPTIONS[0].name)
 
   const [state, action, isPending] = useActionState(
     async (_prev: { error: string } | null, formData: FormData) => {
@@ -47,10 +48,31 @@ export function CreateStatusModal({ open, onClose, orgId }: Props) {
         <form action={action} className="flex flex-col gap-6">
           {orgId && <input type="hidden" name="orgId" value={orgId} />}
           <input type="hidden" name="color" value={selectedColor} />
+          <input type="hidden" name="icon" value={selectedIcon} />
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="label" className="pb-2">Name *</Label>
             <Input id="label" name="label" placeholder="E.g., In Review" required />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label className="pb-2">Icon</Label>
+            <div className="flex flex-wrap gap-2">
+              {STATUS_ICON_OPTIONS.map(({ name, icon: Icon, label }) => (
+                <button
+                  key={name}
+                  type="button"
+                  title={label}
+                  onClick={() => setSelectedIcon(name)}
+                  className={cn(
+                    'flex size-9 items-center justify-center rounded-lg border transition-all hover:bg-accent',
+                    selectedIcon === name && 'ring-2 ring-foreground bg-accent'
+                  )}
+                >
+                  <Icon className="size-4" />
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="flex flex-col gap-1.5">

@@ -16,7 +16,7 @@ export function LogoutButton() {
       success: 'Logged out successfully',
       error:   'Failed to log out',
       finally: () => {
-        window.location.href = '/api/auth/sign-in'
+        window.location.href = '/auth/sign-in'
       },
     })
   }

@@ -34,7 +34,7 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
                   <Building2 className="size-3" />
                 </div>
                 <span className="truncate font-medium">
-                  {activeOrg?.name ?? 'Personlig'}
+                  {activeOrg?.name ?? 'Personal'}
                 </span>
                 <ChevronDown className="opacity-50" />
               </SidebarMenuButton>
@@ -51,7 +51,7 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
                 <div className="flex size-7 items-center justify-center rounded-sm border">
                   <Building2 className="size-4 shrink-0" />
                 </div>
-                Personlig
+                Personal
                 {!activeOrg && (
                   <span className="ml-auto text-xs text-muted-foreground pr-2">Active</span>
                 )}

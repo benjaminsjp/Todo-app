@@ -21,6 +21,30 @@ type PresencePayload = {
   user: { displayName: string | null; email: string; avatarUrl: string | null } | null
 }
 
+async function fetchPresence(orgId: number, now: Date): Promise<PresencePayload[]> {
+  try {
+    const cutoff      = new Date(Date.now() - 15_000)
+    const presenceRows = await db.query.taskPresence.findMany({
+      where: and(eq(taskPresence.orgId, orgId), gt(taskPresence.lastSeenAt, cutoff)),
+      with: {
+        user: { columns: { displayName: true, email: true, avatarUrl: true } },
+      },
+    })
+
+    return presenceRows.map((p) => ({
+      taskId:     p.taskId,
+      userId:     p.userId,
+      mode:       p.mode,
+      lastSeenAt: (p.lastSeenAt ?? now).toISOString(),
+      user:       p.user
+        ? { displayName: p.user.displayName ?? null, email: p.user.email, avatarUrl: p.user.avatarUrl ?? null }
+        : null,
+    }))
+  } catch {
+    return []
+  }
+}
+
 export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }> }) {
   const { data: session } = await auth.getSession()
   if (!session?.user) return new Response('Unauthorized', { status: 401 })
@@ -63,57 +87,50 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
       if (req.signal) req.signal.addEventListener('abort', close)
 
       const loop = async () => {
-        // initial "open" flush helps some proxies/browsers start streaming immediately
         heartbeat()
-
+      
+        let lastFullPoll = 0
+      
         while (!closed) {
           const now = new Date()
-
+      
           try {
-            const [tasksPayload, statuses, groups] = await Promise.all([
-              getTasksForOrg(orgId),
-              getStatusesForOrg(orgId),
-              getTaskGroupsForOrg(orgId),
-            ])
-
-            let presence: PresencePayload[] = []
-            try {
-              const cutoff = new Date(Date.now() - 15_000)
-              const presenceRows = await db.query.taskPresence.findMany({
-                where: and(eq(taskPresence.orgId, orgId), gt(taskPresence.lastSeenAt, cutoff)),
-                with: {
-                  user: { columns: { displayName: true, email: true, avatarUrl: true } },
-                },
+            const shouldFullPoll = Date.now() - lastFullPoll >= 2000
+      
+            if (shouldFullPoll) {
+              const [tasksPayload, statuses, groups] = await Promise.all([
+                getTasksForOrg(orgId),
+                getStatusesForOrg(orgId),
+                getTaskGroupsForOrg(orgId),
+              ])
+      
+              const presence = await fetchPresence(orgId, now)
+      
+              send({
+                type:       'org:update',
+                cursor:     now.toISOString(),
+                tasks:      tasksPayload,
+                statuses,
+                taskGroups: groups,
+                presence,
               })
-
-              presence = presenceRows.map((p) => ({
-                taskId: p.taskId,
-                userId: p.userId,
-                mode: p.mode,
-                lastSeenAt: (p.lastSeenAt ?? now).toISOString(),
-                user: p.user
-                  ? { displayName: p.user.displayName ?? null, email: p.user.email, avatarUrl: p.user.avatarUrl ?? null }
-                  : null,
-              }))
-            } catch {
-              // If presence table isn't migrated yet, keep tasks realtime working.
-              presence = []
+      
+              lastFullPoll = Date.now()
+            } else {
+              // Kun presence – rask og lett
+              const presence = await fetchPresence(orgId, now)
+      
+              send({
+                type:     'org:presence',
+                presence,
+              })
             }
-
-            send({
-              type: 'org:update',
-              cursor: now.toISOString(),
-              tasks: tasksPayload,
-              statuses,
-              taskGroups: groups,
-              presence,
-            })
           } catch {
             heartbeat()
           }
-
-          // poll interval
-          await new Promise((r) => setTimeout(r, 2000))
+      
+          // Presence poller hvert 300ms, full data hvert ~2000ms
+          await new Promise((r) => setTimeout(r, 300))
         }
       }
 

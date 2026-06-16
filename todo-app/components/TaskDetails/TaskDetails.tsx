@@ -43,11 +43,17 @@ export default function TaskDetails({
   )
 
   const orgRealtime = useOrgRealtime(task.orgId ?? undefined)
-  const editingUsers = (orgRealtime.presenceByTaskId.get(task.id) ?? []).filter((p) => p.userId !== currentUserId)
+  const editingUsers = (orgRealtime.presenceByTaskId.get(task.id) ?? [])
+  .filter((p) => p.userId !== currentUserId && p.mode === 'editing')
   const isLockedByOther = Boolean(task.orgId) && editingUsers.length > 0
 
-  useTaskPresence({ orgId: task.orgId, taskId: task.id, enabled: isEditing && Boolean(task.orgId), mode: 'editing' })
-
+  useTaskPresence({
+    orgId: task.orgId,
+    taskId: task.id,
+    enabled: Boolean(task.orgId),
+    mode: isEditing ? 'editing' : 'viewing',
+  })
+  
   useEffect(() => {
     if (isLockedByOther && isEditing) {
       setIsEditing(false)
@@ -87,7 +93,7 @@ export default function TaskDetails({
     if (!task.orgId) { setIsEditing(true); return }
 
     const res = await acquireTaskLock(task.id)
-    if ('error' in res) { setError(res.error); return }
+    if ('error' in res) { setError(res.error ?? null); return }
     if (res.success === false) {
       const who = res.lockedBy?.displayName ?? res.lockedBy?.email ?? 'another user'
       setError(`Task is currently locked (being edited by ${who}).`)
@@ -177,7 +183,7 @@ export default function TaskDetails({
           onSave={isEditing ? handleSave : handleStartEditing}
           onCancel={handleCancel}
           isSaving={isSaving}
-          headerSlot={<TaskRevisionHistory taskId={task.id} />}
+          headerSlot={<TaskRevisionHistory taskId={task.id} statuses={statuses} />}
         />
       </div>
     </div>

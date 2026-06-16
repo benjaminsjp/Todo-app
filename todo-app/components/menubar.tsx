@@ -33,7 +33,7 @@ export default function AppMenubar() {
 
   const handleSignOut = async () => {
     await authClient.signOut()
-    window.location.href = '/api/auth/sign-in'
+    window.location.href = '/auth/sign-in'
   }
 
   const initials = user?.name

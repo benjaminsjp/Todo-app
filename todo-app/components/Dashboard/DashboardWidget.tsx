@@ -34,7 +34,7 @@ export function DashboardWidget({
             size="sm"
           >
             <Link href={href}>
-                Se alle <ArrowRight className="size-3" />
+                View all <ArrowRight className="size-3" />
             </Link>
           </Button>
         )}

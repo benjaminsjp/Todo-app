@@ -1,16 +1,16 @@
 import Link from 'next/link'
-import { CalendarDays, MessageCircle, Pencil } from 'lucide-react'
+import { CalendarDays, MessageCircle, Pencil, Eye } from 'lucide-react'
 import { type Task } from "@/lib/types"
+import { Avatar, AvatarFallback, AvatarImage, AvatarBadge } from '@/components/ui/avatar'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
-type EditingUser = {
-  userId: string
-  user?: { displayName: string | null; email: string; avatarUrl: string | null } | null
-}
+import { type TaskPresence } from '@/lib/hooks/useOrgRealtime'
+import { getColor } from '@/lib/types'
 
 interface TaskCardProps {
   task: Task
   orgSlug?: string
-  editingUsers?: EditingUser[]
+  presenceUsers?: TaskPresence[]
   currentUserId?: string
 }
 
@@ -18,13 +18,30 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
-export function TaskCard({ task, orgSlug, editingUsers = [], currentUserId }: TaskCardProps) {
+function PresenceAvatar({ user, mode }: { user: TaskPresence['user']; mode: string }) {
+  const name = user?.displayName || user?.email || '?'
+  const initials = name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Avatar size="lg">
+          <AvatarImage src={user?.avatarUrl ?? ''} />
+          <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+          <AvatarBadge className={`text-black ${mode === 'editing' ? getColor('bg-red-500').bg : getColor('bg-green-500').bg}`}>
+          </AvatarBadge>
+        </Avatar>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">
+        <p className="text-xs">{name} — {mode === 'editing' ? 'Editing' : 'Viewing'}</p>
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+export function TaskCard({ task, orgSlug, presenceUsers = [], currentUserId }: TaskCardProps) {
   const groupColor = task.group?.color ?? null
   const href = orgSlug ? `/org/${orgSlug}/${task.slug}` : `/tasks/${task.slug}`
-
-  const othersEditing = editingUsers.filter((u) => u.userId !== currentUserId)
-  
-
+  const others = presenceUsers.filter((u) => u.userId !== currentUserId)
   return (
     <Link href={href}>
       <div className="group rounded-xl border bg-card p-4 flex flex-col gap-3 hover:shadow-md hover:border-foreground/20 transition-all duration-200 cursor-pointer">
@@ -37,10 +54,20 @@ export function TaskCard({ task, orgSlug, editingUsers = [], currentUserId }: Ta
           ) : (
             <span className="text-xs text-muted-foreground"> </span>
           )}
-          {othersEditing.length > 0 && (
-            <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 px-2 py-0.5 text-[10px] font-medium">
-              <Pencil className="size-3" /> Editing{othersEditing.length > 1 ? ` (${othersEditing.length})` : ''}
-            </span>
+          {others.length > 0 && (
+            <div className="ml-auto flex">
+              {others
+                .sort((a, b) => (a.mode === 'editing' ? -1 : 1) - (b.mode === 'editing' ? -1 : 1))
+                .slice(0, 3)
+                .map((u) => (
+                  <PresenceAvatar key={u.userId} user={u.user} mode={u.mode} />
+                ))}
+              {others.length > 3 && (
+                <Avatar>
+                  <AvatarFallback className="text-xs">+{others.length - 3}</AvatarFallback>
+                </Avatar>
+              )}
+            </div>
           )}
         </div>
         <p className="text-sm font-medium leading-snug group-hover:text-foreground/80 transition-colors line-clamp-2">
