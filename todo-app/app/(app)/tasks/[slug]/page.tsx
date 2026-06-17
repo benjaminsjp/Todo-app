@@ -1,6 +1,9 @@
 import { auth } from '@/lib/auth/server'
 import { redirect, notFound } from 'next/navigation'
 import { getTaskBySlug, getTaskGroupOptions, getStatusesForUser } from '@/lib/db/queries'
+import { db } from '@/lib/db'
+import { users } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
 import TaskDetails from '@/components/TaskDetails/TaskDetails'
 
 export const dynamic = 'force-dynamic'
@@ -19,7 +22,9 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
 
   if (!task) notFound()
 
-
+  const currentUser = await db.query.users.findFirst({
+    where: eq(users.id, session.user.id),
+  })
 
   const statusOptions = statuses.map((s) => ({
     value: String(s.id),
@@ -35,6 +40,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
       statusOptions={statusOptions}
       statuses={statuses}
       currentUserId={session.user.id}
+      currentUser={currentUser}
     />
   )
 }

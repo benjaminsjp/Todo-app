@@ -1,7 +1,7 @@
 import { auth } from '@/lib/auth/server'
 import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
-import { organizations, organizationMembers, tasks, taskGroups } from '@/lib/db/schema'
+import { organizations, organizationMembers, tasks, taskGroups, users } from '@/lib/db/schema'
 import { getStatusesForOrg } from '@/lib/db/queries'
 import { and, eq } from 'drizzle-orm'
 import TaskDetails from '@/components/TaskDetails/TaskDetails'
@@ -55,6 +55,10 @@ export default async function OrgTaskPage({
 
   const statuses = await getStatusesForOrg(org.id)
 
+  const currentUser = await db.query.users.findFirst({
+    where: eq(users.id, session.user.id),
+  })
+
   const statusOptions = statuses.map((s) => ({
     value: String(s.id),
     label: s.label,
@@ -70,7 +74,7 @@ export default async function OrgTaskPage({
       statusOptions={statusOptions}
       statuses={statuses}
       currentUserId={session.user.id}
-
+      currentUser={currentUser}
     />
   )
 }

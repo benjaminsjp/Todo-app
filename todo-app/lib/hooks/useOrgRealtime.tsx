@@ -11,6 +11,18 @@ export type TaskPresence = {
   user: { displayName: string | null; email: string; avatarUrl: string | null } | null
 }
 
+function presenceEqual(a: TaskPresence[], b: TaskPresence[]): boolean {
+  if (a.length !== b.length) return false
+  return a.every((p, i) => {
+    const q = b[i]
+    return (
+      p.taskId === q.taskId &&
+      p.userId === q.userId &&
+      p.mode === q.mode
+    )
+  })
+}
+
 export function useOrgRealtime(orgId?: number) {
   const [tasks, setTasks] = useState<Task[] | null>(null)
   const [statuses, setStatuses] = useState<Status[] | null>(null)
@@ -32,12 +44,32 @@ export function useOrgRealtime(orgId?: number) {
           | { type: 'org:presence'; presence: TaskPresence[] }
 
         if (payload.type === 'org:update') {
-          setTasks(payload.tasks)
-          setStatuses(payload.statuses)
-          setTaskGroups(payload.taskGroups)
-          setPresence(payload.presence ?? [])
+          setTasks((prev) => {
+            const next = payload.tasks
+            if (prev && JSON.stringify(prev) === JSON.stringify(next)) return prev
+            return next
+          })
+          setStatuses((prev) => {
+            const next = payload.statuses
+            if (prev && JSON.stringify(prev) === JSON.stringify(next)) return prev
+            return next
+          })
+          setTaskGroups((prev) => {
+            const next = payload.taskGroups
+            if (prev && JSON.stringify(prev) === JSON.stringify(next)) return prev
+            return next
+          })
+          setPresence((prev) => {
+            const next = payload.presence ?? []
+            if (presenceEqual(prev, next)) return prev
+            return next
+          })
         } else if (payload.type === 'org:presence') {
-          setPresence(payload.presence ?? [])
+          setPresence((prev) => {
+            const next = payload.presence ?? []
+            if (presenceEqual(prev, next)) return prev
+            return next
+          })
         }
       } catch {
         // ignore malformed messages

@@ -1,12 +1,13 @@
 'use client'
 
-import { useActionState, useEffect, useRef, useState } from 'react'
-import { createComment } from '@/lib/actions/comments'
+import { useRef, useState } from 'react'
+import { createCommentForTask } from '@/lib/actions/comments'
 import { Button } from '@/components/ui/button'
 import { InputGroup, InputGroupAddon, InputGroupButton } from '@/components/ui/input-group'
 import { MessageCircle } from 'lucide-react'
 import Editor from '@/components/TextEditor/TextEditor'
 import { Comment } from './Comment'
+import type { Comment as CommentType } from '@/lib/types'
 
 type MappedComment = {
   id:                   number
@@ -17,24 +18,61 @@ type MappedComment = {
 }
 
 interface CommentsProps {
-  taskId:    number
-  comments?: MappedComment[]
+  taskId:              number
+  comments?:           MappedComment[]
+  onOptimisticAdd?:    (comment: CommentType) => void
+  onOptimisticRemove?: (tempId: number) => void
+  onCommentSaved?:     (tempId: number, comment: CommentType) => void
 }
 
-export default function Comments({ taskId, comments = [] }: CommentsProps) {
+export default function Comments({
+  taskId,
+  comments = [],
+  onOptimisticAdd,
+  onOptimisticRemove,
+  onCommentSaved,
+}: CommentsProps) {
   const [content, setContent] = useState('')
-  const [state, action, isPending] = useActionState(createComment, null)
+  const [error, setError] = useState<string | null>(null)
+  const [isPending, setIsPending] = useState(false)
   const editorKey = useRef(0)
 
-  useEffect(() => {
-    if (state && 'success' in state) {
-      setContent('')
-      editorKey.current += 1
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const trimmed = content.trim()
+    if (!trimmed || isPending) return
+
+    setError(null)
+    setIsPending(true)
+
+    const tempId = -Date.now()
+    const optimistic: CommentType = {
+      id:        tempId,
+      content:   trimmed,
+      createdAt: new Date(),
+      updatedAt: null,
+      taskId,
+      userId:    '',
+      user:      null,
     }
-  }, [state])
+    onOptimisticAdd?.(optimistic)
+
+    const result = await createCommentForTask(taskId, trimmed)
+    setIsPending(false)
+
+    if ('error' in result) {
+      onOptimisticRemove?.(tempId)
+      setError(result.error)
+      return
+    }
+
+    onCommentSaved?.(tempId, result.comment)
+    setContent('')
+    editorKey.current += 1
+  }
 
   return (
-    <div className="flex flex-col h-full animate-fade-up animate-once animate-duration-350">
+    <div className="flex flex-col h-full">
       <h2 className="text-2xl font-heading mt-8 mb-4">Comments</h2>
 
       <div className="flex flex-col gap-4">
@@ -47,9 +85,7 @@ export default function Comments({ taskId, comments = [] }: CommentsProps) {
       </div>
 
       <div className="mt-auto pt-12">
-        <form action={action}>
-          <input type="hidden" name="taskId" value={taskId} />
-          <input type="hidden" name="content" value={content} />
+        <form onSubmit={handleSubmit}>
           <InputGroup className="bg-surface-2 border-border">
             <Editor
               key={editorKey.current}
@@ -57,8 +93,8 @@ export default function Comments({ taskId, comments = [] }: CommentsProps) {
               onChange={setContent}
             />
             <InputGroupAddon align="block-end" className="border-t">
-              {state && 'error' in state && (
-                <p className="text-xs text-destructive px-2">{state.error}</p>
+              {error && (
+                <p className="text-xs text-destructive px-2">{error}</p>
               )}
               <Button asChild className="ml-auto">
                 <InputGroupButton

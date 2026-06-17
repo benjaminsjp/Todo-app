@@ -8,7 +8,7 @@ import { StatusOption } from "@/lib/types"
 import Comments from "@/components/TaskComments/Comments"
 import { CreateTaskEditor } from "@/components/CreateTask/CreateTaskEditor"
 import { acquireTaskLock, releaseTaskLock, updateTask } from "@/lib/actions/tasks"
-import { type Task, mapComments, Status } from "@/lib/types"
+import { type Task, mapComments, Status, type Comment, type User } from "@/lib/types"
 import { TaskSidebar } from "./TaskSidebar"
 import { useOrgRealtime } from "@/lib/hooks/useOrgRealtime"
 import { useTaskPresence } from "@/lib/hooks/useTaskPresence"
@@ -33,6 +33,14 @@ function toggleTaskListCheckbox(html: string, checkboxIndex: number): string | n
   return doc.body.innerHTML
 }
 
+function commentsEqual(a: Comment[], b: Comment[]): boolean {
+  if (a.length !== b.length) return false
+  return a.every((c, i) => {
+    const d = b[i]
+    return c.id === d.id && c.content === d.content && String(c.updatedAt) === String(d.updatedAt)
+  })
+}
+
 export default function TaskDetails({
   task,
   taskGroup,
@@ -40,6 +48,7 @@ export default function TaskDetails({
   statusOptions,
   statuses,
   currentUserId,
+  currentUser,
 }: {
   task:             Task
   taskGroup:        string | undefined
@@ -47,6 +56,7 @@ export default function TaskDetails({
   statusOptions:    StatusOption[]
   statuses:         Status[]
   currentUserId?:   string
+  currentUser?:     User | null
 }) {
   const router = useRouter()
   const [isEditing,       setIsEditing]   = useState(false)
@@ -133,7 +143,7 @@ export default function TaskDetails({
     const updated = orgRealtime.tasks.find((t) => t.id === task.id)
     if (!updated) return
 
-    setTitle(updated.title)
+    setTitle((prev) => (prev === updated.title ? prev : updated.title))
     if (!checkboxDirtyRef.current) {
       const nextDesc = updated.description ?? ''
       if (nextDesc !== descriptionRef.current) {
@@ -142,10 +152,21 @@ export default function TaskDetails({
         lastSavedDescriptionRef.current = nextDesc
       }
     }
-    setLiveComments(updated.comments ?? [])
-    setStatus(updated.status?.label ?? 'Todo')
-    setGroupId(updated.groupId ? String(updated.groupId) : 'none')
-    setDeadline(updated.deadline ? new Date(updated.deadline) : undefined)
+    setLiveComments((prev) => {
+      const next = updated.comments ?? []
+      return commentsEqual(prev, next) ? prev : next
+    })
+    setStatus((prev) => (prev === (updated.status?.label ?? 'Todo') ? prev : updated.status?.label ?? 'Todo'))
+    setGroupId((prev) => {
+      const next = updated.groupId ? String(updated.groupId) : 'none'
+      return prev === next ? prev : next
+    })
+    setDeadline((prev) => {
+      const next = updated.deadline ? new Date(updated.deadline) : undefined
+      const prevTime = prev?.getTime()
+      const nextTime = next?.getTime()
+      return prevTime === nextTime ? prev : next
+    })
   }, [task.id, task.orgId, isEditing, orgRealtime.tasks])
 
   useEffect(() => {
@@ -266,6 +287,25 @@ export default function TaskDetails({
     setDeadline(date)
   }
 
+  const handleOptimisticCommentAdd = (comment: Comment) => {
+    const withUser: Comment = {
+      ...comment,
+      userId: currentUserId ?? comment.userId,
+      user:   currentUser ?? comment.user ?? null,
+    }
+    setLiveComments((prev) => [...prev, withUser])
+  }
+
+  const handleOptimisticCommentRemove = (tempId: number) => {
+    setLiveComments((prev) => prev.filter((c) => c.id !== tempId))
+  }
+
+  const handleCommentSaved = (tempId: number, comment: Comment) => {
+    setLiveComments((prev) =>
+      prev.map((c) => (c.id === tempId ? comment : c))
+    )
+  }
+
 
 
   return (
@@ -305,7 +345,13 @@ export default function TaskDetails({
               ) : (
                 <p className="text-muted-foreground text-sm italic">No description yet.</p>
               )}
-              <Comments taskId={task.id} comments={mapComments(liveComments)} />
+              <Comments
+                taskId={task.id}
+                comments={mapComments(liveComments)}
+                onOptimisticAdd={handleOptimisticCommentAdd}
+                onOptimisticRemove={handleOptimisticCommentRemove}
+                onCommentSaved={handleCommentSaved}
+              />
             </>
           )}
 
