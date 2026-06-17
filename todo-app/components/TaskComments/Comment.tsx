@@ -13,7 +13,7 @@ type MappedComment = {
   content:              string
   createdAt:            string
   author:               string
-  authorProfilePicture: string
+  authorProfilePicture: string | undefined
 }
 
 export function Comment({ comment }: { comment: MappedComment }) {
@@ -56,7 +56,7 @@ export function Comment({ comment }: { comment: MappedComment }) {
     <div className="rounded-xl p-4 bg-surface-2 flex flex-col group">
       <div className="flex items-center gap-2 mb-2">
         <Avatar>
-          <AvatarImage src={comment.authorProfilePicture} alt={comment.author} />
+          <AvatarImage src={comment.authorProfilePicture || undefined} alt={comment.author} />
           <AvatarFallback>{comment.author[0]}</AvatarFallback>
         </Avatar>
         <span className="text-base font-semibold text-primary">{comment.author}</span>

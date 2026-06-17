@@ -6,8 +6,14 @@ export async function getAppBaseUrl(): Promise<string> {
     return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')
   }
 
+  // On Vercel, VERCEL_URL is the *current deployment* domain.
+  // Prefer the production project domain so invite links keep users on the main host.
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`.replace(/\/$/, '')
+  }
+
   if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`
+    return `https://${process.env.VERCEL_URL}`.replace(/\/$/, '')
   }
 
   const h = await headers()

@@ -415,6 +415,31 @@ export async function updateTaskGroup(
   }
 }
 
+export async function deleteTask(
+  taskId: number
+): Promise<{ error: string } | { success: true }> {
+  try {
+    const { data: session } = await auth.getSession()
+    if (!session?.user) return { error: 'Not logged in' }
+
+    await requireCanEditTask(session.user.id, taskId)
+    await requireNotLocked(session.user.id, taskId)
+
+    // Clean up related rows first (in case FK constraints are strict).
+    await db.delete(taskPresence).where(eq(taskPresence.taskId, taskId))
+    await db.delete(taskRevisions).where(eq(taskRevisions.taskId, taskId))
+
+    await db.delete(tasks).where(eq(tasks.id, taskId))
+
+    revalidatePath('/tasks')
+    revalidatePath('/org/[slug]', 'page')
+
+    return { success: true }
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Something went wrong' }
+  }
+}
+
 async function generateUniqueSlug(baseSlug: string, orgId: number | null): Promise<string> {
   let slug    = baseSlug
   let counter = 1

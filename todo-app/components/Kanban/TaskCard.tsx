@@ -1,98 +1,135 @@
-import Link from 'next/link'
-import { CalendarDays, MessageCircle, Pencil, Eye } from 'lucide-react'
-import { type Task } from "@/lib/types"
-import { Avatar, AvatarFallback, AvatarImage, AvatarBadge } from '@/components/ui/avatar'
+'use client'
+
+import { CalendarClock, MessageCircle } from 'lucide-react'
+import { type Status, type Task, type TaskGroup } from "@/lib/types"
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 import { type TaskPresence } from '@/lib/hooks/useOrgRealtime'
-import { getColor } from '@/lib/types'
+import { TaskOptionsMenu } from './TaskOptionsMenu'
+import { useRouter } from 'next/navigation'
 
 interface TaskCardProps {
   task: Task
   orgSlug?: string
   presenceUsers?: TaskPresence[]
   currentUserId?: string
+  statuses?: Status[]
+  taskGroups?: TaskGroup[]
+  onOptimisticPatch?: (taskId: number, patch: Partial<Task>) => void
+  onOptimisticRollback?: (taskId: number, prev: Task) => void
 }
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
-function PresenceAvatar({ user, mode }: { user: TaskPresence['user']; mode: string }) {
-  const name = user?.displayName || user?.email || '?'
-  const initials = name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
+function PresenceDot({ others }: { others: TaskPresence[] }) {
+  const total = others.length
+  if (total === 0) return null
+
+  const editing = others.filter((o) => o.mode === 'editing')
+  const viewing = others.filter((o) => o.mode !== 'editing')
+
+  const colorClass =
+    editing.length > 0 ? 'bg-red-500' : 'bg-green-500'
+
+  const tooltip = [
+    editing.length > 0
+      ? `Editing (${editing.length}): ${editing.map((u) => u.user?.displayName ?? u.user?.email ?? 'Someone').join(', ')}`
+      : null,
+    viewing.length > 0
+      ? `Viewing (${viewing.length}): ${viewing.map((u) => u.user?.displayName ?? u.user?.email ?? 'Someone').join(', ')}`
+      : null,
+  ].filter(Boolean).join('\n')
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Avatar size="lg">
-          <AvatarImage src={user?.avatarUrl ?? ''} />
-          <AvatarFallback className="text-xs">{initials}</AvatarFallback>
-          <AvatarBadge className={`text-black ${mode === 'editing' ? getColor('bg-red-500').bg : getColor('bg-green-500').bg}`}>
-          </AvatarBadge>
-        </Avatar>
+        <div
+          className="flex items-center gap-1.5 select-none"
+          aria-label={tooltip.replace(/\n/g, ' · ')}
+        >
+          <span className={`inline-block size-2 rounded-full ${colorClass}`} />
+          {total > 1 && (
+            <span className="text-[10px] leading-none text-muted-foreground tabular-nums">
+              {total}
+            </span>
+          )}
+        </div>
       </TooltipTrigger>
       <TooltipContent side="bottom">
-        <p className="text-xs">{name} — {mode === 'editing' ? 'Editing' : 'Viewing'}</p>
+        <p className="text-xs whitespace-pre-wrap">{tooltip}</p>
       </TooltipContent>
     </Tooltip>
   )
 }
-export function TaskCard({ task, orgSlug, presenceUsers = [], currentUserId }: TaskCardProps) {
+export function TaskCard({
+  task,
+  orgSlug,
+  presenceUsers = [],
+  currentUserId,
+  statuses = [],
+  taskGroups = [],
+  onOptimisticPatch,
+  onOptimisticRollback,
+}: TaskCardProps) {
+  const router = useRouter()
   const groupColor = task.group?.color ?? null
   const href = orgSlug ? `/org/${orgSlug}/${task.slug}` : `/tasks/${task.slug}`
   const others = presenceUsers.filter((u) => u.userId !== currentUserId)
   return (
-    <Link href={href}>
-      <div className="group rounded-xl border bg-card p-4 flex flex-col gap-3 hover:shadow-md hover:border-foreground/20 transition-all duration-200 cursor-pointer">
-        <div className="flex items-center gap-2">
-          {task.group && groupColor ? (
-            <>
-              <span className={`inline-block w-2 h-2 rounded-full ${groupColor}`} />
-              <span className="text-xs text-muted-foreground">{task.group.title}</span>
-            </>
-          ) : (
-            <span className="text-xs text-muted-foreground"> </span>
-          )}
-          {others.length > 0 && (
-            <div className="ml-auto flex">
-              {others
-                .sort((a, b) => (a.mode === 'editing' ? -1 : 1) - (b.mode === 'editing' ? -1 : 1))
-                .slice(0, 3)
-                .map((u) => (
-                  <PresenceAvatar key={u.userId} user={u.user} mode={u.mode} />
-                ))}
-              {others.length > 3 && (
-                <Avatar>
-                  <AvatarFallback className="text-xs">+{others.length - 3}</AvatarFallback>
-                </Avatar>
-              )}
-            </div>
-          )}
-        </div>
-        <p className="text-sm font-medium leading-snug group-hover:text-foreground/80 transition-colors line-clamp-2">
-          {task.title}
-        </p>
-        {task.description && (
-          <p className="text-xs text-muted-foreground line-clamp-2">
-            {stripHtml(task.description)}
-          </p>
+    <div
+      className="group relative rounded-xl border bg-card p-4 flex flex-col gap-3 hover:shadow-md hover:border-foreground/20 transition-all duration-200 cursor-pointer"
+      onClick={(e) => {
+        const target = e.target as HTMLElement | null
+        if (target?.closest?.('[data-no-nav]')) return
+        router.push(href)
+      }}
+    >
+
+      <div className="relative z-10 flex items-center gap-2">
+        {task.group && groupColor ? (
+          <>
+            <span className={`inline-block w-2 h-2 rounded-full ${groupColor}`} />
+            <span className="text-xs text-muted-foreground truncate">{task.group.title}</span>
+          </>
+        ) : (
+          <span className="text-xs text-muted-foreground">Not organized</span>
         )}
-        <div className="flex items-center justify-between mt-auto">
-          {task.deadline && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <CalendarDays className="size-3" />
-              {task.deadline}
-            </div>
-          )}
-          {task.comments && task.comments.length > 0 && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground ml-auto">
-              <MessageCircle className="size-3" />
-              {task.comments.length}
-            </div>
+
+        <div className="ml-auto flex items-center gap-2">
+          {others.length > 0 && <PresenceDot others={others} />}
+          {statuses.length > 0 && (
+            <TaskOptionsMenu
+              task={task}
+              statuses={statuses}
+              taskGroups={taskGroups}
+              onOptimisticPatch={onOptimisticPatch ?? (() => {})}
+              onOptimisticRollback={onOptimisticRollback ?? (() => {})}
+            />
           )}
         </div>
       </div>
-    </Link>
+
+      <p className="relative z-10 text-sm font-medium leading-snug group-hover:text-foreground/80 transition-colors line-clamp-2 cursor-pointer">
+          {task.title}
+      </p>
+      {task.description && (
+        <p className="relative z-10 text-xs text-muted-foreground line-clamp-2 cursor-pointer">
+          {stripHtml(task.description)}
+        </p>
+      )}
+      <div className="relative z-10 flex items-center justify-between mt-auto cursor-pointer">
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <CalendarClock className="size-3" />
+          {task.deadline ?? 'No deadline'}
+        </div>
+
+        <div className="flex items-center gap-1 text-xs text-muted-foreground ml-auto">
+          <MessageCircle className="size-3" />
+          {task.comments?.length ?? 0}
+        </div>
+      </div>
+    </div>
   )
 }

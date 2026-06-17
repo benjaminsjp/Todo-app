@@ -37,6 +37,10 @@ export default function AuthPage() {
     if (token) setStep('reset')
   }, [])
 
+  const appOrigin =
+    (process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') as string | undefined) ??
+    window.location.origin
+
   const finishLogin = async () => {
     await seedStatusesForCurrentUser()
     window.location.href = '/'
@@ -97,7 +101,7 @@ export default function AuthPage() {
   const handleResend = async () => {
     await authClient.sendVerificationEmail({
       email,
-      callbackURL: window.location.origin + '/',
+      callbackURL: appOrigin + '/',
     })
   }
 
@@ -107,7 +111,7 @@ export default function AuthPage() {
     setResetEmailSent(false)
 
     try {
-      const redirectTo = `${window.location.origin}/auth/sign-in`
+      const redirectTo = `${appOrigin}/auth/sign-in`
       const res = await fetch('/api/auth/request-password-reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

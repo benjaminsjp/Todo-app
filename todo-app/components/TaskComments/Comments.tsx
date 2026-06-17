@@ -13,7 +13,7 @@ type MappedComment = {
   content:              string
   createdAt:            string
   author:               string
-  authorProfilePicture: string
+  authorProfilePicture: string | undefined
 }
 
 interface CommentsProps {

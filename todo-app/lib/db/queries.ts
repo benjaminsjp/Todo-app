@@ -6,7 +6,7 @@ import { eq, or, isNull, and } from 'drizzle-orm'
 export async function getTasksForUser(userId: string) {
   return db.query.tasks.findMany({
     where: and(eq(tasks.createdBy, userId), isNull(tasks.orgId)),
-    with: { group: true, status: true, comments: true },
+    with: { group: true, status: true, comments: { with: { user: true } } },
     orderBy: (tasks, { asc }) => [asc(tasks.order)], 
   })
 }
@@ -48,7 +48,7 @@ export async function getTasksForOrg(orgId: number) {
     with: {
       group:    true,
       status:   true,
-      comments: true,
+      comments: { with: { user: true } },
     },
     orderBy: (tasks, { asc }) => [asc(tasks.order)],
   })

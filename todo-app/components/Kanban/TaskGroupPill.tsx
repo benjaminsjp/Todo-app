@@ -10,6 +10,15 @@ import {
   ContextMenuSeparator, ContextMenuTrigger,
 } from '@/components/ui/context-menu'
 import { TaskGroupModal } from '@/components/CreateTaskGroup/TaskGroupModal'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 
 import { Pencil, Trash2 } from 'lucide-react'
 
@@ -27,17 +36,20 @@ interface TaskGroupPillProps {
 export function TaskGroupPill({ group, isActive, filterHref }: TaskGroupPillProps) {
   const router = useRouter()
   const [editOpen,  setEditOpen]  = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [error,      setError]      = useState<string | null>(null)
 
   const colors = getColor(group.color)
 
-  const handleDelete = async () => {
+  const handleDelete = async (): Promise<boolean> => {
     setIsDeleting(true)
+    setError(null)
     const result = await deleteTaskGroup(group.id)
     setIsDeleting(false)
-    if ('error' in result) { setError(result.error); return }
+    if ('error' in result) { setError(result.error); return false }
     router.refresh()
+    return true
   }
 
   return (
@@ -72,7 +84,7 @@ export function TaskGroupPill({ group, isActive, filterHref }: TaskGroupPillProp
           <ContextMenuSeparator />
           <ContextMenuItem
             className="text-destructive focus:text-destructive hover:text-destructive"
-            onClick={handleDelete}
+            onClick={() => setDeleteOpen(true)}
             disabled={isDeleting}
           >
             <Trash2 className="size-4 text-destructive!" />
@@ -80,6 +92,33 @@ export function TaskGroupPill({ group, isActive, filterHref }: TaskGroupPillProp
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete group</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this task group?
+            </DialogDescription>
+          </DialogHeader>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={isDeleting}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                const ok = await handleDelete()
+                if (ok) setDeleteOpen(false)
+              }}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Deleting...' : 'Delete group'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit modal */}
       <TaskGroupModal

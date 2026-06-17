@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation"
 import Link from "next/link"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   DndContext,
   DragEndEvent,
@@ -33,6 +33,7 @@ import { ChevronRight, Folder, FolderOpen, Plus, FolderPlus, GripVertical } from
 import { getColor, Task, TaskGroup, Org } from "@/lib/types"
 import { updateTaskGroup } from "@/lib/actions/tasks"
 import { cn } from "@/lib/utils"
+import { useOrgRealtime } from "@/lib/hooks/useOrgRealtime"
 
 interface AppSidebarProps {
   personalTasks:  Task[]
@@ -198,6 +199,9 @@ function SidebarDndContent({
   const [activeTask,  setActiveTask]  = useState<Task | null>(null)
   const [overId,      setOverId]      = useState<string | null>(null)
 
+  useEffect(() => { setLocalTasks(ungroupedTasks) }, [ungroupedTasks])
+  useEffect(() => { setLocalGroups(groups) }, [groups])
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   )
@@ -305,12 +309,15 @@ export function AppSidebar({ personalTasks, personalGroups, orgs }: AppSidebarPr
   const pathname       = usePathname()
   const currentOrgSlug = pathname.startsWith('/org/') ? pathname.split('/')[2] : undefined
   const activeOrg      = orgs.find((o) => o.slug === currentOrgSlug) ?? null
+  const orgRealtime    = useOrgRealtime(activeOrg?.id)
 
   const ungroupedPersonal = personalTasks.filter((t) => !t.group)
 
   const baseUrl      = activeOrg ? `/org/${activeOrg.slug}` : '/tasks'
-  const ungrouped    = activeOrg ? activeOrg.tasks.filter((t) => !t.group) : ungroupedPersonal
-  const groups       = activeOrg ? activeOrg.groups : personalGroups
+  const liveOrgTasks  = (activeOrg && orgRealtime.tasks) ? orgRealtime.tasks : activeOrg?.tasks
+  const liveOrgGroups = (activeOrg && orgRealtime.taskGroups) ? orgRealtime.taskGroups : activeOrg?.groups
+  const ungrouped    = activeOrg ? (liveOrgTasks ?? []).filter((t) => !t.group) : ungroupedPersonal
+  const groups       = activeOrg ? (liveOrgGroups ?? []) : personalGroups
 
   return (
     <Sidebar collapsible="icon" className="overflow-hidden *:data-[sidebar=sidebar]:flex-row">

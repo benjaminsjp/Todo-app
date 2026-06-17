@@ -50,7 +50,7 @@ export default function AppMenubar() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon-lg" className="rounded-full h-10 w-10">
                 <Avatar size="lg">
-                  <AvatarImage src={user?.avatarUrl ?? ''} alt={user?.name ?? ''} />
+                  <AvatarImage src={user?.avatarUrl || undefined} alt={user?.name ?? ''} />
                   <AvatarFallback>{initials}</AvatarFallback>
                 </Avatar>
               </Button>

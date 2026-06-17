@@ -27,6 +27,8 @@ export async function createComment(
     })
 
     revalidatePath('/tasks')
+    revalidatePath('/tasks/[slug]', 'page')
+    revalidatePath('/org/[slug]/[taskSlug]', 'page')
     return { success: true }
   } catch (e) {
     console.error('createComment feil:', e)
@@ -42,6 +44,8 @@ export async function updateComment(
     const { data: session } = await auth.getSession()
     if (!session?.user) return { error: 'Ikke innlogget' }
 
+    if (!content?.trim()) return { error: 'Kommentar kan ikke være tom' }
+
     await db.update(comments)
       .set({ content, updatedAt: new Date() })
       .where(and(
@@ -50,6 +54,8 @@ export async function updateComment(
       ))
 
     revalidatePath('/tasks')
+    revalidatePath('/tasks/[slug]', 'page')
+    revalidatePath('/org/[slug]/[taskSlug]', 'page')
     return { success: true }
   } catch (e) {
     console.error('updateComment feil:', e)
@@ -71,6 +77,8 @@ export async function deleteComment(
       ))
 
     revalidatePath('/tasks')
+    revalidatePath('/tasks/[slug]', 'page')
+    revalidatePath('/org/[slug]/[taskSlug]', 'page')
     return { success: true }
   } catch (e) {
     console.error('deleteComment feil:', e)

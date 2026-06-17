@@ -93,6 +93,13 @@ export function TaskSidebar({
         )}
       </div>
 
+      {mode !== 'create' && createdAt && (
+        <div className="flex items-center">
+          <span className="w-1/2">Created:</span>
+          <p>{formatDate(createdAt)}</p>
+        </div>
+      )}
+
       {mode !== 'create' && (
         <div className="flex items-center">
           <span className="w-1/2">Status:</span>
@@ -112,13 +119,6 @@ export function TaskSidebar({
               ))}
             </SelectContent>
           </Select>
-        </div>
-      )}
-
-      {mode !== 'create' && createdAt && (
-        <div className="flex items-center">
-          <span className="w-1/2">Created:</span>
-          <p>{formatDate(createdAt)}</p>
         </div>
       )}
 

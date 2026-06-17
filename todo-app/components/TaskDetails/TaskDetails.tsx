@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { Pencil, Eye } from "lucide-react"
@@ -9,11 +9,29 @@ import Comments from "@/components/TaskComments/Comments"
 import { CreateTaskEditor } from "@/components/CreateTask/CreateTaskEditor"
 import { acquireTaskLock, releaseTaskLock, updateTask } from "@/lib/actions/tasks"
 import { type Task, mapComments, Status } from "@/lib/types"
-import { useDebounce } from "@/lib/hooks/useDebounce"
 import { TaskSidebar } from "./TaskSidebar"
 import { useOrgRealtime } from "@/lib/hooks/useOrgRealtime"
 import { useTaskPresence } from "@/lib/hooks/useTaskPresence"
 import { TaskRevisionHistory } from "./TaskRevisionHistory"
+
+const CHECKBOX_SAVE_DEBOUNCE_MS = 450
+
+function toggleTaskListCheckbox(html: string, checkboxIndex: number): string | null {
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(html, 'text/html')
+  const docBoxes = Array.from(doc.querySelectorAll('ul[data-type="taskList"] input[type="checkbox"]'))
+  const docInput = docBoxes[checkboxIndex] as HTMLInputElement | undefined
+  if (!docInput) return null
+
+  const docLi = docInput.closest('li')
+  const nextChecked = docLi?.getAttribute('data-checked') !== 'true'
+  if (docLi) docLi.setAttribute('data-checked', nextChecked ? 'true' : 'false')
+  docInput.checked = nextChecked
+  if (nextChecked) docInput.setAttribute('checked', '')
+  else docInput.removeAttribute('checked')
+
+  return doc.body.innerHTML
+}
 
 export default function TaskDetails({
   task,
@@ -36,11 +54,17 @@ export default function TaskDetails({
   const [error,           setError]       = useState<string | null>(null)
   const [title,           setTitle]       = useState(task.title)
   const [description,     setDescription] = useState(task.description ?? '')
+  const [liveComments,    setLiveComments] = useState(task.comments ?? [])
   const [status,          setStatus]      = useState(task.status?.label ?? 'Todo')
   const [assignedGroupId, setGroupId]     = useState(task.groupId ? String(task.groupId) : 'none')
   const [deadline,        setDeadline]    = useState<Date | undefined>(
     task.deadline ? new Date(task.deadline) : undefined
   )
+
+  const descriptionRef = useRef(task.description ?? '')
+  const lastSavedDescriptionRef = useRef(task.description ?? '')
+  const checkboxDirtyRef = useRef(false)
+  const checkboxSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const orgRealtime = useOrgRealtime(task.orgId ?? undefined)
   const editingUsers = (orgRealtime.presenceByTaskId.get(task.id) ?? [])
@@ -60,29 +84,152 @@ export default function TaskDetails({
     }
   }, [isLockedByOther, isEditing])
 
-  // Debounced save – 600ms etter siste endring
-  const debouncedUpdate = useDebounce(
-    async (data: Parameters<typeof updateTask>[1]) => {
-      await updateTask(task.id, data)
-      router.refresh()
-    },
-    600
-  )
+  const flushCheckboxSave = useCallback(async () => {
+    const nextHtml = descriptionRef.current
+    if (nextHtml === lastSavedDescriptionRef.current) {
+      checkboxDirtyRef.current = false
+      return
+    }
+
+    const snapshot = lastSavedDescriptionRef.current
+    const result = await updateTask(task.id, { description: nextHtml })
+
+    if ('error' in result) {
+      checkboxDirtyRef.current = false
+      descriptionRef.current = snapshot
+      setDescription(snapshot)
+      setError(result.error)
+      return
+    }
+
+    lastSavedDescriptionRef.current = nextHtml
+    checkboxDirtyRef.current = false
+  }, [task.id])
+
+  const scheduleCheckboxSave = useCallback(() => {
+    checkboxDirtyRef.current = true
+    if (checkboxSaveTimerRef.current) clearTimeout(checkboxSaveTimerRef.current)
+    checkboxSaveTimerRef.current = setTimeout(() => {
+      checkboxSaveTimerRef.current = null
+      void flushCheckboxSave()
+    }, CHECKBOX_SAVE_DEBOUNCE_MS)
+  }, [flushCheckboxSave])
+
+  useEffect(() => {
+    return () => {
+      if (!checkboxSaveTimerRef.current) return
+      clearTimeout(checkboxSaveTimerRef.current)
+      checkboxSaveTimerRef.current = null
+      void flushCheckboxSave()
+    }
+  }, [flushCheckboxSave])
+
+  // Realtime: update this task's visible fields after other users save (org tasks only).
+  useEffect(() => {
+    if (!task.orgId) return
+    if (isEditing) return
+    if (!orgRealtime.tasks) return
+
+    const updated = orgRealtime.tasks.find((t) => t.id === task.id)
+    if (!updated) return
+
+    setTitle(updated.title)
+    if (!checkboxDirtyRef.current) {
+      const nextDesc = updated.description ?? ''
+      if (nextDesc !== descriptionRef.current) {
+        setDescription(nextDesc)
+        descriptionRef.current = nextDesc
+        lastSavedDescriptionRef.current = nextDesc
+      }
+    }
+    setLiveComments(updated.comments ?? [])
+    setStatus(updated.status?.label ?? 'Todo')
+    setGroupId(updated.groupId ? String(updated.groupId) : 'none')
+    setDeadline(updated.deadline ? new Date(updated.deadline) : undefined)
+  }, [task.id, task.orgId, isEditing, orgRealtime.tasks])
+
+  useEffect(() => {
+    if (isEditing || checkboxDirtyRef.current) return
+    const next = task.description ?? ''
+    if (next !== descriptionRef.current) {
+      setDescription(next)
+      descriptionRef.current = next
+      lastSavedDescriptionRef.current = next
+    }
+  }, [task.description, isEditing])
+
+  const handleDescriptionClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Allow checking/unchecking task list items without entering "edit" mode.
+    if (isEditing) return
+    const target = e.target as HTMLElement | null
+    if (!target) return
+
+    // Make the entire task-list row clickable (not only the checkbox).
+    const li = target.closest?.('ul[data-type="taskList"] li') as HTMLLIElement | null
+    if (!li) return
+
+    // Don't interfere with links inside the description.
+    if (target.closest?.('a[href]')) return
+
+    const root = e.currentTarget
+    const boxes = Array.from(root.querySelectorAll('ul[data-type="taskList"] input[type="checkbox"]'))
+    const input = li.querySelector?.('input[type="checkbox"]') as HTMLInputElement | null
+    if (!input) return
+
+    const idx = boxes.indexOf(input)
+    if (idx < 0) return
+
+    e.preventDefault()
+
+    const nextHtml = toggleTaskListCheckbox(descriptionRef.current, idx)
+    if (nextHtml === null) return
+
+    setError(null)
+    descriptionRef.current = nextHtml
+    setDescription(nextHtml)
+    scheduleCheckboxSave()
+  }
 
   const handleSave = async () => {
+    if (checkboxSaveTimerRef.current) {
+      clearTimeout(checkboxSaveTimerRef.current)
+      checkboxSaveTimerRef.current = null
+      await flushCheckboxSave()
+    }
     setIsSaving(true)
     setError(null)
-    const result = await updateTask(task.id, { title, description })
+    const statusMatch = statuses.find((s) => s.label === status)
+    const result = await updateTask(task.id, {
+      title,
+      description,
+      statusId: statusMatch?.id ?? null,
+      groupId: assignedGroupId === 'none' ? null : Number(assignedGroupId),
+      deadline: deadline ? deadline.toISOString().split('T')[0] : null,
+    })
     setIsSaving(false)
     if ('error' in result) { setError(result.error); return }
+    lastSavedDescriptionRef.current = description
+    descriptionRef.current = description
+    checkboxDirtyRef.current = false
     setIsEditing(false)
     await releaseTaskLock(task.id)
     router.refresh()
   }
 
   const handleCancel = () => {
+    if (checkboxSaveTimerRef.current) {
+      clearTimeout(checkboxSaveTimerRef.current)
+      checkboxSaveTimerRef.current = null
+    }
+    checkboxDirtyRef.current = false
+    const next = task.description ?? ''
     setTitle(task.title)
-    setDescription(task.description ?? '')
+    setDescription(next)
+    descriptionRef.current = next
+    lastSavedDescriptionRef.current = next
+    setStatus(task.status?.label ?? 'Todo')
+    setGroupId(task.groupId ? String(task.groupId) : 'none')
+    setDeadline(task.deadline ? new Date(task.deadline) : undefined)
     setIsEditing(false)
     setError(null)
     void releaseTaskLock(task.id)
@@ -90,6 +237,11 @@ export default function TaskDetails({
 
   const handleStartEditing = async () => {
     setError(null)
+    if (checkboxSaveTimerRef.current) {
+      clearTimeout(checkboxSaveTimerRef.current)
+      checkboxSaveTimerRef.current = null
+      await flushCheckboxSave()
+    }
     if (!task.orgId) { setIsEditing(true); return }
 
     const res = await acquireTaskLock(task.id)
@@ -104,28 +256,25 @@ export default function TaskDetails({
 
   const handleStatusChange = (newStatus: string) => {
     setStatus(newStatus)
-    const match = statuses.find((s) => s.label === newStatus)
-    if (match) debouncedUpdate({ statusId: match.id })
   }
 
   const handleGroupChange = (newGroupId: string) => {
     setGroupId(newGroupId)
-    debouncedUpdate({ groupId: newGroupId === 'none' ? null : Number(newGroupId) })
   }
 
   const handleDeadlineChange = (date: Date | undefined) => {
     setDeadline(date)
-    debouncedUpdate({ deadline: date ? date.toISOString().split('T')[0] : null })
   }
 
 
 
   return (
-    <div className="flex flex-1 flex-col">
-      <div className="@container/main container mx-auto flex-1 flex flex-row">
+    <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
+      <div className="@container/main container mx-auto flex-1 min-h-0 flex flex-row overflow-hidden">
 
         {/* Hovedinnhold */}
-        <div className="flex flex-1 flex-col gap-4 max-w-prose py-12 px-8 mx-auto">
+        <div className="flex flex-1 min-h-0 overflow-y-auto">
+          <div className="flex flex-1 flex-col gap-4 max-w-prose py-12 px-8 mx-auto">
           {isEditing ? (
             <>
               <Badge variant="secondary"><Pencil data-icon="inline-start" />Editing task</Badge>
@@ -150,12 +299,13 @@ export default function TaskDetails({
               {description ? (
                 <div
                   className="prose prose-headings:font-normal prose-headings:font-heading max-w-none dark:prose-invert"
+                  onClick={handleDescriptionClick}
                   dangerouslySetInnerHTML={{ __html: description }}
                 />
               ) : (
                 <p className="text-muted-foreground text-sm italic">No description yet.</p>
               )}
-              <Comments taskId={task.id} comments={mapComments(task.comments)} />
+              <Comments taskId={task.id} comments={mapComments(liveComments)} />
             </>
           )}
 
@@ -164,6 +314,7 @@ export default function TaskDetails({
               {error}
             </p>
           )}
+          </div>
         </div>
 
         {/* Sidebar */}

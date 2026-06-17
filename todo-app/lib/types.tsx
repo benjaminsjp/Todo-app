@@ -73,7 +73,7 @@ export function mapComments(comments: Comment[] = []) {
     content:              c.content,
     createdAt:            formatDate(c.createdAt),
     author:               c.user?.displayName ?? c.user?.email ?? 'Ukjent',
-    authorProfilePicture: c.user?.avatarUrl ?? '',
+    authorProfilePicture: c.user?.avatarUrl ?? undefined,
   }))
 }
 

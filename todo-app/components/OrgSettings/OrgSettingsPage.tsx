@@ -15,6 +15,14 @@ import Link from 'next/link'
 import { formatDate } from '@/lib/types'
 import { LeaveOrgButton } from '@/components/OrgSettings/LeaveOrgButton'
 import { DeleteOrgButton } from '@/components/OrgSettings/DeleteOrgButton'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 type User = { id: string; displayName: string | null; email: string; avatarUrl: string | null }
 type Member = { id: number; role: string; joinedAt: Date | null; user: User }
@@ -36,14 +44,14 @@ function MemberAvatar({ member }: { member: Member }) {
     <HoverCard>
       <HoverCardTrigger asChild>
         <Avatar className="size-8 cursor-pointer ring-2 ring-background">
-          <AvatarImage src={member.user.avatarUrl ?? ''} />
+          <AvatarImage src={member.user.avatarUrl || undefined} />
           <AvatarFallback className="text-xs">{initials}</AvatarFallback>
         </Avatar>
       </HoverCardTrigger>
       <HoverCardContent className="w-56" side="top">
         <div className="flex items-center gap-3">
           <Avatar className="size-10">
-            <AvatarImage src={member.user.avatarUrl ?? ''} />
+            <AvatarImage src={member.user.avatarUrl || undefined} />
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col gap-0.5">
@@ -140,8 +148,14 @@ export function OrgSettingsPage({
   members:        Member[]
   pendingInvites: Invite[]
 }) {
+  const [removeOpen, setRemoveOpen] = useState(false)
+  const [memberToRemove, setMemberToRemove] = useState<Member | null>(null)
+  const [isRemoving, setIsRemoving] = useState(false)
+
   const handleRemoveMember = async (memberId: number) => {
+    setIsRemoving(true)
     const result = await removeMember(memberId, org.slug)
+    setIsRemoving(false)
     if ('error' in result) toast.error(result.error)
     else toast.success('Member removed')
   }
@@ -197,7 +211,7 @@ export function OrgSettingsPage({
             return (
               <div key={member.id} className="flex items-center gap-3 rounded-xl border px-4 py-3">
                 <Avatar className="size-8">
-                  <AvatarImage src={member.user.avatarUrl ?? ''} />
+                  <AvatarImage src={member.user.avatarUrl || undefined} />
                   <AvatarFallback className="text-xs">
                     {(member.user.displayName ?? member.user.email)[0].toUpperCase()}
                   </AvatarFallback>
@@ -235,7 +249,10 @@ export function OrgSettingsPage({
                     size="icon-sm"
                     variant="ghost"
                     className="text-destructive hover:text-destructive shrink-0"
-                    onClick={() => handleRemoveMember(member.id)}
+                    onClick={() => {
+                      setMemberToRemove(member)
+                      setRemoveOpen(true)
+                    }}
                   >
                     <Trash2 className="size-4" />
                   </Button>
@@ -246,6 +263,42 @@ export function OrgSettingsPage({
         </div>
       </section>
       )}
+
+      <Dialog
+        open={removeOpen}
+        onOpenChange={(open) => {
+          setRemoveOpen(open)
+          if (!open) setMemberToRemove(null)
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Remove member</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to remove{" "}
+              <strong>{memberToRemove?.user.displayName ?? memberToRemove?.user.email ?? "this member"}</strong>{" "}
+              from <strong>{org.name}</strong>?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRemoveOpen(false)} disabled={isRemoving}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={isRemoving || !memberToRemove}
+              onClick={async () => {
+                if (!memberToRemove) return
+                await handleRemoveMember(memberToRemove.id)
+                setRemoveOpen(false)
+                setMemberToRemove(null)
+              }}
+            >
+              {isRemoving ? "Removing..." : "Remove member"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Invite */}
       {isAdmin && (

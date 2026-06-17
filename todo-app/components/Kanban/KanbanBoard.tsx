@@ -54,11 +54,19 @@ function SortableTaskCard({
   orgSlug,
   presenceUsers,
   currentUserId,
+  statuses,
+  taskGroups,
+  onOptimisticPatch,
+  onOptimisticRollback,
 }: {
   task: Task
   orgSlug?: string
   presenceUsers?: TaskPresence[]
   currentUserId?: string
+  statuses: Status[]
+  taskGroups: TaskGroup[]
+  onOptimisticPatch: (taskId: number, patch: Partial<Task>) => void
+  onOptimisticRollback: (taskId: number, prev: Task) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
@@ -72,7 +80,16 @@ function SortableTaskCard({
       {...listeners}
       className={isDragging ? 'opacity-40' : ''}
     >
-      <TaskCard task={task} orgSlug={orgSlug} presenceUsers={presenceUsers} currentUserId={currentUserId} />
+      <TaskCard
+        task={task}
+        orgSlug={orgSlug}
+        presenceUsers={presenceUsers}
+        currentUserId={currentUserId}
+        statuses={statuses}
+        taskGroups={taskGroups}
+        onOptimisticPatch={onOptimisticPatch}
+        onOptimisticRollback={onOptimisticRollback}
+      />
     </div>
   )
 }
@@ -83,12 +100,20 @@ function KanbanColumn({
   orgSlug,
   presenceByTaskId,
   currentUserId,
+  statuses,
+  taskGroups,
+  onOptimisticPatch,
+  onOptimisticRollback,
 }: {
   status: Status
   tasks: Task[]
   orgSlug?: string
   presenceByTaskId: Map<number, TaskPresence[]>
   currentUserId?: string
+  statuses: Status[]
+  taskGroups: TaskGroup[]
+  onOptimisticPatch: (taskId: number, patch: Partial<Task>) => void
+  onOptimisticRollback: (taskId: number, prev: Task) => void
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status.label })
   const { icon: Icon, class: iconClass } = getStatusStyle(status.color, status.icon)
@@ -125,6 +150,10 @@ function KanbanColumn({
                 orgSlug={orgSlug}
                 presenceUsers={presenceByTaskId.get(task.id) ?? []}
                 currentUserId={currentUserId}
+                statuses={statuses}
+                taskGroups={taskGroups}
+                onOptimisticPatch={onOptimisticPatch}
+                onOptimisticRollback={onOptimisticRollback}
               />
             ))
           )}
@@ -190,6 +219,14 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, statuses, orgSlug
 
   const tasksByStatus = (statusLabel: string) =>
     filteredTasks.filter((t) => (t.status?.label ?? 'Todo') === statusLabel)
+
+  const patchTaskOptimistic = useCallback((taskId: number, patch: Partial<Task>) => {
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...patch } : t)))
+  }, [])
+
+  const rollbackTaskOptimistic = useCallback((taskId: number, prevTask: Task) => {
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? prevTask : t)))
+  }, [])
 
   const handleDragStart = ({ active }: DragStartEvent) => {
     setActiveTask(filteredTasks.find((t) => t.id === active.id) ?? null)
@@ -319,6 +356,10 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, statuses, orgSlug
                   orgSlug={orgSlug}
                   presenceByTaskId={orgRealtime.presenceByTaskId}
                   currentUserId={userId}
+                  statuses={liveStatuses}
+                  taskGroups={liveTaskGroups}
+                  onOptimisticPatch={patchTaskOptimistic}
+                  onOptimisticRollback={rollbackTaskOptimistic}
                 />
               </div>
             ))}
@@ -346,7 +387,14 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, statuses, orgSlug
       <DragOverlay>
         {activeTask && (
           <div className="rotate-2 opacity-95 shadow-xl scale-105">
-            <TaskCard task={activeTask} orgSlug={orgSlug} />
+            <TaskCard
+              task={activeTask}
+              orgSlug={orgSlug}
+              statuses={liveStatuses}
+              taskGroups={liveTaskGroups}
+              onOptimisticPatch={patchTaskOptimistic}
+              onOptimisticRollback={rollbackTaskOptimistic}
+            />
           </div>
         )}
       </DragOverlay>
