@@ -17,7 +17,7 @@ export default function DemoPage() {
       const result = await startDemoSession()
       if (cancelled) return
 
-      if ('error' in result) {
+      if (!result.success) {
         setError(result.error)
         return
       }

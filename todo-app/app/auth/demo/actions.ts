@@ -9,9 +9,16 @@ import { db } from '@/lib/db'
 import { statuses } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 
-export async function startDemoSession() {
+type StartDemoSessionResult =
+  | { success: true }
+  | { success: false; error: string }
+
+export async function startDemoSession(): Promise<StartDemoSessionResult> {
   if (!isDemoConfigured()) {
-    return { error: 'Demo mode is not configured. Set DEMO_USER_ID in your environment.' as const }
+    return {
+      success: false,
+      error: 'Demo mode is not configured. Set DEMO_USER_ID in your environment.',
+    }
   }
 
   const userId = getDemoUserId()!
