@@ -1,7 +1,7 @@
 import 'server-only'
 import { db } from '@/lib/db'
-import { tasks, taskGroups, statuses, organizationMembers } from '@/lib/db/schema'
-import { eq, or, isNull, and } from 'drizzle-orm'
+import { tasks, taskGroups, statuses, organizationMembers, invitations } from '@/lib/db/schema'
+import { eq, or, isNull, and, gt } from 'drizzle-orm'
 
 export async function getTasksForUser(userId: string) {
   return db.query.tasks.findMany({
@@ -88,6 +88,17 @@ export async function getPersonalGroupsForSidebar(userId: string) {
   return db.query.taskGroups.findMany({
     where: and(eq(taskGroups.createdBy, userId), isNull(taskGroups.orgId)),
     with: { tasks: { with: { status: true } } },
+  })
+}
+
+export async function getPendingInvitationsForEmail(email: string) {
+  return db.query.invitations.findMany({
+    where: and(
+      eq(invitations.email, email.toLowerCase()),
+      gt(invitations.expiresAt, new Date()),
+    ),
+    with: { org: true },
+    orderBy: (inv, { desc }) => [desc(inv.createdAt)],
   })
 }
 

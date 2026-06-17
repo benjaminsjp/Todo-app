@@ -160,7 +160,7 @@ export async function updateMemberRole(
 
 export async function acceptInvitation(
   token: string
-): Promise<{ error: string } | { success: true }> {
+): Promise<{ error: string } | { success: true; orgSlug: string }> {
   const { data: session } = await auth.getSession()
   if (!session?.user) return { error: 'Not logged in' }
 
@@ -181,6 +181,25 @@ export async function acceptInvitation(
 
   await db.delete(invitations).where(eq(invitations.token, token))
 
+  revalidatePath('/', 'layout')
+  revalidatePath('/org')
   revalidatePath(`/org/${invite.org.slug}`)
+  return { success: true, orgSlug: invite.org.slug }
+}
+
+export async function declineInvitation(
+  token: string
+): Promise<{ error: string } | { success: true }> {
+  const { data: session } = await auth.getSession()
+  if (!session?.user) return { error: 'Not logged in' }
+
+  const invite = await db.query.invitations.findFirst({
+    where: eq(invitations.token, token),
+  })
+
+  if (!invite) return { error: 'Invitation not found' }
+  if (invite.email !== session.user.email) return { error: 'Unauthorized' }
+
+  await db.delete(invitations).where(eq(invitations.token, token))
   return { success: true }
 }

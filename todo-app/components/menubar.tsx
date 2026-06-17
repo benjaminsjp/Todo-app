@@ -14,6 +14,7 @@ import {
 import { Moon, Sun, SunMoon, Brush, UserRound, LogOut } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { AppBreadcrumbs } from './Breadcrumbs/Breadcrumbs'
+import { NotificationCenter } from './NotificationCenter'
 
 export default function AppMenubar() {
   const { theme, setTheme } = useTheme()
@@ -42,10 +43,11 @@ export default function AppMenubar() {
 
   return (
     <div className="w-full border-b sticky top-0 bg-background z-40">
-      <div className="container mx-auto flex py-4 items-center gap-4 px-8">
+      <div className="container mx-auto flex py-4 items-center gap-8 px-8">
         <AppBreadcrumbs />
 
-        <div className="ml-auto h-10 w-10">
+        <div className="ml-auto flex items-center gap-3">
+          <NotificationCenter />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon-lg" className="rounded-full h-10 w-10">
