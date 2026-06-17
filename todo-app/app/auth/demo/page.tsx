@@ -1,0 +1,56 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { startDemoSession } from './actions'
+import { Button } from '@/components/ui/button'
+import Link from 'next/link'
+
+export default function DemoPage() {
+  const [error, setError] = useState<string | null>(null)
+  const [status, setStatus] = useState('Preparing demo environment…')
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function enterDemo() {
+      setStatus('Loading sample data…')
+      const result = await startDemoSession()
+      if (cancelled) return
+
+      if ('error' in result) {
+        setError(result.error)
+        return
+      }
+
+      window.location.href = '/dashboard'
+    }
+
+    enterDemo()
+
+    return () => { cancelled = true }
+  }, [])
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen gap-6 w-full max-w-md mx-auto px-4 text-center">
+      <div>
+        <h1 className="text-3xl font-heading font-medium mb-2">Demo mode</h1>
+        {error ? (
+          <p className="text-sm text-destructive">{error}</p>
+        ) : (
+          <p className="text-sm text-muted-foreground">{status}</p>
+        )}
+      </div>
+
+      {error && (
+        <div className="flex flex-col gap-3 w-full">
+          <Button variant="brand" asChild>
+            <Link href="/auth/sign-in">Create an account</Link>
+          </Button>
+          <Button variant="ghost" asChild>
+            <Link href="/">Back to home</Link>
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+}

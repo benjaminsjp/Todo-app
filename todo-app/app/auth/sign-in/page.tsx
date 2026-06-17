@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { authClient } from '@/lib/auth/client'
 import { seedStatusesForCurrentUser } from './actions'
@@ -43,7 +44,7 @@ export default function AuthPage() {
 
   const finishLogin = async () => {
     await seedStatusesForCurrentUser()
-    window.location.href = '/'
+    window.location.href = '/dashboard'
   }
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -101,7 +102,7 @@ export default function AuthPage() {
   const handleResend = async () => {
     await authClient.sendVerificationEmail({
       email,
-      callbackURL: appOrigin + '/',
+      callbackURL: appOrigin + '/dashboard',
     })
   }
 
@@ -430,6 +431,10 @@ export default function AuthPage() {
         className="text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         {isSignUp ? 'Already have an account? Sign in' : 'No account? Sign up'}
+      </Button>
+
+      <Button variant="outline" className="w-full" asChild>
+        <Link href="/auth/demo">Try demo without signing up</Link>
       </Button>
     </div>
   )

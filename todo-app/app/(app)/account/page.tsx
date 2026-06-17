@@ -8,7 +8,7 @@ import { DeleteAccountButton } from '@/components/Account/DeleteAccountButton'
 import { LogoutButton } from '@/components/Account/LogoutButton'
 import { ExportDataButton } from '@/components/Account/ExportDataButton'
 
-import { formatDate } from '@/lib/types'
+import { isDemoUser } from '@/lib/demo/config'
 import { ListTodo, CheckCircle, Clock, Building2 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -29,6 +29,8 @@ export default async function Page() {
   ])
 
   if (!user) redirect('/auth/sign-in')
+
+  const isDemo = isDemoUser(session.user)
 
   const stats = {
     total:      allTasks.length,
@@ -68,6 +70,7 @@ export default async function Page() {
         </div>
 
         {/* Danger zone */}
+        {!isDemo && (
         <div className="rounded-2xl border border-destructive/30 bg-card p-6 animate-fade-up animate-once animate-duration-250 animate-delay-150">
           <h2 className="text-lg font-medium text-destructive mb-2">Danger zone</h2>
           <p className="text-sm text-muted-foreground mb-4">
@@ -75,6 +78,7 @@ export default async function Page() {
           </p>
           <DeleteAccountButton />
         </div>
+        )}
       </div>
     </div>
   )

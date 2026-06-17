@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { authClient } from '@/lib/auth/client'
+import { signOutApp } from '@/lib/actions/auth'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -33,8 +33,8 @@ export default function AppMenubar() {
   }, [])
 
   const handleSignOut = async () => {
-    await authClient.signOut()
-    window.location.href = '/auth/sign-in'
+    await signOutApp()
+    window.location.href = '/'
   }
 
   const initials = user?.name

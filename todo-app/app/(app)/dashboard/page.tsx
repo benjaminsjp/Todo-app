@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 
 export const dynamic = 'force-dynamic'
 
-export default async function Home() {
+export default async function DashboardPage() {
   const { data: session } = await auth.getSession()
   if (!session?.user) redirect('/auth/sign-in')
 

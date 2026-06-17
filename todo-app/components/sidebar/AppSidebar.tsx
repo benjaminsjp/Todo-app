@@ -33,6 +33,7 @@ import { ChevronRight, Folder, FolderOpen, Plus, FolderPlus, GripVertical } from
 import { getColor, Task, TaskGroup, Org } from "@/lib/types"
 import { updateTaskGroup } from "@/lib/actions/tasks"
 import { cn } from "@/lib/utils"
+import { useDemoBanner } from "@/components/DemoBannerShell"
 import { useOrgRealtime } from "@/lib/hooks/useOrgRealtime"
 
 interface AppSidebarProps {
@@ -307,6 +308,7 @@ function SidebarDndContent({
 
 export function AppSidebar({ personalTasks, personalGroups, orgs }: AppSidebarProps) {
   const pathname       = usePathname()
+  const { visible: demoBannerVisible } = useDemoBanner()
   const currentOrgSlug = pathname.startsWith('/org/') ? pathname.split('/')[2] : undefined
   const activeOrg      = orgs.find((o) => o.slug === currentOrgSlug) ?? null
   const orgRealtime    = useOrgRealtime(activeOrg?.id)
@@ -320,7 +322,13 @@ export function AppSidebar({ personalTasks, personalGroups, orgs }: AppSidebarPr
   const groups       = activeOrg ? (liveOrgGroups ?? []) : personalGroups
 
   return (
-    <Sidebar collapsible="icon" className="overflow-hidden *:data-[sidebar=sidebar]:flex-row">
+    <Sidebar
+      collapsible="icon"
+      className={cn(
+        'overflow-hidden *:data-[sidebar=sidebar]:flex-row',
+        demoBannerVisible && '!top-(--demo-banner-height) !bottom-auto !h-[calc(100svh-var(--demo-banner-height))]',
+      )}
+    >
       <Sidebar collapsible="none" className="hidden flex-1 md:flex">
         <SidebarHeader className="gap-1 p-4 border-b flex flex-row items-center">
           <OrgSwitcher orgs={orgs} />

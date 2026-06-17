@@ -12,7 +12,7 @@ export default async function CreateTaskPage({
   searchParams: Promise<{ orgId?: string }>
 }) {
   const { data: session } = await auth.getSession()
-  if (!session?.user) redirect('/login')
+  if (!session?.user) redirect('/auth/sign-in')
 
   const { orgId: orgIdParam } = await searchParams
   const orgId = orgIdParam ? Number(orgIdParam) : undefined

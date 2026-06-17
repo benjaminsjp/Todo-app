@@ -1,24 +1,20 @@
 'use client'
 
-import { authClient } from '@/lib/auth/client'
+import { signOutApp } from '@/lib/actions/auth'
 import { Button } from '@/components/ui/button'
 import { LogOut } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 
 export function LogoutButton() {
   const [isPending, setIsPending] = useState(false)
 
   const handleLogout = async () => {
     setIsPending(true)
-    toast.promise(authClient.signOut(), {
-      loading: 'Logging out...',
-      success: 'Logged out successfully',
-      error:   'Failed to log out',
-      finally: () => {
-        window.location.href = '/auth/sign-in'
-      },
-    })
+    try {
+      await signOutApp()
+    } finally {
+      window.location.href = '/'
+    }
   }
 
   return (

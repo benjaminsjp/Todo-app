@@ -6,6 +6,7 @@ import { auth } from '@/lib/auth/server'
 import { revalidatePath } from 'next/cache'
 import { eq } from 'drizzle-orm'
 import { del, list } from '@vercel/blob'
+import { isDemoUser } from '@/lib/demo/config'
 import { deleteUserFromDatabase } from '@/lib/db/userCleanup'
 
 export async function updateProfile(
@@ -39,6 +40,7 @@ export async function updateProfile(
 export async function deleteAccount() {
   const { data: session } = await auth.getSession()
   if (!session?.user) return { error: 'Not logged in' }
+  if (isDemoUser(session.user)) return { error: 'Demo accounts cannot be deleted.' }
 
   try {
     const { blobs } = await list({ prefix: `avatars/${session.user.id}` })

@@ -25,17 +25,20 @@ export function AppBreadcrumbs() {
 
   const breadcrumbs = React.useMemo(() => {
     const segments = pathname.split('/').filter(Boolean);
+    const rootHref = '/dashboard';
 
-    const crumbs = [{ href: '/', label: rootLabel }]; 
+    const crumbs = [{ href: rootHref, label: rootLabel }];
 
     segments.forEach((segment, index) => {
       const href = '/' + segments.slice(0, index + 1).join('/');
+      if (href === rootHref) return;
+
       const label = labels[segment] ?? formatSegment(decodeURIComponent(segment));
       crumbs.push({ href, label });
     });
 
     return crumbs;
-  }, [pathname, labels]);
+  }, [pathname, labels, rootLabel]);
 
 
   return (
@@ -45,7 +48,7 @@ export function AppBreadcrumbs() {
           const isLast = index === breadcrumbs.length - 1;
 
           return (
-            <React.Fragment key={crumb.href}>
+            <React.Fragment key={`${crumb.href}-${index}`}>
               {index > 0 && <BreadcrumbSeparator />}
               <BreadcrumbItem>
                 {isLast ? (
