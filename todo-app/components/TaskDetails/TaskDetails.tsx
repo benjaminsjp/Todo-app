@@ -318,8 +318,8 @@ export default function TaskDetails({
       <div className="@container/main container mx-auto flex-1 min-h-0 flex flex-row overflow-hidden">
 
         {/* Hovedinnhold */}
-        <div className="flex flex-1 min-h-0 overflow-y-auto">
-          <div className="flex flex-1 flex-col gap-4 max-w-prose py-12 px-8 mx-auto">
+        <div className="flex flex-1 min-h-0 overflow-y-auto py-12">
+          <div className="flex flex-1 flex-col gap-4 max-w-prose px-8 mx-auto">
           {isEditing ? (
             <Badge variant="secondary" className="w-fit">
               <Pencil data-icon="inline-start" />

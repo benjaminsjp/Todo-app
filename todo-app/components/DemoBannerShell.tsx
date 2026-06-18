@@ -32,7 +32,7 @@ export function DemoBannerShell({
       value={{ visible, dismiss: () => setDismissed(true) }}
     >
       <div
-        className="flex min-h-svh w-full flex-col"
+        className="flex h-svh w-full flex-col overflow-hidden"
         data-demo-banner={visible || undefined}
         style={visible ? ({ '--demo-banner-height': '3rem' } as CSSProperties) : undefined}
       >
@@ -42,7 +42,9 @@ export function DemoBannerShell({
             <div className="h-(--demo-banner-height) shrink-0" aria-hidden />
           </>
         )}
-        {children}
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          {children}
+        </div>
       </div>
     </DemoBannerContext.Provider>
   )

@@ -84,7 +84,7 @@ export default function Comments({
         ))}
       </div>
 
-      <div className="mt-auto pt-12">
+      <div className="mt-auto pt-12 pb-12">
         <form onSubmit={handleSubmit}>
           <InputGroup className="bg-surface-2 border-border">
             <Editor

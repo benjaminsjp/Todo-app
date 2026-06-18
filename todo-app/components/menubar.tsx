@@ -40,7 +40,7 @@ export default function AppMenubar() {
     : '?'
 
   return (
-    <div className="w-full border-b sticky top-0 bg-background z-40">
+    <div className="z-40 w-full shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="container mx-auto flex py-4 items-center gap-8 px-8">
         <AppBreadcrumbs />
 

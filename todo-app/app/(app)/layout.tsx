@@ -27,14 +27,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <BreadcrumbProvider rootLabel="Hjem">
       <DemoBannerShell enabled={showDemoBanner}>
         <SidebarProvider
-          className="min-h-0 flex-1"
+          className="h-full min-h-0 flex-1 overflow-hidden"
           style={{ "--sidebar-width": "350px" } as CSSProperties}
         >
-          <div className="flex h-full min-h-0 w-full">
+          <div className="flex h-full min-h-0 w-full overflow-hidden">
             <AppSidebarServer />
-            <main className="flex flex-1 flex-col w-full overflow-hidden">
+            <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
               <AppMenubar />
-              {children}
+              <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
+                {children}
+              </div>
             </main>
           </div>
         </SidebarProvider>
