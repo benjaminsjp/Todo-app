@@ -548,6 +548,15 @@ ul[data-type="taskList"] li > div > p{
   }
 }
 
+@keyframes landing-fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
 @keyframes landing-showcase-in {
   0% {
     opacity: 0;
@@ -596,11 +605,38 @@ ul[data-type="taskList"] li > div > p{
 }
 
 .landing-animate-rise {
-  animation: landing-rise-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: landing-rise-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.landing-animate-fade {
+  animation: landing-fade-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Hover lift — keep separate from entrance animations so transform transitions stay smooth */
+.landing-card-lift {
+  transform: translate3d(0, 0, 0);
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.35s ease,
+    box-shadow 0.35s ease;
+}
+
+.landing-card-lift:hover,
+.landing-card-lift:focus-within {
+  transform: translate3d(0, -6px, 0);
+}
+
+.landing-showcase-hover {
+  transform: scale(1);
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.landing-showcase-hover:hover {
+  transform: scale(1.015);
 }
 
 .landing-animate-showcase {
-  animation: landing-showcase-in 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: landing-showcase-in 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .landing-animate-pop {
@@ -613,6 +649,7 @@ ul[data-type="taskList"] li > div > p{
   .landing-animate-char-hero,
   .landing-animate-word,
   .landing-animate-rise,
+  .landing-animate-fade,
   .landing-animate-cascade,
   .landing-animate-showcase,
   .landing-animate-pop {
@@ -647,6 +684,12 @@ ul[data-type="taskList"] li > div > p{
 
   [data-task-card]:not([data-hovered]) .landing-pill-row-before {
     opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .landing-card-lift:hover,
+  .landing-card-lift:focus-within,
+  .landing-showcase-hover:hover {
     transform: none !important;
   }
 

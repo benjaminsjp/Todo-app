@@ -7,9 +7,11 @@ interface LandingRevealProps {
   children: ReactNode
   className?: string
   delay?: number
+  /** Use fade (not transform) when wrapping hover-lift cards */
+  motion?: 'rise' | 'fade'
 }
 
-export function LandingReveal({ children, className, delay = 0 }: LandingRevealProps) {
+export function LandingReveal({ children, className, delay = 0, motion = 'rise' }: LandingRevealProps) {
   const ref = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(false)
 
@@ -40,8 +42,13 @@ export function LandingReveal({ children, className, delay = 0 }: LandingRevealP
     <div
       ref={ref}
       className={cn(
-        visible ? 'landing-animate-rise' : 'opacity-0',
-        'motion-reduce:opacity-100',
+        visible
+          ? motion === 'fade'
+            ? 'landing-animate-fade'
+            : 'landing-animate-rise'
+          : 'opacity-0',
+        motion === 'rise' && !visible && 'translate-y-3',
+        'motion-reduce:opacity-100 motion-reduce:translate-y-0',
         className,
       )}
       style={visible ? { animationDelay: `${delay}ms` } : undefined}

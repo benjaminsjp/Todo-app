@@ -30,19 +30,46 @@ import { Button } from "@/components/ui/button"
 import { CreateTaskButton } from "@/components/CreateTask/CreateTaskButton"
 import { CreateTaskGroupButton } from "@/components/CreateTaskGroup/CreateTaskGroupButton"
 import { ChevronRight, Folder, FolderOpen, Plus, FolderPlus, GripVertical } from "lucide-react"
-import { getColor, Task, TaskGroup, Org } from "@/lib/types"
+import { getColor, Task, TaskGroup, Org, Status } from "@/lib/types"
 import { updateTaskGroup } from "@/lib/actions/tasks"
 import { cn } from "@/lib/utils"
 import { useDemoBanner } from "@/components/DemoBannerShell"
 import { useOrgRealtime } from "@/lib/hooks/useOrgRealtime"
+import { TaskOptionsMenu } from "@/components/Kanban/TaskOptionsMenu"
 
 interface AppSidebarProps {
-  personalTasks:  Task[]
-  personalGroups: TaskGroup[]
-  orgs:           Org[]
+  personalTasks:      Task[]
+  personalGroups:     TaskGroup[]
+  personalStatuses:   Status[]
+  orgs:               Org[]
 }
 
-function TaskItem({ task, href }: { task: Task; href: string }) {
+function mergeTaskPatch(task: Task, patch: Partial<Task>): Task {
+  return {
+    ...task,
+    ...patch,
+    status: patch.status !== undefined ? patch.status : task.status,
+    group:  patch.group  !== undefined ? patch.group  : task.group,
+  }
+}
+
+function TaskItem({
+  task,
+  href,
+  statuses,
+  taskGroups,
+  onOptimisticPatch,
+  onOptimisticRollback,
+  onDeleted,
+}: {
+  task: Task
+  href: string
+  statuses: Status[]
+  taskGroups: TaskGroup[]
+  onOptimisticPatch: (taskId: number, patch: Partial<Task>) => void
+  onOptimisticRollback: (taskId: number, prev: Task) => void
+  onDeleted: (taskId: number) => void
+}) {
   const pathname = usePathname()
   const isActive = pathname === href
 
@@ -60,15 +87,21 @@ function TaskItem({ task, href }: { task: Task; href: string }) {
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
-      className={cn(isDragging && 'opacity-40', 'cursor-grab active:cursor-grabbing')}
+      className={cn('flex items-center gap-0.5', isDragging && 'opacity-40')}
     >
+      <button
+        type="button"
+        className="shrink-0 cursor-grab active:cursor-grabbing rounded-md p-1 text-muted-foreground hover:text-foreground"
+        aria-label="Dra oppgave"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="size-3.5" />
+      </button>
       <Link
         href={href}
-        onClick={(e) => isDragging && e.preventDefault()}
         className={cn(
-          'flex items-center gap-2 rounded-xl px-4 py-3 text-sm transition-colors',
+          'flex flex-1 min-w-0 items-center gap-2 rounded-xl px-2 py-3 text-sm transition-colors',
           'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
           isActive && 'bg-sidebar-accent text-sidebar-accent-foreground'
         )}
@@ -80,6 +113,16 @@ function TaskItem({ task, href }: { task: Task; href: string }) {
           </span>
         )}
       </Link>
+      {statuses.length > 0 && (
+        <TaskOptionsMenu
+          task={task}
+          statuses={statuses}
+          taskGroups={taskGroups}
+          onOptimisticPatch={onOptimisticPatch}
+          onOptimisticRollback={onOptimisticRollback}
+          onDeleted={() => onDeleted(task.id)}
+        />
+      )}
     </div>
   )
 }
@@ -88,10 +131,20 @@ function GroupCollapsible({
   group,
   baseUrl,
   isOver,
+  statuses,
+  taskGroups,
+  onOptimisticPatch,
+  onOptimisticRollback,
+  onDeleted,
 }: {
   group:   TaskGroup
   baseUrl: string
   isOver:  boolean
+  statuses: Status[]
+  taskGroups: TaskGroup[]
+  onOptimisticPatch: (taskId: number, patch: Partial<Task>) => void
+  onOptimisticRollback: (taskId: number, prev: Task) => void
+  onDeleted: (taskId: number) => void
 }) {
   const { setNodeRef } = useDroppable({
     id:   `group-${group.id}`,
@@ -139,7 +192,16 @@ function GroupCollapsible({
                 </p>
               ) : (
                 group.tasks?.map((task) => (
-                  <TaskItem key={task.id} task={task} href={`${baseUrl}/${task.slug}`} />
+                  <TaskItem
+                    key={task.id}
+                    task={task}
+                    href={`${baseUrl}/${task.slug}`}
+                    statuses={statuses}
+                    taskGroups={taskGroups}
+                    onOptimisticPatch={onOptimisticPatch}
+                    onOptimisticRollback={onOptimisticRollback}
+                    onDeleted={onDeleted}
+                  />
                 ))
               )}
             </SidebarGroupContent>
@@ -154,10 +216,20 @@ function UngroupedZone({
   tasks,
   baseUrl,
   isOver,
+  statuses,
+  taskGroups,
+  onOptimisticPatch,
+  onOptimisticRollback,
+  onDeleted,
 }: {
   tasks:   Task[]
   baseUrl: string
   isOver:  boolean
+  statuses: Status[]
+  taskGroups: TaskGroup[]
+  onOptimisticPatch: (taskId: number, patch: Partial<Task>) => void
+  onOptimisticRollback: (taskId: number, prev: Task) => void
+  onDeleted: (taskId: number) => void
 }) {
   const { setNodeRef } = useDroppable({
     id:   'ungrouped',
@@ -173,7 +245,16 @@ function UngroupedZone({
       )}
     >
       {tasks.map((task) => (
-        <TaskItem key={task.id} task={task} href={`${baseUrl}/${task.slug}`} />
+        <TaskItem
+          key={task.id}
+          task={task}
+          href={`${baseUrl}/${task.slug}`}
+          statuses={statuses}
+          taskGroups={taskGroups}
+          onOptimisticPatch={onOptimisticPatch}
+          onOptimisticRollback={onOptimisticRollback}
+          onDeleted={onDeleted}
+        />
       ))}
       {isOver && tasks.length === 0 && (
         <p className="text-xs text-foreground bg-sidebar-accent px-4 py-3 rounded-lg">
@@ -189,11 +270,13 @@ function SidebarDndContent({
   groups,
   baseUrl,
   orgId,
+  statuses,
 }: {
   ungroupedTasks: Task[]
   groups:         TaskGroup[]
   baseUrl:        string
   orgId?:         number
+  statuses:       Status[]
 }) {
   const [localTasks,  setLocalTasks]  = useState(ungroupedTasks)
   const [localGroups, setLocalGroups] = useState(groups)
@@ -202,6 +285,65 @@ function SidebarDndContent({
 
   useEffect(() => { setLocalTasks(ungroupedTasks) }, [ungroupedTasks])
   useEffect(() => { setLocalGroups(groups) }, [groups])
+
+  const taskGroupsForMenu = localGroups.map(({ id, title, color, orgId, createdBy, createdAt }) => ({
+    id, title, color, orgId, createdBy, createdAt,
+  }))
+
+  const findTaskById = (taskId: number): Task | undefined =>
+    localTasks.find((t) => t.id === taskId) ??
+    localGroups.flatMap((g) => g.tasks ?? []).find((t) => t.id === taskId)
+
+  const handleOptimisticPatch = (taskId: number, patch: Partial<Task>) => {
+    const existing = findTaskById(taskId)
+    if (!existing) return
+
+    const merged = mergeTaskPatch(existing, patch)
+
+    if ('groupId' in patch && patch.groupId !== existing.groupId) {
+      const nextGroupId = patch.groupId ?? null
+      const without = (list: Task[]) => list.filter((t) => t.id !== taskId)
+
+      setLocalTasks((prev) => {
+        const rest = without(prev)
+        return nextGroupId === null ? [...rest, merged] : rest
+      })
+
+      setLocalGroups((prev) =>
+        prev.map((g) => {
+          const tasksInGroup = without(g.tasks ?? [])
+          if (g.id === nextGroupId) {
+            return { ...g, tasks: [...tasksInGroup, merged] }
+          }
+          return { ...g, tasks: tasksInGroup }
+        })
+      )
+      return
+    }
+
+    const apply = (t: Task) => (t.id === taskId ? merged : t)
+    setLocalTasks((prev) => prev.map(apply))
+    setLocalGroups((prev) =>
+      prev.map((g) => ({ ...g, tasks: g.tasks?.map(apply) }))
+    )
+  }
+
+  const handleOptimisticRollback = (taskId: number, prev: Task) => {
+    handleOptimisticPatch(taskId, {
+      status: prev.status,
+      statusId: prev.statusId,
+      group: prev.group,
+      groupId: prev.groupId,
+      deadline: prev.deadline,
+    })
+  }
+
+  const handleTaskDeleted = (taskId: number) => {
+    setLocalTasks((prev) => prev.filter((t) => t.id !== taskId))
+    setLocalGroups((prev) =>
+      prev.map((g) => ({ ...g, tasks: g.tasks?.filter((t) => t.id !== taskId) }))
+    )
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -275,6 +417,11 @@ function SidebarDndContent({
         tasks={localTasks}
         baseUrl={baseUrl}
         isOver={overId === 'ungrouped'}
+        statuses={statuses}
+        taskGroups={taskGroupsForMenu}
+        onOptimisticPatch={handleOptimisticPatch}
+        onOptimisticRollback={handleOptimisticRollback}
+        onDeleted={handleTaskDeleted}
       />
 
       {localGroups.map((group) => (
@@ -283,6 +430,11 @@ function SidebarDndContent({
           group={group}
           baseUrl={baseUrl}
           isOver={overId === `group-${group.id}`}
+          statuses={statuses}
+          taskGroups={taskGroupsForMenu}
+          onOptimisticPatch={handleOptimisticPatch}
+          onOptimisticRollback={handleOptimisticRollback}
+          onDeleted={handleTaskDeleted}
         />
       ))}
 
@@ -306,7 +458,7 @@ function SidebarDndContent({
   )
 }
 
-export function AppSidebar({ personalTasks, personalGroups, orgs }: AppSidebarProps) {
+export function AppSidebar({ personalTasks, personalGroups, personalStatuses, orgs }: AppSidebarProps) {
   const pathname       = usePathname()
   const { visible: demoBannerVisible } = useDemoBanner()
   const currentOrgSlug = pathname.startsWith('/org/') ? pathname.split('/')[2] : undefined
@@ -318,8 +470,10 @@ export function AppSidebar({ personalTasks, personalGroups, orgs }: AppSidebarPr
   const baseUrl      = activeOrg ? `/org/${activeOrg.slug}` : '/tasks'
   const liveOrgTasks  = (activeOrg && orgRealtime.tasks) ? orgRealtime.tasks : activeOrg?.tasks
   const liveOrgGroups = (activeOrg && orgRealtime.taskGroups) ? orgRealtime.taskGroups : activeOrg?.groups
+  const liveOrgStatuses = (activeOrg && orgRealtime.statuses) ? orgRealtime.statuses : activeOrg?.statuses
   const ungrouped    = activeOrg ? (liveOrgTasks ?? []).filter((t) => !t.group) : ungroupedPersonal
   const groups       = activeOrg ? (liveOrgGroups ?? []) : personalGroups
+  const statuses     = activeOrg ? (liveOrgStatuses ?? []) : personalStatuses
 
   return (
     <Sidebar
@@ -357,6 +511,7 @@ export function AppSidebar({ personalTasks, personalGroups, orgs }: AppSidebarPr
             groups={groups}
             baseUrl={baseUrl}
             orgId={activeOrg?.id}
+            statuses={statuses}
           />
         </SidebarContent>
       </Sidebar>

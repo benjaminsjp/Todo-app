@@ -9,10 +9,12 @@ interface LandingAnimatedShowcaseProps {
 export function LandingAnimatedShowcase({ delay = 0 }: LandingAnimatedShowcaseProps) {
   return (
     <div
-      className="landing-animate-showcase transition-transform duration-500 hover:scale-[1.015] motion-reduce:hover:scale-100"
+      className="landing-animate-showcase"
       style={{ animationDelay: `${delay}ms` }}
     >
-      <LandingAppShowcase />
+      <div className="landing-showcase-hover motion-reduce:transition-none">
+        <LandingAppShowcase />
+      </div>
     </div>
   )
 }

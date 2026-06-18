@@ -59,8 +59,8 @@ export function TaskSidebar({
   return (
     <div className="flex flex-col gap-4 min-w-sm max-w-lg border-l px-8 py-12">
 
-      <div className="flex flex-wrap gap-3 items-center justify-between">
-        <div className="flex flex-wrap gap-3 items-center min-w-0">
+      <div className="flex gap-3 items-center">
+        {headerSlot}
         {mode === 'create' && (
           <>
             <Button variant="brand" type="submit" disabled={isPending}>
@@ -92,12 +92,6 @@ export function TaskSidebar({
               Sist redigert: {formatDate(updatedAt)}
             </span>
           </>
-        )}
-        </div>
-        {headerSlot && (
-          <div className="flex items-center gap-1 shrink-0 ml-auto">
-            {headerSlot}
-          </div>
         )}
       </div>
 

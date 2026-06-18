@@ -132,8 +132,8 @@ export function LandingPage({
 
             <div className="mt-14 grid gap-8 lg:grid-cols-2">
               {workflow.map((item, index) => (
-                <LandingReveal key={item.step} delay={index * 120}>
-                  <article className="relative h-full rounded-2xl border bg-card p-8 pl-10 transition-[border-color,transform,box-shadow] duration-300 hover:-translate-y-1.5 hover:border-brand/35 hover:shadow-lg hover:shadow-brand/10">
+                <LandingReveal key={item.step} delay={index * 120} motion="fade">
+                  <article className="landing-card-lift relative h-full rounded-2xl border bg-card p-8 pl-10 hover:border-brand/35 hover:shadow-lg hover:shadow-brand/10">
                   <span
                     className="absolute left-0 top-8 -translate-x-1/2 rounded-full border bg-background px-3 py-1 font-mono text-xs text-primary landing-animate-pop"
                     style={{ animationDelay: `${index * 120 + 420}ms` }}
@@ -164,7 +164,7 @@ export function LandingPage({
                 <LandingCascadeList items={personalHighlights} className="mt-8" />
               </div>
 
-              <LandingReveal delay={120}>
+              <LandingReveal delay={120} motion="fade">
                 <LandingTaskPreviewCard />
               </LandingReveal>
             </div>

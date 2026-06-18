@@ -2,11 +2,12 @@
 
 import { useSyncExternalStore } from 'react'
 import { AppSidebar } from './AppSidebar'
-import type { Org, Task, TaskGroup } from '@/lib/types'
+import type { Org, Status, Task, TaskGroup } from '@/lib/types'
 
 export function AppSidebarClientOnly(props: {
   personalTasks: Task[]
   personalGroups: TaskGroup[]
+  personalStatuses: Status[]
   orgs: Org[]
 }) {
   const mounted = useSyncExternalStore(

@@ -88,6 +88,49 @@ export async function deleteStatus(
   }
 }
 
+export async function reorderStatuses(
+  orderedIds: number[]
+): Promise<{ error: string } | { success: true }> {
+  try {
+    const { data: session } = await auth.getSession()
+    if (!session?.user) return { error: 'Ikke innlogget' }
+
+    if (orderedIds.length === 0) return { success: true }
+
+    const first = await db.query.statuses.findFirst({
+      where: eq(statuses.id, orderedIds[0]),
+    })
+    if (!first) return { error: 'Status ikke funnet' }
+
+    const all = await db.query.statuses.findMany({
+      where: first.orgId
+        ? eq(statuses.orgId, first.orgId)
+        : eq(statuses.userId, session.user.id),
+    })
+
+    const allowedIds = new Set(all.map((s) => s.id))
+    if (
+      orderedIds.length !== all.length ||
+      !orderedIds.every((id) => allowedIds.has(id))
+    ) {
+      return { error: 'Ugyldig rekkefølge' }
+    }
+
+    await Promise.all(
+      orderedIds.map((id, index) =>
+        db.update(statuses).set({ order: index }).where(eq(statuses.id, id))
+      )
+    )
+
+    revalidatePath('/tasks')
+    revalidatePath('/org/[slug]', 'page')
+    return { success: true }
+  } catch (e) {
+    console.error('reorderStatuses feil:', e)
+    return { error: e instanceof Error ? e.message : 'Noe gikk galt' }
+  }
+}
+
 export async function moveStatus(
   statusId: number,
   direction: 'left' | 'right'
@@ -105,20 +148,18 @@ export async function moveStatus(
       where: status.orgId
         ? eq(statuses.orgId, status.orgId)
         : eq(statuses.userId, session.user.id),
-      orderBy: [asc(statuses.order)],
+      orderBy: [asc(statuses.order), asc(statuses.id)],
     })
 
     const idx = all.findIndex((s) => s.id === statusId)
     const swapIdx = direction === 'left' ? idx - 1 : idx + 1
     if (idx < 0 || swapIdx < 0 || swapIdx >= all.length) return { success: true }
 
-    const other = all[swapIdx]
-    await db.update(statuses).set({ order: other.order }).where(eq(statuses.id, status.id))
-    await db.update(statuses).set({ order: status.order }).where(eq(statuses.id, other.id))
+    const reordered = [...all]
+    const [moved] = reordered.splice(idx, 1)
+    reordered.splice(swapIdx, 0, moved)
 
-    revalidatePath('/tasks')
-    revalidatePath('/org/[slug]', 'page')
-    return { success: true }
+    return reorderStatuses(reordered.map((s) => s.id))
   } catch (e) {
     console.error('moveStatus feil:', e)
     return { error: e instanceof Error ? e.message : 'Noe gikk galt' }

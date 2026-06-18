@@ -30,7 +30,7 @@ import { resolveStatusIcon } from '@/lib/statusIcons'
 
 import { type Task, TaskGroup, Status } from "@/lib/types"
 import { updateTaskStatus, updateTaskOrder } from '@/lib/actions/tasks'
-import { moveStatus } from '@/lib/actions/statuses'
+import { reorderStatuses } from '@/lib/actions/statuses'
 
 import { DEFAULT_STATUS_LABELS } from '@/lib/statusDefaults'
 import { useCallback, useEffect, useState, useRef } from 'react'
@@ -202,6 +202,7 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, statuses, orgSlug
 
   // Sporer antall pågående optimistiske oppdateringer
   const pendingCount = useRef(0)
+  const movePendingRef = useRef(false)
 
   const orgRealtime = useOrgRealtime(orgId)
   const pathname    = usePathname()
@@ -229,6 +230,7 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, statuses, orgSlug
     if (!orgRealtime.tasks || !orgRealtime.statuses || !orgRealtime.taskGroups) return
     if (activeTask) return
     if (pendingCount.current > 0) return
+    if (movePendingRef.current) return
 
     setTasks(orgRealtime.tasks)
     setLiveStatuses(orgRealtime.statuses)
@@ -246,28 +248,34 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, statuses, orgSlug
     ? tasks.filter((t) => String(t.groupId) === getGroupFilter)
     : tasks
 
-  const sortedStatuses = [...liveStatuses].sort((a, b) => a.order - b.order)
-
   const tasksByStatus = (status: Status, index: number) =>
     filteredTasks.filter((t) => {
       if (!t.statusId && !t.status) return index === 0
       return (t.status?.label ?? DEFAULT_STATUS_LABELS.todo) === status.label
     })
 
+  const sortedStatuses = [...liveStatuses].sort((a, b) => a.order - b.order || a.id - b.id)
+
   const handleMoveStatus = async (statusId: number, direction: 'left' | 'right') => {
-    const sorted = [...liveStatuses].sort((a, b) => a.order - b.order)
+    if (movePendingRef.current) return
+
+    const sorted = [...liveStatuses].sort((a, b) => a.order - b.order || a.id - b.id)
     const idx = sorted.findIndex((s) => s.id === statusId)
     const swapIdx = direction === 'left' ? idx - 1 : idx + 1
     if (idx < 0 || swapIdx < 0 || swapIdx >= sorted.length) return
 
     const reordered = [...sorted]
-    ;[reordered[idx], reordered[swapIdx]] = [reordered[swapIdx], reordered[idx]]
+    const [moved] = reordered.splice(idx, 1)
+    reordered.splice(swapIdx, 0, moved)
     const withNewOrder = reordered.map((s, i) => ({ ...s, order: i }))
     const prevStatuses = liveStatuses
 
+    movePendingRef.current = true
     setLiveStatuses(withNewOrder)
 
-    const result = await moveStatus(statusId, direction)
+    const result = await reorderStatuses(withNewOrder.map((s) => s.id))
+    movePendingRef.current = false
+
     if ('error' in result) {
       toast.error(result.error)
       setLiveStatuses(prevStatuses)

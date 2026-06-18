@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -16,8 +16,6 @@ import { useOrgRealtime } from "@/lib/hooks/useOrgRealtime"
 import { useTaskPresence } from "@/lib/hooks/useTaskPresence"
 import { TaskRevisionHistory } from "./TaskRevisionHistory"
 import { DEFAULT_STATUS_LABELS } from '@/lib/statusDefaults'
-import { TaskOptionsMenu } from '@/components/Kanban/TaskOptionsMenu'
-import type { TaskGroup } from '@/lib/types'
 
 const CHECKBOX_SAVE_DEBOUNCE_MS = 450
 
@@ -313,44 +311,6 @@ export default function TaskDetails({
     )
   }
 
-  const taskGroups = useMemo<TaskGroup[]>(
-    () =>
-      taskGroupOptions.map((g) => ({
-        id: Number(g.value),
-        title: g.label,
-        color: g.color || 'bg-gray-500',
-        createdBy: null,
-        orgId: task.orgId,
-        createdAt: null,
-      })),
-    [taskGroupOptions, task.orgId]
-  )
-
-  const liveTask = useMemo<Task>(
-    () => ({
-      ...task,
-      status: statuses.find((s) => s.label === status) ?? task.status,
-      groupId: assignedGroupId === 'none' ? null : Number(assignedGroupId),
-      group: taskGroups.find((g) => String(g.id) === assignedGroupId) ?? task.group,
-      deadline: deadline ? deadline.toISOString().split('T')[0] : null,
-    }),
-    [task, statuses, status, assignedGroupId, taskGroups, deadline]
-  )
-
-  const handleQuickEditPatch = useCallback((taskId: number, patch: Partial<Task>) => {
-    if (patch.status) setStatus(patch.status.label)
-    if ('groupId' in patch) setGroupId(patch.groupId ? String(patch.groupId) : 'none')
-    if ('deadline' in patch) {
-      setDeadline(patch.deadline ? new Date(patch.deadline) : undefined)
-    }
-  }, [])
-
-  const handleQuickEditRollback = useCallback((_taskId: number, prev: Task) => {
-    setStatus(prev.status?.label ?? DEFAULT_STATUS_LABELS.todo)
-    setGroupId(prev.groupId ? String(prev.groupId) : 'none')
-    setDeadline(prev.deadline ? new Date(prev.deadline) : undefined)
-  }, [])
-
 
 
   return (
@@ -436,21 +396,7 @@ export default function TaskDetails({
           onSave={isEditing ? handleSave : handleStartEditing}
           onCancel={handleCancel}
           isSaving={isSaving}
-          headerSlot={
-            <div className="flex items-center gap-1">
-              <TaskRevisionHistory taskId={task.id} statuses={statuses} />
-              {!isEditing && (
-                <TaskOptionsMenu
-                  task={liveTask}
-                  statuses={statuses}
-                  taskGroups={taskGroups}
-                  onOptimisticPatch={handleQuickEditPatch}
-                  onOptimisticRollback={handleQuickEditRollback}
-                  onDeleted={() => router.push(boardHref)}
-                />
-              )}
-            </div>
-          }
+          headerSlot={<TaskRevisionHistory taskId={task.id} statuses={statuses} />}
         />
       </div>
     </div>

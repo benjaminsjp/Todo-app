@@ -55,6 +55,7 @@ export type Task = {
 export type Org = {
   id: number; name: string; slug: string
   tasks: Task[]; groups: TaskGroup[]
+  statuses: Status[]
 }
 
 // Hjelpefunksjoner som brukes på tvers av komponenter

@@ -152,10 +152,9 @@ export function LandingTaskPreviewCard() {
         setAnimated(true)
       }}
       className={cn(
-        'group/task-card rounded-2xl border bg-card p-6 outline-none',
-        'transition-[border-color,transform,box-shadow] duration-300',
-        'hover:-translate-y-1 hover:border-brand/30 hover:shadow-md hover:shadow-brand/5',
-        'focus-within:-translate-y-1 focus-within:border-brand/30 focus-within:shadow-md focus-within:shadow-brand/5',
+        'group/task-card landing-card-lift rounded-2xl border bg-card p-6 outline-none',
+        'hover:border-brand/30 hover:shadow-md hover:shadow-brand/5',
+        'focus-within:border-brand/30 focus-within:shadow-md focus-within:shadow-brand/5',
       )}
       tabIndex={0}
     >

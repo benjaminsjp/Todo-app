@@ -110,7 +110,7 @@ export async function getOrgsForSidebar(userId: string) {
 
   return Promise.all(
     memberships.map(async (m) => {
-      const [orgTasks, orgGroups] = await Promise.all([
+      const [orgTasks, orgGroups, orgStatuses] = await Promise.all([
         db.query.tasks.findMany({
           where: eq(tasks.orgId, m.org.id),
           with: { group: true, status: true },
@@ -120,14 +120,16 @@ export async function getOrgsForSidebar(userId: string) {
           where: eq(taskGroups.orgId, m.org.id),
           with: { tasks: { with: { status: true } } },
         }),
+        getStatusesForOrg(m.org.id),
       ])
 
       return {
-        id:     m.org.id,
-        name:   m.org.name,
-        slug:   m.org.slug,
-        tasks:  orgTasks,
-        groups: orgGroups,
+        id:       m.org.id,
+        name:     m.org.name,
+        slug:     m.org.slug,
+        tasks:    orgTasks,
+        groups:   orgGroups,
+        statuses: orgStatuses,
       }
     })
   )
