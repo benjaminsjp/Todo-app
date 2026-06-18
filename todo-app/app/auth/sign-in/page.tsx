@@ -33,14 +33,21 @@ export default function AuthPage() {
   const [resetPending, setResetPending] = useState(false)
   const [resetError, setResetError] = useState('')
 
-  useEffect(() => {
-    const token = new URLSearchParams(window.location.search).get('token')
-    if (token) setStep('reset')
-  }, [])
+  const envOrigin = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '')
+  const [appOrigin, setAppOrigin] = useState(envOrigin ?? '')
+  const [resetToken, setResetToken] = useState<string | null>(null)
 
-  const appOrigin =
-    (process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') as string | undefined) ??
-    window.location.origin
+  useEffect(() => {
+    if (!appOrigin) setAppOrigin(window.location.origin)
+
+    const token = new URLSearchParams(window.location.search).get('token')
+    if (token) {
+      setResetToken(token)
+      setStep('reset')
+    }
+  }, [appOrigin])
+
+  const origin = appOrigin || envOrigin || ''
 
   const finishLogin = async () => {
     await seedStatusesForCurrentUser()
@@ -105,7 +112,7 @@ export default function AuthPage() {
   const handleResend = async () => {
     await authClient.sendVerificationEmail({
       email,
-      callbackURL: appOrigin + '/dashboard',
+      callbackURL: origin + '/dashboard',
     })
   }
 
@@ -115,7 +122,7 @@ export default function AuthPage() {
     setResetEmailSent(false)
 
     try {
-      const redirectTo = `${appOrigin}/auth/sign-in`
+      const redirectTo = `${origin || window.location.origin}/auth/sign-in`
       const res = await fetch('/api/auth/request-password-reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -242,20 +249,19 @@ export default function AuthPage() {
   }
 
   if (step === 'reset') {
-    const token = new URLSearchParams(window.location.search).get('token')
-    const isLinkReset = Boolean(token)
+    const isLinkReset = Boolean(resetToken)
 
     const handleLinkReset = async () => {
       setResetPending(true)
       setResetError('')
 
       try {
-        if (!token) throw new Error('Ugyldig eller utløpt tilbakestillingslenke.')
+        if (!resetToken) throw new Error('Ugyldig eller utløpt tilbakestillingslenke.')
 
         const res = await fetch('/api/auth/reset-password', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ newPassword, token }),
+          body: JSON.stringify({ newPassword, token: resetToken }),
         })
 
         if (!res.ok) {

@@ -71,7 +71,7 @@ export function TaskGroupPill({ group, isActive, filterHref }: TaskGroupPillProp
                   ${isActive ? `${colors.bg} text-white` : ''}
                 `}
               >
-                {group.tasks?.length ?? 0}
+                {group.taskCount ?? group.tasks?.length ?? 0}
               </Badge>
             </div>
           </Link>

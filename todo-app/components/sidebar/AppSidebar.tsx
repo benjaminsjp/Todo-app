@@ -1,7 +1,6 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import Link from "next/link"
 import { useEffect, useState } from "react"
 import {
   DndContext,
@@ -35,7 +34,38 @@ import { updateTaskGroup } from "@/lib/actions/tasks"
 import { cn } from "@/lib/utils"
 import { useDemoBanner } from "@/components/DemoBannerShell"
 import { useOrgRealtime } from "@/lib/hooks/useOrgRealtime"
+import Link from "next/link"
 import { TaskOptionsMenu } from "@/components/Kanban/TaskOptionsMenu"
+import { Skeleton } from "@/components/ui/skeleton"
+
+function groupsWithTasks(groups: TaskGroup[], allTasks: Task[]): TaskGroup[] {
+  return groups.map((group) => {
+    const tasksInGroup = allTasks.filter((t) => t.groupId === group.id)
+    return { ...group, tasks: tasksInGroup, taskCount: tasksInGroup.length }
+  })
+}
+
+function SidebarNavSkeleton() {
+  return (
+    <div className="flex flex-col gap-2 px-2" aria-busy="true" aria-label="Laster oppgaver">
+      {[72, 88, 64].map((width, i) => (
+        <div key={`task-${i}`} className="flex items-center gap-2 px-2 py-3">
+          <Skeleton className="size-3.5 shrink-0 rounded-sm" />
+          <Skeleton className="h-4 rounded-md" style={{ width: `${width}%` }} />
+        </div>
+      ))}
+      {[1, 2].map((i) => (
+        <div key={`group-${i}`} className="mx-0 mt-2 rounded-xl border border-transparent px-2 py-3">
+          <div className="flex items-center gap-2">
+            <Skeleton className="size-4 shrink-0 rounded-sm" />
+            <Skeleton className="h-4 w-2/5 rounded-md" />
+            <Skeleton className="ml-auto h-3 w-6 rounded-md" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 interface AppSidebarProps {
   personalTasks:      Task[]
@@ -175,7 +205,7 @@ function GroupCollapsible({
             <Folder     className={cn("mr-2 size-4 group-data-[state=open]/collapsible:hidden", isOver && getColor(group.color).text)} />
             <span className="truncate">{group.title}</span>
             <span className="ml-auto text-xs text-muted-foreground mr-2">
-              {group.tasks?.length}
+              {group.tasks?.length ?? group.taskCount ?? 0}
             </span>
             <ChevronRight className="size-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
           </CollapsibleTrigger>
@@ -183,7 +213,7 @@ function GroupCollapsible({
         <CollapsibleContent>
           <SidebarMenuSub className="my-2">
             <SidebarGroupContent>
-              {group.tasks?.length === 0 ? (
+              {(group.tasks?.length ?? 0) === 0 ? (
                 <p className={cn(
                   'text-xs px-4 py-3 rounded-lg transition-colors',
                   isOver ? 'text-foreground bg-sidebar-accent' : 'text-muted-foreground'
@@ -465,15 +495,23 @@ export function AppSidebar({ personalTasks, personalGroups, personalStatuses, or
   const activeOrg      = orgs.find((o) => o.slug === currentOrgSlug) ?? null
   const orgRealtime    = useOrgRealtime(activeOrg?.id)
 
-  const ungroupedPersonal = personalTasks.filter((t) => !t.group)
+  const hasOrgNavData =
+    activeOrg?.tasks !== undefined || orgRealtime.tasks !== null
+  const isOrgNavLoading = Boolean(activeOrg) && !hasOrgNavData
 
-  const baseUrl      = activeOrg ? `/org/${activeOrg.slug}` : '/tasks'
-  const liveOrgTasks  = (activeOrg && orgRealtime.tasks) ? orgRealtime.tasks : activeOrg?.tasks
-  const liveOrgGroups = (activeOrg && orgRealtime.taskGroups) ? orgRealtime.taskGroups : activeOrg?.groups
-  const liveOrgStatuses = (activeOrg && orgRealtime.statuses) ? orgRealtime.statuses : activeOrg?.statuses
-  const ungrouped    = activeOrg ? (liveOrgTasks ?? []).filter((t) => !t.group) : ungroupedPersonal
-  const groups       = activeOrg ? (liveOrgGroups ?? []) : personalGroups
-  const statuses     = activeOrg ? (liveOrgStatuses ?? []) : personalStatuses
+  const baseUrl = activeOrg ? `/org/${activeOrg.slug}` : '/tasks'
+  const liveOrgTasks  =
+    activeOrg && orgRealtime.tasks ? orgRealtime.tasks : activeOrg?.tasks
+  const liveOrgGroups =
+    activeOrg && orgRealtime.taskGroups ? orgRealtime.taskGroups : activeOrg?.groups
+  const liveOrgStatuses =
+    activeOrg && orgRealtime.statuses ? orgRealtime.statuses : activeOrg?.statuses
+
+  const allTasks = activeOrg ? (liveOrgTasks ?? []) : personalTasks
+  const rawGroups = activeOrg ? (liveOrgGroups ?? []) : personalGroups
+  const groups = groupsWithTasks(rawGroups, allTasks)
+  const ungrouped = allTasks.filter((t) => t.groupId == null)
+  const statuses = activeOrg ? (liveOrgStatuses ?? []) : personalStatuses
 
   return (
     <Sidebar
@@ -505,14 +543,18 @@ export function AppSidebar({ personalTasks, personalGroups, personalStatuses, or
         </SidebarHeader>
 
         <SidebarContent className="pt-3 gap-0">
-          <SidebarDndContent
-            key={activeOrg?.id ?? 'personal'}
-            ungroupedTasks={ungrouped}
-            groups={groups}
-            baseUrl={baseUrl}
-            orgId={activeOrg?.id}
-            statuses={statuses}
-          />
+          {isOrgNavLoading ? (
+            <SidebarNavSkeleton />
+          ) : (
+            <SidebarDndContent
+              key={activeOrg?.id ?? 'personal'}
+              ungroupedTasks={ungrouped}
+              groups={groups}
+              baseUrl={baseUrl}
+              orgId={activeOrg?.id}
+              statuses={statuses}
+            />
+          )}
         </SidebarContent>
       </Sidebar>
     </Sidebar>

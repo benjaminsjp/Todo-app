@@ -1,5 +1,6 @@
 import 'server-only'
 
+import { cache } from 'react'
 import { createNeonAuth } from '@neondatabase/auth/next/server'
 import { buildDemoSession, clearDemoSessionCookie, hasDemoSession } from '@/lib/demo/session'
 
@@ -17,7 +18,7 @@ function isCookieMutationError(error: unknown): boolean {
   )
 }
 
-async function getSessionWithDemo() {
+const getSessionWithDemo = cache(async () => {
   let session = null
 
   try {
@@ -37,7 +38,7 @@ async function getSessionWithDemo() {
   }
 
   return { data: session }
-}
+})
 
 export const auth = {
   ...neonAuth,

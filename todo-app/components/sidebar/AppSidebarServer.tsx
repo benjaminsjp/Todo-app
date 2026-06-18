@@ -1,25 +1,54 @@
-import { auth } from '@/lib/auth/server'
+import { headers } from 'next/headers'
+
+import { getCurrentUserProfile } from '@/lib/user'
 import { AppSidebarClientOnly } from './AppSidebarClientOnly'
+import { AppSidebarPlaceholder } from './AppSidebarPlaceholder'
 import {
   getPersonalTasksForSidebar,
   getPersonalGroupsForSidebar,
-  getOrgsForSidebar,
+  getOrgListForUser,
+  getOrgNavData,
   getStatusesForUser,
 } from '@/lib/db/queries'
 
 export async function AppSidebarServer() {
   try {
-    const { data: session } = await auth.getSession()
-    if (!session?.user) return null
+    const profile = await getCurrentUserProfile()
+    if (!profile) return <AppSidebarPlaceholder />
 
-    const userId = session.user.id
+    const pathname = (await headers()).get('x-pathname') ?? ''
+    const orgSlugMatch = pathname.match(/^\/org\/([^/]+)/)
 
-    const [personalTasks, personalGroups, orgs, personalStatuses] = await Promise.all([
-      getPersonalTasksForSidebar(userId),
-      getPersonalGroupsForSidebar(userId),
-      getOrgsForSidebar(userId),
-      getStatusesForUser(userId),
+    const [personalTasks, personalGroups, orgList, personalStatuses] = await Promise.all([
+      getPersonalTasksForSidebar(profile.id),
+      getPersonalGroupsForSidebar(profile.id),
+      getOrgListForUser(profile.id),
+      getStatusesForUser(profile.id),
     ])
+
+    let activeOrgNav: Awaited<ReturnType<typeof getOrgNavData>> | null = null
+    let activeOrgId: number | undefined
+
+    if (orgSlugMatch) {
+      const activeOrg = orgList.find((o) => o.slug === orgSlugMatch[1])
+      if (activeOrg) {
+        activeOrgId = activeOrg.id
+        activeOrgNav = await getOrgNavData(activeOrg.id)
+      }
+    }
+
+    const orgs = orgList.map((org) =>
+      activeOrgId === org.id && activeOrgNav
+        ? {
+            id:       org.id,
+            name:     org.name,
+            slug:     org.slug,
+            tasks:    activeOrgNav.tasks,
+            groups:   activeOrgNav.groups,
+            statuses: activeOrgNav.statuses,
+          }
+        : { id: org.id, name: org.name, slug: org.slug },
+    )
 
     return (
       <AppSidebarClientOnly
@@ -30,6 +59,6 @@ export async function AppSidebarServer() {
       />
     )
   } catch {
-    return null
+    return <AppSidebarPlaceholder />
   }
 }

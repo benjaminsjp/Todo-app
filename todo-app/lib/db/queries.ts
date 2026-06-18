@@ -1,24 +1,76 @@
 import 'server-only'
 import { db } from '@/lib/db'
-import { tasks, taskGroups, statuses, organizationMembers, invitations } from '@/lib/db/schema'
-import { eq, or, isNull, and, gt } from 'drizzle-orm'
+import { tasks, taskGroups, statuses, organizationMembers, invitations, comments } from '@/lib/db/schema'
+import { eq, isNull, and, gt, inArray, count } from 'drizzle-orm'
+
+async function attachCommentCounts<T extends { id: number }>(
+  rows: T[],
+): Promise<(T & { commentCount: number })[]> {
+  if (rows.length === 0) return []
+
+  const ids = rows.map((t) => t.id)
+  const counts = await db
+    .select({ taskId: comments.taskId, count: count() })
+    .from(comments)
+    .where(inArray(comments.taskId, ids))
+    .groupBy(comments.taskId)
+
+  const countByTaskId = new Map(counts.map((r) => [r.taskId, Number(r.count)]))
+
+  return rows.map((row) => ({
+    ...row,
+    commentCount: countByTaskId.get(row.id) ?? 0,
+  }))
+}
 
 export async function getTasksForUser(userId: string) {
-  return db.query.tasks.findMany({
+  const rows = await db.query.tasks.findMany({
     where: and(eq(tasks.createdBy, userId), isNull(tasks.orgId)),
-    with: { group: true, status: true, comments: { with: { user: true } } },
-    orderBy: (tasks, { asc }) => [asc(tasks.order)], 
+    with: { group: true, status: true },
+    orderBy: (tasks, { asc }) => [asc(tasks.order)],
   })
+  return attachCommentCounts(rows)
+}
+
+async function attachTaskCounts<T extends { id: number }>(
+  groups: T[],
+): Promise<(T & { taskCount: number })[]> {
+  if (groups.length === 0) return []
+
+  const groupIds = groups.map((g) => g.id)
+  const counts = await db
+    .select({ groupId: tasks.groupId, count: count() })
+    .from(tasks)
+    .where(inArray(tasks.groupId, groupIds))
+    .groupBy(tasks.groupId)
+
+  const countByGroupId = new Map(
+    counts
+      .filter((r) => r.groupId != null)
+      .map((r) => [r.groupId as number, Number(r.count)]),
+  )
+
+  return groups.map((group) => ({
+    ...group,
+    taskCount: countByGroupId.get(group.id) ?? 0,
+  }))
 }
 
 export async function getTaskGroupsForUser(userId: string) {
-  return db.query.taskGroups.findMany({
+  const groups = await db.query.taskGroups.findMany({
     where: and(eq(taskGroups.createdBy, userId), isNull(taskGroups.orgId)),
-    with: { tasks: { with: { status: true } } },
   })
+  return attachTaskCounts(groups)
 }
 
-export async function getTaskBySlug(slug: string, userId: string) {
+export async function getTaskGroupsForOrg(orgId: number) {
+  const groups = await db.query.taskGroups.findMany({
+    where: eq(taskGroups.orgId, orgId),
+  })
+  return attachTaskCounts(groups)
+}
+
+export async function getTaskBySlug(slug: string, _userId: string) {
   return db.query.tasks.findFirst({
     where: eq(tasks.slug, slug),
     with: {
@@ -43,23 +95,14 @@ export async function getTaskGroupOptions(userId: string, orgId?: number | null)
 }
 
 export async function getTasksForOrg(orgId: number) {
-  return db.query.tasks.findMany({
+  const rows = await db.query.tasks.findMany({
     where: eq(tasks.orgId, orgId),
-    with: {
-      group:    true,
-      status:   true,
-      comments: { with: { user: true } },
-    },
+    with: { group: true, status: true },
     orderBy: (tasks, { asc }) => [asc(tasks.order)],
   })
+  return attachCommentCounts(rows)
 }
 
-export async function getTaskGroupsForOrg(orgId: number) {
-  return db.query.taskGroups.findMany({
-    where: eq(taskGroups.orgId, orgId),
-    with: { tasks: true },
-  })
-}
 
 export async function getStatusesForUser(userId: string) {
   return db.query.statuses.findMany({
@@ -74,7 +117,6 @@ export async function getStatusesForOrg(orgId: number) {
     orderBy: (s, { asc }) => [asc(s.order)],
   })
 }
-
 
 export async function getPersonalTasksForSidebar(userId: string) {
   return db.query.tasks.findMany({
@@ -102,35 +144,69 @@ export async function getPendingInvitationsForEmail(email: string) {
   })
 }
 
-export async function getOrgsForSidebar(userId: string) {
+export async function getOrgListForUser(userId: string) {
   const memberships = await db.query.organizationMembers.findMany({
     where: eq(organizationMembers.userId, userId),
-    with: { org: true },
+    with: { org: { columns: { id: true, name: true, slug: true } } },
   })
 
-  return Promise.all(
-    memberships.map(async (m) => {
-      const [orgTasks, orgGroups, orgStatuses] = await Promise.all([
-        db.query.tasks.findMany({
-          where: eq(tasks.orgId, m.org.id),
-          with: { group: true, status: true },
-          orderBy: (tasks, { asc }) => [asc(tasks.order)],
-        }),
-        db.query.taskGroups.findMany({
-          where: eq(taskGroups.orgId, m.org.id),
-          with: { tasks: { with: { status: true } } },
-        }),
-        getStatusesForOrg(m.org.id),
-      ])
+  return memberships.map((m) => ({
+    id:   m.org.id,
+    name: m.org.name,
+    slug: m.org.slug,
+  }))
+}
 
-      return {
-        id:       m.org.id,
-        name:     m.org.name,
-        slug:     m.org.slug,
-        tasks:    orgTasks,
-        groups:   orgGroups,
-        statuses: orgStatuses,
-      }
-    })
-  )
+export async function getOrgNavData(orgId: number) {
+  const [orgTasks, orgGroups, orgStatuses] = await Promise.all([
+    db.query.tasks.findMany({
+      where: eq(tasks.orgId, orgId),
+      with: { group: true, status: true },
+      orderBy: (tasks, { asc }) => [asc(tasks.order)],
+    }),
+    db.query.taskGroups.findMany({
+      where: eq(taskGroups.orgId, orgId),
+      with: { tasks: { with: { status: true } } },
+    }),
+    getStatusesForOrg(orgId),
+  ])
+
+  return { tasks: orgTasks, groups: orgGroups, statuses: orgStatuses }
+}
+
+export async function getOrgPreviewsForUser(userId: string) {
+  const memberships = await db.query.organizationMembers.findMany({
+    where: eq(organizationMembers.userId, userId),
+    columns: { role: true, orgId: true },
+    with: { org: { columns: { id: true, name: true, slug: true } } },
+  })
+
+  if (memberships.length === 0) return []
+
+  const orgIds = memberships.map((m) => m.orgId)
+
+  const [taskCounts, memberCounts] = await Promise.all([
+    db
+      .select({ orgId: tasks.orgId, count: count() })
+      .from(tasks)
+      .where(inArray(tasks.orgId, orgIds))
+      .groupBy(tasks.orgId),
+    db
+      .select({ orgId: organizationMembers.orgId, count: count() })
+      .from(organizationMembers)
+      .where(inArray(organizationMembers.orgId, orgIds))
+      .groupBy(organizationMembers.orgId),
+  ])
+
+  const taskCountByOrg = new Map(taskCounts.map((r) => [r.orgId, Number(r.count)]))
+  const memberCountByOrg = new Map(memberCounts.map((r) => [r.orgId, Number(r.count)]))
+
+  return memberships.map((m) => ({
+    id:          m.org.id,
+    name:        m.org.name,
+    slug:        m.org.slug,
+    role:        m.role,
+    taskCount:   taskCountByOrg.get(m.orgId) ?? 0,
+    memberCount: memberCountByOrg.get(m.orgId) ?? 0,
+  }))
 }

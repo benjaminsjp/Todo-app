@@ -1,7 +1,9 @@
+import { Suspense } from 'react'
 import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import { AppSidebarServer } from "@/components/sidebar/AppSidebarServer";
-import AppMenubar from "@/components/menubar";
+import { AppSidebarPlaceholder } from "@/components/sidebar/AppSidebarPlaceholder";
+import { AppMenubarServer } from "@/components/AppMenubarServer";
 import { DemoBannerShell } from "@/components/DemoBannerShell";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { BreadcrumbProvider } from "@/components/Breadcrumbs/BreadcrumbsContext";
@@ -31,9 +33,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           style={{ "--sidebar-width": "350px" } as CSSProperties}
         >
           <div className="flex h-full min-h-0 w-full overflow-hidden">
-            <AppSidebarServer />
+            <Suspense fallback={<AppSidebarPlaceholder />}>
+              <AppSidebarServer />
+            </Suspense>
             <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-              <AppMenubar />
+              <AppMenubarServer />
               <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
                 {children}
               </div>

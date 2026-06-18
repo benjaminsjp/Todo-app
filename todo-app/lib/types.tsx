@@ -29,6 +29,7 @@ export type TaskGroup = {
   title:     string
   color:     string
   tasks?:    Task[]
+  taskCount?: number
   createdBy: string | null
   orgId:     number | null
   createdAt: Date | null
@@ -47,15 +48,17 @@ export type Task = {
   createdBy:   string | null
   createdAt:   Date | null
   updatedAt:   Date | null
+  order?:      number
   group?:      TaskGroup | null
   status?:     Status | null
   comments?:   Comment[]
+  commentCount?: number
 }
 
 export type Org = {
   id: number; name: string; slug: string
-  tasks: Task[]; groups: TaskGroup[]
-  statuses: Status[]
+  tasks?: Task[]; groups?: TaskGroup[]
+  statuses?: Status[]
 }
 
 // Hjelpefunksjoner som brukes på tvers av komponenter

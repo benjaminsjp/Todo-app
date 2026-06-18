@@ -48,7 +48,7 @@ export function TasksWidget({ tasks, taskGroups, statuses }: TasksWidgetProps) {
               <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${getColor(group.color).bg}`} />
               <span className="text-sm flex-1 truncate">{group.title}</span>
               <span className="text-xs text-muted-foreground">
-                {group.tasks?.length ?? 0} {(group.tasks?.length ?? 0) === 1 ? 'oppgave' : 'oppgaver'}
+                {group.taskCount ?? group.tasks?.length ?? 0} {(group.taskCount ?? group.tasks?.length ?? 0) === 1 ? 'oppgave' : 'oppgaver'}
               </span>
             </Link>
           ))

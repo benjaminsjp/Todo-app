@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { Status, Task, TaskGroup } from '@/lib/types'
 
 export type TaskPresence = {
@@ -30,6 +30,13 @@ export function useOrgRealtime(orgId?: number) {
   const [presence, setPresence] = useState<TaskPresence[]>([])
 
   const esRef = useRef<EventSource | null>(null)
+
+  useLayoutEffect(() => {
+    setTasks(null)
+    setStatuses(null)
+    setTaskGroups(null)
+    setPresence([])
+  }, [orgId])
 
   useEffect(() => {
     if (!orgId) return
@@ -92,6 +99,13 @@ export function useOrgRealtime(orgId?: number) {
     return map
   }, [presence])
 
-  return { tasks, statuses, taskGroups, presence, presenceByTaskId }
+  return {
+    tasks,
+    statuses,
+    taskGroups,
+    presence,
+    presenceByTaskId,
+    isLoading: orgId !== undefined && tasks === null,
+  }
 }
 

@@ -127,7 +127,7 @@ export function TaskCard({
 
         <div className="flex items-center gap-1 text-xs text-muted-foreground ml-auto">
           <MessageCircle className="size-3" />
-          {task.comments?.length ?? 0}
+          {task.commentCount ?? task.comments?.length ?? 0}
         </div>
       </div>
     </div>

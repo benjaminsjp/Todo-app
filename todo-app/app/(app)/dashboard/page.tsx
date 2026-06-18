@@ -5,13 +5,11 @@ import { TasksWidget } from '@/components/Dashboard/TasksWidget'
 import { OrgsWidget } from '@/components/Dashboard/OrgsWidget'
 import { PlaceholderWidget } from '@/components/Dashboard/PlaceholderWidget'
 import { NotebookPen, Calendar } from 'lucide-react'
-import { db } from '@/lib/db'
-import { organizationMembers } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
 import {
   getTasksForUser,
   getTaskGroupsForUser,
   getStatusesForUser,
+  getOrgPreviewsForUser,
 } from '@/lib/db/queries'
 
 export const metadata: Metadata = {
@@ -27,31 +25,12 @@ export default async function DashboardPage() {
 
   const userId = session.user.id
 
-  const [tasks, taskGroups, statuses, memberships] = await Promise.all([
+  const [tasks, taskGroups, statuses, orgs] = await Promise.all([
     getTasksForUser(userId),
     getTaskGroupsForUser(userId),
     getStatusesForUser(userId),
-    db.query.organizationMembers.findMany({
-      where: eq(organizationMembers.userId, userId),
-      with: {
-        org: {
-          with: {
-            members: true,
-            tasks: true,
-          },
-        },
-      },
-    }),
+    getOrgPreviewsForUser(userId),
   ])
-
-  const orgs = memberships.map((m) => ({
-    id:           m.org.id,
-    name:         m.org.name,
-    slug:         m.org.slug,
-    role:         m.role,
-    taskCount:    m.org.tasks.length,
-    memberCount:  m.org.members.length,
-  }))
 
   return (
     <div className="flex flex-1 flex-col">

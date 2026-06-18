@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -15,21 +14,17 @@ import { useTheme } from 'next-themes'
 import { AppBreadcrumbs } from './Breadcrumbs/Breadcrumbs'
 import { NotificationCenter } from './NotificationCenter'
 
-export default function AppMenubar() {
-  const { theme, setTheme } = useTheme()
-  const router = useRouter()
-
-  const [user, setUser] = useState<{
-    name?:  string | null
+export default function AppMenubar({
+  user,
+}: {
+  user: {
+    name?: string | null
     email?: string | null
     avatarUrl?: string | null
-  } | null>(null)
-
-  useEffect(() => {
-    fetch('/api/me')
-      .then((r) => r.json())
-      .then((data) => { if (data) setUser(data) })
-  }, [])
+  } | null
+}) {
+  const { theme, setTheme } = useTheme()
+  const router = useRouter()
 
   const handleSignOut = () => {
     window.location.href = '/api/auth/sign-out'
