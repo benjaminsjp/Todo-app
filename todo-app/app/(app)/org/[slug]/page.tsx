@@ -12,7 +12,7 @@ import { Settings } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
-export const metadata: Metadata = { title: "Org | På'n" }
+export const metadata: Metadata = { title: "Organisasjon | På'n" }
 export const dynamic = 'force-dynamic'
 
 export default async function OrgPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -49,7 +49,7 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
                     <Button variant="secondary" asChild>
                         <Link href={`/org/${org.slug}/settings`}>
                         <Settings className="size-4" />
-                        {['owner', 'admin'].includes(membership.role) ? 'Manage organization' : 'Organization settings'}
+                        {['owner', 'admin'].includes(membership.role) ? 'Administrer organisasjon' : 'Organisasjonsinnstillinger'}
                         </Link>
                     </Button>
                 </div>

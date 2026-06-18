@@ -10,8 +10,25 @@ const neonAuth = createNeonAuth({
   },
 })
 
+function isCookieMutationError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.message.includes('Cookies can only be modified')
+  )
+}
+
 async function getSessionWithDemo() {
-  const { data: session } = await neonAuth.getSession()
+  let session = null
+
+  try {
+    const { data } = await neonAuth.getSession()
+    session = data
+  } catch (error) {
+    // After sign-out, stale auth cookies can make Neon Auth try to refresh
+    // session cookies during RSC render, which Next.js forbids.
+    if (!isCookieMutationError(error)) throw error
+  }
+
   if (session?.user) return { data: session }
 
   if (await hasDemoSession()) {

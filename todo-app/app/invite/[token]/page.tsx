@@ -23,8 +23,8 @@ export default async function InvitePage({
   if (!invite || invite.expiresAt < new Date()) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <h1 className="text-2xl font-medium">Invalid invitation</h1>
-        <p className="text-muted-foreground">This link is invalid or has expired.</p>
+        <h1 className="text-2xl font-medium">Ugyldig invitasjon</h1>
+        <p className="text-muted-foreground">Denne lenken er ugyldig eller har utløpt.</p>
       </div>
     )
   }
@@ -36,9 +36,9 @@ export default async function InvitePage({
   if (session.user.email !== invite.email) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4 max-w-sm mx-auto text-center px-4">
-        <h1 className="text-2xl font-medium">Wrong account</h1>
+        <h1 className="text-2xl font-medium">Feil konto</h1>
         <p className="text-muted-foreground text-sm">
-          This invitation was sent to <strong>{invite.email}</strong> but you are signed in as{' '}
+          Denne invitasjonen ble sendt til <strong>{invite.email}</strong>, men du er innlogget som{' '}
           <strong>{session.user.email}</strong>.
         </p>
       </div>
@@ -61,4 +61,3 @@ export default async function InvitePage({
     />
   )
 }
-

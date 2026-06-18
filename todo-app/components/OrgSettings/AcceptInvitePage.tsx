@@ -6,6 +6,13 @@ import { Button } from '@/components/ui/button'
 import { acceptInvitation } from '@/lib/actions/invitations'
 import { Building2 } from 'lucide-react'
 
+const ROLE_LABELS: Record<string, string> = {
+  owner:  'Eier',
+  admin:  'Admin',
+  member: 'Medlem',
+  viewer: 'Leser',
+}
+
 export function AcceptInvitePage({
   token, orgName, orgSlug, role, email,
 }: {
@@ -26,20 +33,22 @@ export function AcceptInvitePage({
     router.push(`/org/${orgSlug}`)
   }
 
+  const roleLabel = ROLE_LABELS[role] ?? role
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen gap-6 max-w-sm mx-auto text-center px-4">
       <div className="flex items-center justify-center size-16 rounded-2xl bg-muted">
         <Building2 className="size-8" />
       </div>
       <div>
-        <h1 className="text-3xl font-medium font-heading mb-2">You're invited!</h1>
+        <h1 className="text-3xl font-medium font-heading mb-2">Du er invitert!</h1>
         <p className="text-muted-foreground text-sm">
-          You've been invited to join <strong className="text-foreground">{orgName}</strong> as a <strong className="text-foreground">{role}</strong>.
+          Du er invitert til å bli med i <strong className="text-foreground">{orgName}</strong> som <strong className="text-foreground">{roleLabel}</strong>.
         </p>
       </div>
       {error && <p className="text-sm text-destructive">{error}</p>}
       <Button variant="brand" className="w-full" onClick={handleAccept} disabled={isPending}>
-        {isPending ? 'Joining...' : `Join ${orgName}`}
+        {isPending ? 'Blir med...' : `Bli med i ${orgName}`}
       </Button>
     </div>
   )

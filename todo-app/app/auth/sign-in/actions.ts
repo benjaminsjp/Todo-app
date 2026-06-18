@@ -9,7 +9,7 @@ import { syncUser } from '@/lib/db/users'
 
 export async function seedStatusesForCurrentUser() {
   const { data: session } = await auth.getSession()
-  if (!session?.user) return { error: 'Not logged in' }
+  if (!session?.user) return { error: 'Ikke innlogget' }
 
   await syncUser({
     id:    session.user.id,

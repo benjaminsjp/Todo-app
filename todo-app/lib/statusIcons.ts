@@ -17,20 +17,20 @@ import {
 } from 'lucide-react'
 
 export const STATUS_ICON_OPTIONS = [
-  { name: 'CircleDashed',   icon: CircleDashed,   label: 'Todo' },
-  { name: 'CircleEllipsis', icon: CircleEllipsis, label: 'In progress' },
-  { name: 'CircleCheck',    icon: CircleCheck,    label: 'Done' },
-  { name: 'Circle',         icon: Circle,         label: 'Open' },
-  { name: 'CircleDot',      icon: CircleDot,      label: 'Active' },
-  { name: 'CirclePause',    icon: CirclePause,    label: 'Paused' },
-  { name: 'CircleX',        icon: CircleX,        label: 'Cancelled' },
-  { name: 'Clock',          icon: Clock,          label: 'Waiting' },
-  { name: 'Hourglass',      icon: Hourglass,      label: 'Pending' },
-  { name: 'Flag',           icon: Flag,           label: 'Priority' },
-  { name: 'Star',           icon: Star,           label: 'Important' },
-  { name: 'ListTodo',       icon: ListTodo,       label: 'Backlog' },
-  { name: 'Play',           icon: Play,           label: 'Started' },
-  { name: 'Pause',          icon: Pause,          label: 'On hold' },
+  { name: 'CircleDashed',   icon: CircleDashed,   label: 'Å gjøre' },
+  { name: 'CircleEllipsis', icon: CircleEllipsis, label: 'Pågår' },
+  { name: 'CircleCheck',    icon: CircleCheck,    label: 'Ferdig' },
+  { name: 'Circle',         icon: Circle,         label: 'Åpen' },
+  { name: 'CircleDot',      icon: CircleDot,      label: 'Aktiv' },
+  { name: 'CirclePause',    icon: CirclePause,    label: 'Pauset' },
+  { name: 'CircleX',        icon: CircleX,        label: 'Avbrutt' },
+  { name: 'Clock',          icon: Clock,          label: 'Venter' },
+  { name: 'Hourglass',      icon: Hourglass,      label: 'Avventer' },
+  { name: 'Flag',           icon: Flag,           label: 'Prioritet' },
+  { name: 'Star',           icon: Star,           label: 'Viktig' },
+  { name: 'ListTodo',       icon: ListTodo,       label: 'Etterslep' },
+  { name: 'Play',           icon: Play,           label: 'Startet' },
+  { name: 'Pause',          icon: Pause,          label: 'På vent' },
 ] as const
 
 export type StatusIconName = (typeof STATUS_ICON_OPTIONS)[number]['name']

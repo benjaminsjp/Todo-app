@@ -15,6 +15,7 @@ import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove  }
 import { CSS } from '@dnd-kit/utilities'
 
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { TaskCard } from './TaskCard'
 import { CreateTaskGroupButton } from '../CreateTaskGroup/CreateTaskGroupButton'
 import { TaskGroupPill } from './TaskGroupPill'
@@ -24,12 +25,14 @@ import { CreateStatusModal } from '../Status/CreateStatusModal'
 import { Skeleton } from '../ui/skeleton'
 import { EditStatusMenu } from '../Status/EditStatusMenu'
 
-import { Circle, Plus } from 'lucide-react'
+import { Circle, Plus, ChevronLeft, ChevronRight } from 'lucide-react'
 import { resolveStatusIcon } from '@/lib/statusIcons'
 
 import { type Task, TaskGroup, Status } from "@/lib/types"
 import { updateTaskStatus, updateTaskOrder } from '@/lib/actions/tasks'
+import { moveStatus } from '@/lib/actions/statuses'
 
+import { DEFAULT_STATUS_LABELS } from '@/lib/statusDefaults'
 import { useCallback, useEffect, useState, useRef } from 'react'
 import { useSearchParams, usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -96,6 +99,8 @@ function SortableTaskCard({
 
 function KanbanColumn({
   status,
+  statusIndex,
+  statusCount,
   tasks,
   orgSlug,
   presenceByTaskId,
@@ -104,8 +109,11 @@ function KanbanColumn({
   taskGroups,
   onOptimisticPatch,
   onOptimisticRollback,
+  onMoveStatus,
 }: {
   status: Status
+  statusIndex: number
+  statusCount: number
   tasks: Task[]
   orgSlug?: string
   presenceByTaskId: Map<number, TaskPresence[]>
@@ -114,6 +122,7 @@ function KanbanColumn({
   taskGroups: TaskGroup[]
   onOptimisticPatch: (taskId: number, patch: Partial<Task>) => void
   onOptimisticRollback: (taskId: number, prev: Task) => void
+  onMoveStatus: (statusId: number, direction: 'left' | 'right') => void
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status.label })
   const { icon: Icon, class: iconClass } = getStatusStyle(status.color, status.icon)
@@ -126,8 +135,28 @@ function KanbanColumn({
         <Badge variant="secondary" className=" rounded-full px-1.5 py-0 text-xs">
           {tasks.length}
         </Badge>
-        <div className='ml-auto'>
-          <EditStatusMenu status={status} />  
+        <div className='ml-auto flex items-center gap-0.5'>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            disabled={statusIndex === 0}
+            onClick={() => onMoveStatus(status.id, 'left')}
+            aria-label="Flytt status til venstre"
+          >
+            <ChevronLeft className="size-3.5" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            disabled={statusIndex >= statusCount - 1}
+            onClick={() => onMoveStatus(status.id, 'right')}
+            aria-label="Flytt status til høyre"
+          >
+            <ChevronRight className="size-3.5" />
+          </Button>
+          <EditStatusMenu status={status} />
         </div>
       </div>
 
@@ -141,7 +170,7 @@ function KanbanColumn({
           )}
         >
           {tasks.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-6 my-auto ">No tasks</p>
+            <p className="text-xs text-muted-foreground text-center py-6 my-auto ">Ingen oppgaver</p>
           ) : (
             tasks.map((task) => (
               <SortableTaskCard
@@ -210,15 +239,40 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, statuses, orgSlug
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   )
 
-  const getStatusLabel = (task: Task): string => task.status?.label ?? 'Todo'
+  const getStatusLabel = (task: Task): string => task.status?.label ?? DEFAULT_STATUS_LABELS.todo
 
   const getGroupFilter = searchParams.get('group')
   const filteredTasks  = getGroupFilter
     ? tasks.filter((t) => String(t.groupId) === getGroupFilter)
     : tasks
 
-  const tasksByStatus = (statusLabel: string) =>
-    filteredTasks.filter((t) => (t.status?.label ?? 'Todo') === statusLabel)
+  const sortedStatuses = [...liveStatuses].sort((a, b) => a.order - b.order)
+
+  const tasksByStatus = (status: Status, index: number) =>
+    filteredTasks.filter((t) => {
+      if (!t.statusId && !t.status) return index === 0
+      return (t.status?.label ?? DEFAULT_STATUS_LABELS.todo) === status.label
+    })
+
+  const handleMoveStatus = async (statusId: number, direction: 'left' | 'right') => {
+    const sorted = [...liveStatuses].sort((a, b) => a.order - b.order)
+    const idx = sorted.findIndex((s) => s.id === statusId)
+    const swapIdx = direction === 'left' ? idx - 1 : idx + 1
+    if (idx < 0 || swapIdx < 0 || swapIdx >= sorted.length) return
+
+    const reordered = [...sorted]
+    ;[reordered[idx], reordered[swapIdx]] = [reordered[swapIdx], reordered[idx]]
+    const withNewOrder = reordered.map((s, i) => ({ ...s, order: i }))
+    const prevStatuses = liveStatuses
+
+    setLiveStatuses(withNewOrder)
+
+    const result = await moveStatus(statusId, direction)
+    if ('error' in result) {
+      toast.error(result.error)
+      setLiveStatuses(prevStatuses)
+    }
+  }
 
   const patchTaskOptimistic = useCallback((taskId: number, patch: Partial<Task>) => {
     setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...patch } : t)))
@@ -264,7 +318,7 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, statuses, orgSlug
       try {
         await updateTaskOrder(reordered.map((t) => t.id))
       } catch {
-        toast.error('Failed to reorder tasks')
+        toast.error('Kunne ikke endre rekkefølgen på oppgavene')
         setTasks(prevTasks)
       } finally {
         pendingCount.current--
@@ -288,11 +342,11 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, statuses, orgSlug
     try {
       const result = await updateTaskStatus(Number(active.id), newStatusKey, orgId, userId)
       if ('error' in result) {
-        toast.error('Failed to update status')
+        toast.error('Kunne ikke oppdatere status')
         setTasks(prevTasks)
       }
     } catch {
-      toast.error('Failed to update status')
+      toast.error('Kunne ikke oppdatere status')
       setTasks(prevTasks)
     } finally {
       pendingCount.current--
@@ -348,18 +402,21 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, statuses, orgSlug
           className="h-full bg-card border border-border rounded-2xl animate-fade animate-once animate-duration-200 animate-ease-in-out"
         >
           <div className="flex flex-row gap-6 items-start h-full p-6">
-            {liveStatuses.map((status) => (
+            {sortedStatuses.map((status, index) => (
               <div key={status.id} className="max-w-90 min-w-90">
                 <KanbanColumn
                   status={status}
-                  tasks={tasksByStatus(status.label)}
+                  statusIndex={index}
+                  statusCount={sortedStatuses.length}
+                  tasks={tasksByStatus(status, index)}
                   orgSlug={orgSlug}
                   presenceByTaskId={orgRealtime.presenceByTaskId}
                   currentUserId={userId}
-                  statuses={liveStatuses}
+                  statuses={sortedStatuses}
                   taskGroups={liveTaskGroups}
                   onOptimisticPatch={patchTaskOptimistic}
                   onOptimisticRollback={rollbackTaskOptimistic}
+                  onMoveStatus={handleMoveStatus}
                 />
               </div>
             ))}
@@ -370,7 +427,7 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, statuses, orgSlug
                 onClick={() => setStatusModalOpen(true)}
                 className="rounded-xl border border-dashed p-3 min-h-32 flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
               >
-                <Plus className="size-4" /> Add status
+                <Plus className="size-4" /> Legg til status
               </button>
             </div>
           </div>

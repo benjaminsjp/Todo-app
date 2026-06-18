@@ -34,14 +34,14 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
                   <Building2 className="size-3" />
                 </div>
                 <span className="truncate font-medium">
-                  {activeOrg?.name ?? 'Personal'}
+                  {activeOrg?.name ?? 'Personlig'}
                 </span>
                 <ChevronDown className="opacity-50" />
               </SidebarMenuButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-64" align="start" side="bottom" sideOffset={4}>
               <DropdownMenuLabel className="text-xs text-muted-foreground">
-                Organizations
+                Organisasjoner
               </DropdownMenuLabel>
 
               <DropdownMenuItem
@@ -51,9 +51,9 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
                 <div className="flex size-7 items-center justify-center rounded-sm border">
                   <Building2 className="size-4 shrink-0" />
                 </div>
-                Personal
+                Personlig
                 {!activeOrg && (
-                  <span className="ml-auto text-xs text-muted-foreground pr-2">Active</span>
+                  <span className="ml-auto text-xs text-muted-foreground pr-2">Aktiv</span>
                 )}
               </DropdownMenuItem>
 
@@ -70,7 +70,7 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
                   </div>
                   {org.name}
                   {org.slug === currentSlug && (
-                    <span className="ml-auto text-xs text-muted-foreground pr-2">Active</span>
+                    <span className="ml-auto text-xs text-muted-foreground pr-2">Aktiv</span>
                   )}
                 </DropdownMenuItem>
               ))}
@@ -80,7 +80,7 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
                 <div className="flex size-6 items-center justify-center rounded-md border bg-background">
                   <Plus className="size-4" />
                 </div>
-                <span className="font-medium text-muted-foreground">New Organization</span>
+                <span className="font-medium text-muted-foreground">Ny organisasjon</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

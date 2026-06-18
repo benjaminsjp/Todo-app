@@ -26,11 +26,18 @@ type Revision = {
 }
 
 const FIELD_LABELS: Record<string, string> = {
-  title:       'Title',
-  description: 'Description',
-  deadline:    'Deadline',
+  title:       'Tittel',
+  description: 'Beskrivelse',
+  deadline:    'Frist',
   statusId:    'Status',
-  groupId:     'Group',
+  groupId:     'Gruppe',
+}
+
+const ACTION_LABELS: Record<string, string> = {
+  update:   'Oppdatering',
+  status:   'Status',
+  group:    'Gruppe',
+  rollback: 'Tilbakestilling',
 }
 
 
@@ -90,7 +97,7 @@ function RevisionDiff({
   })
 
   if (changes.length === 0) return (
-    <p className="text-xs text-muted-foreground mt-2 rounded-lg bg-card p-3">No tracked changes found.</p>
+    <p className="text-xs text-muted-foreground mt-2 rounded-lg bg-card p-3">Ingen sporede endringer funnet.</p>
   )
 
   return (
@@ -120,7 +127,7 @@ function RevisionDiff({
                   <span className="text-green-600 dark:text-green-400">{afterVal}</span>
                 )}
                 {afterVal === '–' && beforeVal !== '–' && (
-                  <span className="text-muted-foreground italic">Removed</span>
+                  <span className="text-muted-foreground italic">Fjernet</span>
                 )}
               </div>
             ) : (
@@ -174,27 +181,27 @@ export function TaskRevisionHistory({
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" title="Revision history">
+        <Button variant="ghost" size="icon" title="Revisjonshistorikk">
           <History className="size-4" />
         </Button>
       </SheetTrigger>
       <SheetContent className="w-full sm:max-w-lg flex flex-col bg-surface-1">
         <SheetHeader className='border-b'>
-          <SheetTitle>Revision history</SheetTitle>
+          <SheetTitle>Revisjonshistorikk</SheetTitle>
           <SheetDescription>
-            View and administer your revisions.
+            Se og administrer revisjonene dine.
           </SheetDescription>
         </SheetHeader>
 
         <ScrollArea className="flex-1 px-6 py-6 overflow-hidden">
           {loading ? (
-            <p className="text-sm text-muted-foreground">Loading…</p>
+            <p className="text-sm text-muted-foreground">Laster…</p>
           ) : revisions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No revisions yet.</p>
+            <p className="text-sm text-muted-foreground">Ingen revisjoner ennå.</p>
           ) : (
             <div className="flex flex-col gap-3">
               {revisions.map((r) => {
-                const who     = r.user?.displayName ?? r.user?.email ?? 'Unknown'
+                const who     = r.user?.displayName ?? r.user?.email ?? 'Ukjent'
                 const hasDiff = r.before || r.after
 
                 return (
@@ -203,13 +210,13 @@ export function TaskRevisionHistory({
                       <div className="flex items-start gap-3">
                         <div className="flex flex-col gap-0.5 flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-medium">{r.action}</span>
+                            <span className="text-sm font-medium">{ACTION_LABELS[r.action] ?? r.action}</span>
                             <span className="text-xs text-muted-foreground">#{r.id}</span>
                             <span className="ml-auto text-xs text-muted-foreground">
                               {formatWhen(r.createdAt)}
                             </span>
                           </div>
-                          <p className="text-xs text-muted-foreground">by {who}</p>
+                          <p className="text-xs text-muted-foreground">av {who}</p>
                         </div>
 
                         <div className="flex items-center gap-1 shrink-0">
@@ -226,7 +233,7 @@ export function TaskRevisionHistory({
                             onClick={async () => {
                               const res = await rollbackTaskToRevision(taskId, r.id)
                               if ('error' in res) { toast.error(res.error); return }
-                              toast.success('Rolled back')
+                              toast.success('Rullet tilbake')
                               router.refresh()
                               setOpen(false)
                             }}

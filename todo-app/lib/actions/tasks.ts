@@ -4,7 +4,7 @@ import { db } from '@/lib/db'
 import { organizationMembers, taskPresence, taskRevisions, tasks, statuses, users } from '@/lib/db/schema'
 import { auth } from '@/lib/auth/server'
 import { revalidatePath } from 'next/cache'
-import { eq, and, isNull, gt, ne } from 'drizzle-orm'
+import { eq, and, isNull, gt, ne, asc } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 
 const LOCK_TTL_MS = 15_000
@@ -14,10 +14,10 @@ async function requireCanEditTask(userId: string, taskId: number) {
     where: eq(tasks.id, taskId),
     columns: { id: true, orgId: true, createdBy: true },
   })
-  if (!task) throw new Error('Task not found')
+  if (!task) throw new Error('Oppgave ikke funnet')
 
   if (!task.orgId) {
-    if (task.createdBy !== userId) throw new Error('Unauthorized')
+    if (task.createdBy !== userId) throw new Error('Ingen tilgang')
     return { orgId: null as number | null }
   }
 
@@ -25,7 +25,7 @@ async function requireCanEditTask(userId: string, taskId: number) {
     where: and(eq(organizationMembers.orgId, task.orgId), eq(organizationMembers.userId, userId)),
     columns: { role: true },
   })
-  if (!membership || membership.role === 'viewer') throw new Error('Unauthorized')
+  if (!membership || membership.role === 'viewer') throw new Error('Ingen tilgang')
 
   return { orgId: task.orgId }
 }
@@ -42,8 +42,8 @@ async function requireNotLocked(userId: string, taskId: number) {
     with: { user: { columns: { displayName: true, email: true } } },
   })
   if (!lock) return
-  const name = lock.user?.displayName ?? lock.user?.email ?? 'Another user'
-  throw new Error(`Task is locked (being edited by ${name})`)
+  const name = lock.user?.displayName ?? lock.user?.email ?? 'En annen bruker'
+  throw new Error(`Oppgaven er låst (redigeres av ${name})`)
 }
 
 function snapshotTaskRow(task: {
@@ -90,11 +90,11 @@ function isMissingRevisionsTableError(err: unknown): boolean {
 
 export async function acquireTaskLock(taskId: number) {
   const { data: session } = await auth.getSession()
-  if (!session?.user) return { error: 'Not logged in' as const }
+  if (!session?.user) return { error: 'Ikke innlogget' as const }
 
   try {
     const { orgId } = await requireCanEditTask(session.user.id, taskId)
-    if (!orgId) return { error: 'Locks are only used for org tasks' as const }
+    if (!orgId) return { error: 'Låser brukes bare for organisasjonsoppgaver' as const }
 
     const cutoff   = new Date(Date.now() - LOCK_TTL_MS)
     const existing = await db.query.taskPresence.findFirst({
@@ -132,13 +132,13 @@ export async function acquireTaskLock(taskId: number) {
 
     return { success: true as const }
   } catch (e) {
-    return { error: e instanceof Error ? e.message : 'Something went wrong' as const }
+    return { error: e instanceof Error ? e.message : 'Noe gikk galt' as const }
   }
 }
 
 export async function releaseTaskLock(taskId: number) {
   const { data: session } = await auth.getSession()
-  if (!session?.user) return { error: 'Not logged in' as const }
+  if (!session?.user) return { error: 'Ikke innlogget' as const }
 
   try {
     const { orgId } = await requireCanEditTask(session.user.id, taskId)
@@ -152,7 +152,7 @@ export async function releaseTaskLock(taskId: number) {
 
     return { success: true as const }
   } catch (e) {
-    return { error: e instanceof Error ? e.message : 'Something went wrong' as const }
+    return { error: e instanceof Error ? e.message : 'Noe gikk galt' as const }
   }
 }
 
@@ -180,12 +180,20 @@ export async function createTask(
     slug    = await generateUniqueSlug(baseSlug, orgId)
     orgSlug = (formData.get('orgSlug') as string) ?? ''
 
+    const firstStatus = await db.query.statuses.findFirst({
+      where: orgId
+        ? eq(statuses.orgId, orgId)
+        : and(eq(statuses.userId, session.user.id), isNull(statuses.orgId)),
+      orderBy: [asc(statuses.order)],
+    })
+
     await db.insert(tasks).values({
       title,
       description: (formData.get('description') as string) || null,
       slug,
       deadline:    (formData.get('deadline') as string) || null,
       groupId,
+      statusId:    firstStatus?.id ?? null,
       orgId,
       createdBy:   session.user.id,
     })
@@ -232,7 +240,7 @@ export async function updateTask(
         orgId:       true,
       },
     })
-    if (!beforeRow) return { error: 'Task not found' }
+    if (!beforeRow) return { error: 'Oppgave ikke funnet' }
 
     const [afterRow] = await db.update(tasks)
       .set({ ...data, updatedAt: new Date() })
@@ -281,7 +289,7 @@ export async function updateTaskStatus(
 ): Promise<{ error: string } | { success: true }> {
   try {
     const { data: session } = await auth.getSession()
-    if (!session?.user) return { error: 'Not logged in' }
+    if (!session?.user) return { error: 'Ikke innlogget' }
 
     const { orgId: taskOrgId } = await requireCanEditTask(session.user.id, taskId)
     await requireNotLocked(session.user.id, taskId)
@@ -293,7 +301,7 @@ export async function updateTaskStatus(
         ? and(eq(statuses.orgId, resolvedOrgId),          eq(statuses.label, statusLabel))
         : and(eq(statuses.userId, session.user.id),       eq(statuses.label, statusLabel)),
     })
-    if (!status) return { error: 'Status not found' }
+    if (!status) return { error: 'Status ikke funnet' }
 
     const beforeRow = await db.query.tasks.findFirst({
       where: eq(tasks.id, taskId),
@@ -309,7 +317,7 @@ export async function updateTaskStatus(
         orgId:       true,
       },
     })
-    if (!beforeRow) return { error: 'Task not found' }
+    if (!beforeRow) return { error: 'Oppgave ikke funnet' }
 
     // Ingen endring
     if (beforeRow.statusId === status.id) return { success: true }
@@ -335,7 +343,7 @@ export async function updateTaskStatus(
     return { success: true }
   } catch (e) {
     console.error('updateTaskStatus error:', e)
-    return { error: e instanceof Error ? e.message : 'Something went wrong' }
+    return { error: e instanceof Error ? e.message : 'Noe gikk galt' }
   }
 }
 
@@ -344,7 +352,7 @@ export async function updateTaskOrder(
 ): Promise<{ error: string } | { success: true }> {
   try {
     const { data: session } = await auth.getSession()
-    if (!session?.user) return { error: 'Not logged in' }
+    if (!session?.user) return { error: 'Ikke innlogget' }
 
     await Promise.all(taskIds.map((id) => requireCanEditTask(session.user.id, id)))
 
@@ -355,7 +363,7 @@ export async function updateTaskOrder(
     )
     return { success: true }
   } catch (e) {
-    return { error: e instanceof Error ? e.message : 'Something went wrong' }
+    return { error: e instanceof Error ? e.message : 'Noe gikk galt' }
   }
 }
 
@@ -365,7 +373,7 @@ export async function updateTaskGroup(
 ): Promise<{ error: string } | { success: true }> {
   try {
     const { data: session } = await auth.getSession()
-    if (!session?.user) return { error: 'Not logged in' }
+    if (!session?.user) return { error: 'Ikke innlogget' }
 
     await requireCanEditTask(session.user.id, taskId)
     await requireNotLocked(session.user.id, taskId)
@@ -384,7 +392,7 @@ export async function updateTaskGroup(
         orgId:       true,
       },
     })
-    if (!beforeRow) return { error: 'Task not found' }
+    if (!beforeRow) return { error: 'Oppgave ikke funnet' }
 
     // Ingen endring
     if (beforeRow.groupId === groupId) return { success: true }
@@ -411,7 +419,7 @@ export async function updateTaskGroup(
     revalidatePath('/org/[slug]', 'page')
     return { success: true }
   } catch (e) {
-    return { error: e instanceof Error ? e.message : 'Something went wrong' }
+    return { error: e instanceof Error ? e.message : 'Noe gikk galt' }
   }
 }
 
@@ -420,7 +428,7 @@ export async function deleteTask(
 ): Promise<{ error: string } | { success: true }> {
   try {
     const { data: session } = await auth.getSession()
-    if (!session?.user) return { error: 'Not logged in' }
+    if (!session?.user) return { error: 'Ikke innlogget' }
 
     await requireCanEditTask(session.user.id, taskId)
     await requireNotLocked(session.user.id, taskId)
@@ -436,7 +444,7 @@ export async function deleteTask(
 
     return { success: true }
   } catch (e) {
-    return { error: e instanceof Error ? e.message : 'Something went wrong' }
+    return { error: e instanceof Error ? e.message : 'Noe gikk galt' }
   }
 }
 

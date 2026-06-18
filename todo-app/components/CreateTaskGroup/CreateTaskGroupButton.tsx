@@ -12,7 +12,7 @@ export function CreateTaskGroupButton({ orgId, children }: { orgId?: number; chi
     <>
       {!children ? (
         <Button variant="ghost" className='border-dashed border-border' onClick={() => setOpen(true)}>
-          <Plus className="size-4" /> New group
+          <Plus className="size-4" /> Ny gruppe
         </Button>
       ) : (
         <div onClick={() => setOpen(true)} >

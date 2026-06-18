@@ -26,15 +26,15 @@ export function CreateOrgModal({ open, onClose }: Props) {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-sm gap-2">
         <DialogHeader>
-          <DialogTitle>New organization</DialogTitle>
+          <DialogTitle>Ny organisasjon</DialogTitle>
         </DialogHeader>
         <DialogDescription className='mb-4'>
-          Create a new organization to manage your tasks.
+          Opprett en ny organisasjon for å administrere oppgavene dine.
         </DialogDescription>
         <form action={action} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="name">Name *</Label>
-            <Input id="name" name="name" placeholder="Organization name" required />
+            <Label htmlFor="name">Navn *</Label>
+            <Input id="name" name="name" placeholder="Organisasjonsnavn" required />
           </div>
 
           {state && 'error' in state && (
@@ -42,9 +42,9 @@ export function CreateOrgModal({ open, onClose }: Props) {
           )}
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={onClose}>Avbryt</Button>
             <Button type="submit" disabled={isPending}>
-              {isPending ? 'Creating...' : 'Create Organization'}
+              {isPending ? 'Oppretter...' : 'Opprett organisasjon'}
             </Button>
           </div>
         </form>

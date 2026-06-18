@@ -31,7 +31,7 @@ export function CreateTaskButton({ orgId, children }: Props) {
 
   return (
     <Button onClick={handleClick}>
-      <Plus className="size-4" /> New task
+      <Plus className="size-4" /> Ny oppgave
     </Button>
   )
 }

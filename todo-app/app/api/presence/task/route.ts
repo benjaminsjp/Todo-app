@@ -17,26 +17,26 @@ async function requireOrgMember(userId: string, orgId: number) {
   const membership = await db.query.organizationMembers.findFirst({
     where: and(eq(organizationMembers.orgId, orgId), eq(organizationMembers.userId, userId)),
   })
-  if (!membership) throw new Error('Unauthorized')
+  if (!membership) throw new Error('Ingen tilgang')
 }
 
 export async function POST(req: Request) {
   const { data: session } = await auth.getSession()
-  if (!session?.user) return NextResponse.json({ error: 'Not logged in' }, { status: 401 })
+  if (!session?.user) return NextResponse.json({ error: 'Ikke innlogget' }, { status: 401 })
 
   const body = (await req.json().catch(() => null)) as null | {
     orgId: number
     taskId: number
     mode?: 'editing' | 'viewing'
   }
-  if (!body?.orgId || !body?.taskId) return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
+  if (!body?.orgId || !body?.taskId) return NextResponse.json({ error: 'Ugyldig forespørsel' }, { status: 400 })
 
   await requireOrgMember(session.user.id, body.orgId)
 
   const task = await db.query.tasks.findFirst({
     where: and(eq(tasks.id, body.taskId), eq(tasks.orgId, body.orgId)),
   })
-  if (!task) return NextResponse.json({ error: 'Task not found' }, { status: 404 })
+  if (!task) return NextResponse.json({ error: 'Oppgave ikke funnet' }, { status: 404 })
 
   try {
     await db.insert(taskPresence).values({
@@ -62,12 +62,12 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   const { data: session } = await auth.getSession()
-  if (!session?.user) return NextResponse.json({ error: 'Not logged in' }, { status: 401 })
+  if (!session?.user) return NextResponse.json({ error: 'Ikke innlogget' }, { status: 401 })
 
   const url = new URL(req.url)
   const orgId = Number(url.searchParams.get('orgId'))
   const taskId = Number(url.searchParams.get('taskId'))
-  if (!orgId || !taskId) return NextResponse.json({ error: 'Missing orgId/taskId' }, { status: 400 })
+  if (!orgId || !taskId) return NextResponse.json({ error: 'Mangler orgId/taskId' }, { status: 400 })
 
   await requireOrgMember(session.user.id, orgId)
 

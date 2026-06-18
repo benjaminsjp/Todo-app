@@ -20,10 +20,10 @@ async function requireCanEditTask(userId: string, taskId: number) {
     where: eq(tasks.id, taskId),
     columns: { id: true, orgId: true, createdBy: true, slug: true },
   })
-  if (!task) throw new Error('Task not found')
+  if (!task) throw new Error('Oppgave ikke funnet')
 
   if (!task.orgId) {
-    if (task.createdBy !== userId) throw new Error('Unauthorized')
+    if (task.createdBy !== userId) throw new Error('Ingen tilgang')
     return { task, orgId: null as number | null }
   }
 
@@ -31,14 +31,14 @@ async function requireCanEditTask(userId: string, taskId: number) {
     where: and(eq(organizationMembers.orgId, task.orgId), eq(organizationMembers.userId, userId)),
     columns: { role: true },
   })
-  if (!membership || membership.role === 'viewer') throw new Error('Unauthorized')
+  if (!membership || membership.role === 'viewer') throw new Error('Ingen tilgang')
 
   return { task, orgId: task.orgId }
 }
 
 export async function getTaskRevisions(taskId: number) {
   const { data: session } = await auth.getSession()
-  if (!session?.user) return { error: 'Not logged in' as const }
+  if (!session?.user) return { error: 'Ikke innlogget' as const }
 
   try {
     await requireCanEditTask(session.user.id, taskId)
@@ -52,19 +52,19 @@ export async function getTaskRevisions(taskId: number) {
         limit: 50,
       })
     } catch (e) {
-      if (isMissingRevisionsTableError(e)) return { error: 'Missing migration: task_revisions' as const }
+      if (isMissingRevisionsTableError(e)) return { error: 'Mangler migrering: task_revisions' as const }
       throw e
     }
 
     return { success: true as const, revisions: rows }
   } catch (e) {
-    return { error: e instanceof Error ? e.message : 'Something went wrong' as const }
+    return { error: e instanceof Error ? e.message : 'Noe gikk galt' as const }
   }
 }
 
 export async function rollbackTaskToRevision(taskId: number, revisionId: number) {
   const { data: session } = await auth.getSession()
-  if (!session?.user) return { error: 'Not logged in' as const }
+  if (!session?.user) return { error: 'Ikke innlogget' as const }
 
   try {
     const { task } = await requireCanEditTask(session.user.id, taskId)
@@ -72,7 +72,7 @@ export async function rollbackTaskToRevision(taskId: number, revisionId: number)
     const rev = await db.query.taskRevisions.findFirst({
       where: and(eq(taskRevisions.id, revisionId), eq(taskRevisions.taskId, taskId)),
     })
-    if (!rev) return { error: 'Revision not found' as const }
+    if (!rev) return { error: 'Revisjon ikke funnet' as const }
 
     const current = await db.query.tasks.findFirst({
       where: eq(tasks.id, taskId),
@@ -88,7 +88,7 @@ export async function rollbackTaskToRevision(taskId: number, revisionId: number)
         orgId: true,
       },
     })
-    if (!current) return { error: 'Task not found' as const }
+    if (!current) return { error: 'Oppgave ikke funnet' as const }
 
     const target = rev.before as any
 
@@ -133,7 +133,6 @@ export async function rollbackTaskToRevision(taskId: number, revisionId: number)
     revalidatePath(`/tasks/${task.slug}`)
     return { success: true as const }
   } catch (e) {
-    return { error: e instanceof Error ? e.message : 'Something went wrong' as const }
+    return { error: e instanceof Error ? e.message : 'Noe gikk galt' as const }
   }
 }
-

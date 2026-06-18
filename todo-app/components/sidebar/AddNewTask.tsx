@@ -15,12 +15,12 @@ export function AddNewTask() {
         <TooltipTrigger asChild>
             <Link href='/tasks/create-task'>
                 <Button variant="secondary" size="sm" data-icon="inline-start" className="cursor-pointer">
-                        <Plus />New task
+                        <Plus />Ny oppgave
                 </Button>
             </Link>
         </TooltipTrigger>
         <TooltipContent>
-            <p>Create new task</p>
+            <p>Opprett ny oppgave</p>
         </TooltipContent>
         </Tooltip>
         <Tooltip>
@@ -28,7 +28,7 @@ export function AddNewTask() {
             <Button variant="secondary" size="icon-sm"><FolderPlus /></Button>
         </TooltipTrigger>
         <TooltipContent>
-            <p>Create new task group</p>
+            <p>Opprett ny oppgavegruppe</p>
         </TooltipContent>
         </Tooltip>
     </div>

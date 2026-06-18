@@ -21,14 +21,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TODO App",
-  description: "A simple TODO app built with Next.js 13 and styled with Tailwind CSS. Features include adding, editing, and deleting tasks, as well as a dark mode toggle for a better user experience.",
+  title: "På'n",
+  description: "Oppgavestyring med Kanban-tavler, organisasjoner og sanntidssamarbeid.",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
 
   return (
-    <html lang="en" suppressHydrationWarning className={cn(geistSans.variable, geistMono.variable, outfit.variable, notoSerifHeading.variable)}>
+    <html lang="no" suppressHydrationWarning className={cn(geistSans.variable, geistMono.variable, outfit.variable, notoSerifHeading.variable)}>
       <body className={cn('min-h-screen flex flex-col antialiased font-sans')}>
         <Providers>
             {children}

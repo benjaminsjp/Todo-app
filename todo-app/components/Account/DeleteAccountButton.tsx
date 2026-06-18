@@ -31,36 +31,36 @@ export function DeleteAccountButton() {
         variant="destructive"
         onClick={() => setOpen(true)}
       >
-        <Trash2 className="size-4" /> Delete account
+        <Trash2 className="size-4" /> Slett konto
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Delete account</DialogTitle>
+            <DialogTitle>Slett konto</DialogTitle>
             <DialogDescription>
-              This will permanently delete your account and all your data. Type <strong>delete</strong> to confirm.
+              Dette vil permanent slette kontoen din og alle dataene dine. Skriv <strong>slett</strong> for å bekrefte.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="confirm">Confirmation</Label>
+              <Label htmlFor="confirm">Bekreftelse</Label>
               <Input
                 id="confirm"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                placeholder="delete"
+                placeholder="slett"
               />
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setOpen(false)}>Avbryt</Button>
               <Button
                 variant="destructive"
                 onClick={handleDelete}
-                disabled={confirm !== 'delete' || isDeleting}
+                disabled={confirm !== 'slett' || isDeleting}
               >
-                {isDeleting ? 'Deleting...' : 'Delete account'}
+                {isDeleting ? 'Sletter...' : 'Slett konto'}
               </Button>
             </div>
           </div>

@@ -41,6 +41,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
       statuses={statuses}
       currentUserId={session.user.id}
       currentUser={currentUser}
+      boardHref="/tasks"
     />
   )
 }

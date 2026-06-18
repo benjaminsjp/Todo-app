@@ -10,14 +10,14 @@ import { cn } from '@/lib/utils'
 import { STATUS_ICON_OPTIONS, type StatusIconName } from '@/lib/statusIcons'
 
 const COLORS = [
-  { label: 'Gray',   value: 'gray',   class: 'bg-gray-500' },
-  { label: 'Blue',   value: 'blue',   class: 'bg-blue-500' },
-  { label: 'Green',  value: 'green',  class: 'bg-green-500' },
-  { label: 'Yellow', value: 'yellow', class: 'bg-yellow-500' },
-  { label: 'Orange', value: 'orange', class: 'bg-orange-500' },
-  { label: 'Red',    value: 'red',    class: 'bg-red-500' },
-  { label: 'Purple', value: 'purple', class: 'bg-purple-500' },
-  { label: 'Pink',   value: 'pink',   class: 'bg-pink-500' },
+  { label: 'Grå',     value: 'gray',   class: 'bg-gray-500' },
+  { label: 'Blå',     value: 'blue',   class: 'bg-blue-500' },
+  { label: 'Grønn',   value: 'green',  class: 'bg-green-500' },
+  { label: 'Gul',     value: 'yellow', class: 'bg-yellow-500' },
+  { label: 'Oransje', value: 'orange', class: 'bg-orange-500' },
+  { label: 'Rød',     value: 'red',    class: 'bg-red-500' },
+  { label: 'Lilla',   value: 'purple', class: 'bg-purple-500' },
+  { label: 'Rosa',    value: 'pink',   class: 'bg-pink-500' },
 ]
 
 interface Props {
@@ -43,7 +43,7 @@ export function CreateStatusModal({ open, onClose, orgId }: Props) {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle className="text-xl font-sans font-medium">New status</DialogTitle>
+          <DialogTitle className="text-xl font-sans font-medium">Ny status</DialogTitle>
         </DialogHeader>
         <form action={action} className="flex flex-col gap-6">
           {orgId && <input type="hidden" name="orgId" value={orgId} />}
@@ -51,12 +51,12 @@ export function CreateStatusModal({ open, onClose, orgId }: Props) {
           <input type="hidden" name="icon" value={selectedIcon} />
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="label" className="pb-2">Name *</Label>
-            <Input id="label" name="label" placeholder="E.g., In Review" required />
+            <Label htmlFor="label" className="pb-2">Navn *</Label>
+            <Input id="label" name="label" placeholder="F.eks. Under gjennomgang" required />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label className="pb-2">Icon</Label>
+            <Label className="pb-2">Ikon</Label>
             <div className="flex flex-wrap gap-2">
               {STATUS_ICON_OPTIONS.map(({ name, icon: Icon, label }) => (
                 <button
@@ -76,7 +76,7 @@ export function CreateStatusModal({ open, onClose, orgId }: Props) {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label className="pb-2">Color</Label>
+            <Label className="pb-2">Farge</Label>
             <div className="flex flex-wrap gap-2">
               {COLORS.map((c) => (
                 <button
@@ -99,9 +99,9 @@ export function CreateStatusModal({ open, onClose, orgId }: Props) {
           )}
 
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={onClose}>Avbryt</Button>
             <Button type="submit" variant="brand" disabled={isPending}>
-              {isPending ? 'Creating...' : 'Create status'}
+              {isPending ? 'Oppretter...' : 'Opprett status'}
             </Button>
           </div>
         </form>

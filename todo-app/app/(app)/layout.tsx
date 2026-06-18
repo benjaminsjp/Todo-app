@@ -12,8 +12,8 @@ import { redirect } from 'next/navigation'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: "TODO App",
-  description: "A simple TODO app built with Next.js 13 and styled with Tailwind CSS. Features include adding, editing, and deleting tasks, as well as a dark mode toggle for a better user experience.",
+  title: "På'n",
+  description: "Oppgavestyring med Kanban-tavler, organisasjoner og sanntidssamarbeid.",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -24,7 +24,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const showDemoBanner = isDemoUser(session.user)
 
   return (
-    <BreadcrumbProvider rootLabel="Home">
+    <BreadcrumbProvider rootLabel="Hjem">
       <DemoBannerShell enabled={showDemoBanner}>
         <SidebarProvider
           className="min-h-0 flex-1"

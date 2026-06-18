@@ -23,7 +23,7 @@ export function LeaveOrgButton({ orgSlug, orgName }: { orgSlug: string; orgName:
     setIsPending(false)
 
     if ('error' in result) {
-      setError(result.error ?? 'Could not leave organization')
+      setError(result.error ?? 'Kunne ikke forlate organisasjonen')
       return
     }
 
@@ -33,36 +33,36 @@ export function LeaveOrgButton({ orgSlug, orgName }: { orgSlug: string; orgName:
   return (
     <>
       <Button variant="outline" onClick={() => setOpen(true)}>
-        <LogOut className="size-4" /> Leave organization
+        <LogOut className="size-4" /> Forlat organisasjon
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Leave organization</DialogTitle>
+            <DialogTitle>Forlat organisasjon</DialogTitle>
             <DialogDescription>
-              You will lose access to <strong>{orgName}</strong>. Type <strong>leave</strong> to confirm.
+              Du mister tilgang til <strong>{orgName}</strong>. Skriv <strong>forlat</strong> for å bekrefte.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="confirm-leave">Confirmation</Label>
+              <Label htmlFor="confirm-leave">Bekreftelse</Label>
               <Input
                 id="confirm-leave"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                placeholder="leave"
+                placeholder="forlat"
               />
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setOpen(false)}>Avbryt</Button>
               <Button
                 variant="destructive"
                 onClick={handleLeave}
-                disabled={confirm !== 'leave' || isPending}
+                disabled={confirm !== 'forlat' || isPending}
               >
-                {isPending ? 'Leaving...' : 'Leave organization'}
+                {isPending ? 'Forlater...' : 'Forlat organisasjon'}
               </Button>
             </div>
           </div>

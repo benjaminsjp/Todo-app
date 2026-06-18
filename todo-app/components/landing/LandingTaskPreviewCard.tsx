@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from 'react'
 import { CircleDashed, CircleEllipsis } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { DEFAULT_STATUS_LABELS } from '@/lib/statusDefaults'
 
 const TRANSITION =
   'transition-[opacity,transform] duration-[440ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:duration-150'
@@ -96,15 +97,15 @@ const pillsBefore = (
   <>
     <TaskPill>
       <CircleDashed className="size-3.5 text-muted-foreground" />
-      Todo
+      {DEFAULT_STATUS_LABELS.todo}
     </TaskPill>
     <TaskPill>
       <span className="size-2 rounded-full bg-violet-500" />
-      Plan
+      Planlegging
     </TaskPill>
     <TaskPill>
       <span className="size-2 rounded-full bg-emerald-500" />
-      Someone viewing
+      Noen ser på
     </TaskPill>
   </>
 )
@@ -113,7 +114,7 @@ const pillsAfter = (
   <>
     <TaskPill>
       <CircleEllipsis className="size-3.5 text-blue-600" />
-      In Progress
+      {DEFAULT_STATUS_LABELS.inProgress}
     </TaskPill>
     <TaskPill>
       <span className="size-2 rounded-full bg-amber-500" />
@@ -121,7 +122,7 @@ const pillsAfter = (
     </TaskPill>
     <TaskPill>
       <span className="size-2 rounded-full bg-red-500" />
-      Someone editing
+      Noen redigerer
     </TaskPill>
   </>
 )
@@ -131,9 +132,9 @@ export function LandingTaskPreviewCard() {
   const [animated, setAnimated] = useState(false)
 
   const commentBefore =
-    'Outlined the REST shape for SSE — wants a quick review before we wire it up.'
+    'Skisserte REST-formen for SSE — vil ha en rask gjennomgang før vi kobler det opp.'
   const commentAfter =
-    'Pushed the presence indicator — red dot shows when a card is locked.'
+    'La inn tilstedeværelsesindikatoren — rød prikk viser når et kort er låst.'
 
   return (
     <div
@@ -159,18 +160,18 @@ export function LandingTaskPreviewCard() {
       tabIndex={0}
     >
       <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-        Inside a task
+        Inne i en oppgave
       </p>
-      <h3 className="mt-2 font-heading text-2xl font-medium">Implement realtime sync</h3>
+      <h3 className="mt-2 font-heading text-2xl font-medium">Implementer sanntidssynk</h3>
       <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-        Wire up SSE for live Kanban updates across team members. Assignees, deadlines, rich-text
-        notes, and threaded comments all live on the card — not scattered across tools.
+        Koble opp SSE for live Kanban-oppdateringer på tvers av teammedlemmer. Ansvarlige, frister, rik tekst
+        og trådede kommentarer ligger på kortet — ikke spredt over flere verktøy.
       </p>
 
       <SwappingPillRow before={pillsBefore} after={pillsAfter} />
 
       <div className="mt-6 overflow-hidden rounded-xl border bg-muted/30 p-4 text-sm text-muted-foreground">
-        <p className="font-medium text-foreground">Latest comment</p>
+        <p className="font-medium text-foreground">Siste kommentar</p>
         <SwappingComment
           enterDelay={280}
           before={<>&ldquo;{commentBefore}&rdquo;</>}

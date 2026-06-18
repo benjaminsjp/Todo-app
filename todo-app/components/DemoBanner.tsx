@@ -14,18 +14,18 @@ export function DemoBanner() {
         <div className="flex items-center gap-2 text-sm">
           <Sparkles className="size-4 text-primary shrink-0" />
           <span>
-            You&apos;re exploring in <strong>demo mode</strong>. Changes are shared with other visitors and reset when you re-enter the demo.
+            Du utforsker i <strong>demomodus</strong>. Endringer deles med andre besøkende og tilbakestilles når du går inn på demoen på nytt.
           </span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <Button variant="default" size="sm" asChild>
-            <Link href="/auth/sign-in">Create account</Link>
+            <Link href="/auth/sign-in">Opprett konto</Link>
           </Button>
           <Button
             variant="ghost"
             size="icon-sm"
             onClick={dismiss}
-            aria-label="Dismiss demo banner"
+            aria-label="Lukk demobanner"
           >
             <X className="size-4" />
           </Button>

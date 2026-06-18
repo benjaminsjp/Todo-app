@@ -135,7 +135,7 @@ function GroupCollapsible({
                   'text-xs px-4 py-3 rounded-lg transition-colors',
                   isOver ? 'text-foreground bg-sidebar-accent' : 'text-muted-foreground'
                 )}>
-                  {isOver ? 'Drop here' : 'No tasks'}
+                  {isOver ? 'Slipp her' : 'Ingen oppgaver'}
                 </p>
               ) : (
                 group.tasks?.map((task) => (
@@ -177,7 +177,7 @@ function UngroupedZone({
       ))}
       {isOver && tasks.length === 0 && (
         <p className="text-xs text-foreground bg-sidebar-accent px-4 py-3 rounded-lg">
-          Drop here to ungroup
+          Slipp her for å fjerne fra gruppe
         </p>
       )}
     </div>
@@ -258,7 +258,7 @@ function SidebarDndContent({
 
     const result = await updateTaskGroup(taskId, toGroupId)
     if ('error' in result) {
-      toast.error('Failed to move task')
+      toast.error('Kunne ikke flytte oppgaven')
       setLocalTasks(ungroupedTasks)
       setLocalGroups(groups)
     }
@@ -287,7 +287,7 @@ function SidebarDndContent({
       ))}
 
       {localGroups.length === 0 && localTasks.length === 0 && (
-        <p className="text-xs text-muted-foreground px-4 py-3">No tasks</p>
+        <p className="text-xs text-muted-foreground px-4 py-3">Ingen oppgaver</p>
       )}
 
       <DragOverlay>
@@ -335,9 +335,9 @@ export function AppSidebar({ personalTasks, personalGroups, orgs }: AppSidebarPr
           <CreateTaskButton orgId={activeOrg?.id}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="default" size="sm"><Plus />New task</Button>
+                <Button variant="default" size="sm"><Plus />Ny oppgave</Button>
               </TooltipTrigger>
-              <TooltipContent><p>Create a new task</p></TooltipContent>
+              <TooltipContent><p>Opprett en ny oppgave</p></TooltipContent>
             </Tooltip>
           </CreateTaskButton>
           <CreateTaskGroupButton orgId={activeOrg?.id}>
@@ -345,7 +345,7 @@ export function AppSidebar({ personalTasks, personalGroups, orgs }: AppSidebarPr
               <TooltipTrigger asChild>
                 <Button variant="default" size="icon-sm"><FolderPlus /></Button>
               </TooltipTrigger>
-              <TooltipContent><p>Create a new group</p></TooltipContent>
+              <TooltipContent><p>Opprett en ny gruppe</p></TooltipContent>
             </Tooltip>
           </CreateTaskGroupButton>
         </SidebarHeader>

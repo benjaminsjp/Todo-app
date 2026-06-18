@@ -19,7 +19,7 @@ export function TasksWidget({ tasks, taskGroups, statuses }: TasksWidgetProps) {
   })
 
   return (
-    <DashboardWidget title="Tasks" href="/tasks" icon={ListTodo} iconColor="text-blue-500">
+    <DashboardWidget title="Oppgaver" href="/tasks" icon={ListTodo} iconColor="text-blue-500">
       {statusCards.length > 0 ? (
         <div className="grid grid-cols-3 gap-3 mb-6">
           {statusCards.map(({ status, count, Icon, className }) => (
@@ -31,13 +31,13 @@ export function TasksWidget({ tasks, taskGroups, statuses }: TasksWidgetProps) {
           ))}
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground mb-6">No tasks yet.</p>
+        <p className="text-sm text-muted-foreground mb-6">Ingen oppgaver ennå.</p>
       )}
 
       <div className="flex flex-col gap-2">
-        <span className="text-xs font-medium text-muted-foreground mb-1">Groups</span>
+        <span className="text-xs font-medium text-muted-foreground mb-1">Grupper</span>
         {taskGroups.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No groups yet.</p>
+          <p className="text-sm text-muted-foreground">Ingen grupper ennå.</p>
         ) : (
           taskGroups.slice(0, 4).map((group) => (
             <Link
@@ -47,7 +47,9 @@ export function TasksWidget({ tasks, taskGroups, statuses }: TasksWidgetProps) {
             >
               <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${getColor(group.color).bg}`} />
               <span className="text-sm flex-1 truncate">{group.title}</span>
-              <span className="text-xs text-muted-foreground">{group.tasks?.length ?? 0} tasks</span>
+              <span className="text-xs text-muted-foreground">
+                {group.tasks?.length ?? 0} {(group.tasks?.length ?? 0) === 1 ? 'oppgave' : 'oppgaver'}
+              </span>
             </Link>
           ))
         )}

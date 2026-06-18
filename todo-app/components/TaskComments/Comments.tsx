@@ -73,11 +73,11 @@ export default function Comments({
 
   return (
     <div className="flex flex-col h-full">
-      <h2 className="text-2xl font-heading mt-8 mb-4">Comments</h2>
+      <h2 className="text-2xl font-heading mt-8 mb-4">Kommentarer</h2>
 
       <div className="flex flex-col gap-4">
         {comments.length === 0 && (
-          <p className="text-sm text-muted-foreground">No comments yet.</p>
+          <p className="text-sm text-muted-foreground">Ingen kommentarer ennå.</p>
         )}
         {comments.map((comment) => (
           <Comment key={comment.id} comment={comment} />
@@ -103,7 +103,7 @@ export default function Comments({
                   variant="default"
                   disabled={isPending || !content.trim()}
                 >
-                  <MessageCircle /> {isPending ? 'Sending...' : 'Add comment'}
+                  <MessageCircle /> {isPending ? 'Sender...' : 'Legg til kommentar'}
                 </InputGroupButton>
               </Button>
             </InputGroupAddon>

@@ -75,6 +75,7 @@ export default async function OrgTaskPage({
       statuses={statuses}
       currentUserId={session.user.id}
       currentUser={currentUser}
+      boardHref={`/org/${slug}`}
     />
   )
 }

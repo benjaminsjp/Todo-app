@@ -39,19 +39,25 @@ export function TaskOptionsMenu({
   taskGroups,
   onOptimisticPatch,
   onOptimisticRollback,
+  onDeleted,
 }: {
   task: Task
   statuses: Status[]
   taskGroups: TaskGroup[]
   onOptimisticPatch: (taskId: number, patch: Partial<Task>) => void
   onOptimisticRollback: (taskId: number, prev: Task) => void
+  onDeleted?: () => void
 }) {
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  const statusIdInitial = task.status?.id ? String(task.status.id) : "none"
+  const statusIdInitial = task.status?.id
+    ? String(task.status.id)
+    : statuses[0]?.id
+      ? String(statuses[0].id)
+      : "none"
   const groupIdInitial = task.groupId ? String(task.groupId) : "none"
   const deadlineInitial = task.deadline ? new Date(task.deadline) : undefined
 
@@ -118,7 +124,8 @@ export function TaskOptionsMenu({
     }
 
     setDeleteOpen(false)
-    toast.success("Task deleted")
+    toast.success("Oppgaven ble slettet")
+    onDeleted?.()
   }
 
   return (
@@ -144,7 +151,7 @@ export function TaskOptionsMenu({
               setEditOpen(true)
             }}
           >
-            <Pencil className="size-4" /> Quick edit
+            <Pencil className="size-4" /> Hurtigredigering
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
@@ -154,7 +161,7 @@ export function TaskOptionsMenu({
               setDeleteOpen(true)
             }}
           >
-            <Trash2 className="size-4" /> Delete task
+            <Trash2 className="size-4" /> Slett oppgave
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -162,9 +169,9 @@ export function TaskOptionsMenu({
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-sm" data-no-nav>
           <DialogHeader>
-            <DialogTitle>Edit task</DialogTitle>
+            <DialogTitle>Rediger oppgave</DialogTitle>
             <DialogDescription>
-              Update status, group, or deadline.
+              Oppdater status, gruppe eller frist.
             </DialogDescription>
           </DialogHeader>
 
@@ -173,7 +180,7 @@ export function TaskOptionsMenu({
               <Label>Status</Label>
               <Select value={statusId} onValueChange={setStatusId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
+                  <SelectValue placeholder="Velg status" />
                 </SelectTrigger>
                 <SelectContent className="p-1">
                   {statuses.map((s) => (
@@ -186,13 +193,13 @@ export function TaskOptionsMenu({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label>Group</Label>
+              <Label>Gruppe</Label>
               <Select value={groupId} onValueChange={setGroupId}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="p-1">
-                  <SelectItem value="none">No group</SelectItem>
+                  <SelectItem value="none">Ingen gruppe</SelectItem>
                   {taskGroups.map((g) => (
                     <SelectItem key={g.id} value={String(g.id)}>
                       {g.title}
@@ -203,17 +210,17 @@ export function TaskOptionsMenu({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label>Deadline</Label>
+              <Label>Frist</Label>
               <CreateTaskDeadline value={deadline} onChange={setDeadline} />
             </div>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditOpen(false)} disabled={isSaving}>
-              Cancel
+              Avbryt
             </Button>
             <Button variant="brand" onClick={handleSave} disabled={isSaving}>
-              {isSaving ? "Saving..." : "Save changes"}
+              {isSaving ? "Lagrer..." : "Lagre endringer"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -222,17 +229,17 @@ export function TaskOptionsMenu({
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent className="max-w-sm" data-no-nav>
           <DialogHeader>
-            <DialogTitle>Delete task</DialogTitle>
+            <DialogTitle>Slett oppgave</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this task?
+              Er du sikker på at du vil slette denne oppgaven?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={isDeleting}>
-              Cancel
+              Avbryt
             </Button>
             <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
-              {isDeleting ? "Deleting..." : "Delete task"}
+              {isDeleting ? "Sletter..." : "Slett oppgave"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -36,6 +36,13 @@ const ROLE_COLORS: Record<string, string> = {
   viewer: 'bg-gray-500/10 text-gray-600 border-gray-500/20',
 }
 
+const ROLE_LABELS: Record<string, string> = {
+  owner:  'Eier',
+  admin:  'Admin',
+  member: 'Medlem',
+  viewer: 'Leser',
+}
+
 function MemberAvatar({ member }: { member: Member }) {
   const initials = (member.user.displayName ?? member.user.email)
     .split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
@@ -58,12 +65,12 @@ function MemberAvatar({ member }: { member: Member }) {
             <p className="text-sm font-medium">{member.user.displayName ?? member.user.email}</p>
             <p className="text-xs text-muted-foreground">{member.user.email}</p>
             <Badge variant="outline" className={`text-xs w-fit mt-1 ${ROLE_COLORS[member.role]}`}>
-              {member.role}
+              {ROLE_LABELS[member.role] ?? member.role}
             </Badge>
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          Joined {formatDate(member.joinedAt)}
+          Ble med {formatDate(member.joinedAt)}
         </p>
       </HoverCardContent>
     </HoverCard>
@@ -78,7 +85,7 @@ function InviteForm({ orgId, orgSlug }: { orgId: number; orgSlug: string }) {
   const handleCopy = async (link: string) => {
     await navigator.clipboard.writeText(link)
     setCopiedLink(link)
-    toast.success('Invitation link copied!')
+    toast.success('Invitasjonslenke kopiert!')
     setTimeout(() => setCopiedLink(null), 2000)
   }
 
@@ -89,25 +96,25 @@ function InviteForm({ orgId, orgSlug }: { orgId: number; orgSlug: string }) {
         <input type="hidden" name="orgSlug" value={orgSlug} />
         <div className="flex gap-3">
           <div className="flex-1">
-            <Label htmlFor="email" className="pb-2 block">Email</Label>
-            <Input id="email" name="email" type="email" placeholder="colleague@example.com" required />
+            <Label htmlFor="email" className="pb-2 block">E-post</Label>
+            <Input id="email" name="email" type="email" placeholder="kollega@eksempel.no" required />
           </div>
           <div className="w-36">
-            <Label className="pb-2 block">Role</Label>
+            <Label className="pb-2 block">Rolle</Label>
             <Select name="role" defaultValue="member">
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="member">Member</SelectItem>
-                <SelectItem value="viewer">Viewer</SelectItem>
+                <SelectItem value="member">Medlem</SelectItem>
+                <SelectItem value="viewer">Leser</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
         <Button type="submit" variant="brand" disabled={isPending} className="self-start">
-          {isPending ? 'Generating...' : 'Generate invite link'}
+          {isPending ? 'Genererer...' : 'Generer invitasjonslenke'}
         </Button>
       </form>
 
@@ -157,19 +164,19 @@ export function OrgSettingsPage({
     const result = await removeMember(memberId, org.slug)
     setIsRemoving(false)
     if ('error' in result) toast.error(result.error)
-    else toast.success('Member removed')
+    else toast.success('Medlem fjernet')
   }
 
   const handleRoleChange = async (memberId: number, role: string) => {
     const result = await updateMemberRole(memberId, role as 'admin' | 'member' | 'viewer', org.slug)
     if ('error' in result) toast.error(result.error)
-    else toast.success('Role updated')
+    else toast.success('Rolle oppdatert')
   }
 
   const handleDeleteInvite = async (id: number) => {
     const result = await deleteInvitation(id, org.slug)
     if ('error' in result) toast.error(result.error)
-    else toast.success('Invitation revoked')
+    else toast.success('Invitasjon tilbakekalt')
   }
 
   const isAdmin = ['owner', 'admin'].includes(currentRole)
@@ -185,15 +192,15 @@ export function OrgSettingsPage({
       </div>
       <div>
         <h1 className="text-4xl font-medium font-heading mb-1">{org.name}</h1>
-        <p className="text-muted-foreground text-sm">Organization settings</p>
+        <p className="text-muted-foreground text-sm">Organisasjonsinnstillinger</p>
       </div>
 
       {/* Members */}
       {isAdmin && (
       <section className="flex flex-col gap-6">
         <div>
-          <h2 className="text-xl font-medium mb-1">Members</h2>
-          <p className="text-sm text-muted-foreground">{members.length} member{members.length !== 1 ? 's' : ''}</p>
+          <h2 className="text-xl font-medium mb-1">Medlemmer</h2>
+          <p className="text-sm text-muted-foreground">{members.length} {members.length === 1 ? 'medlem' : 'medlemmer'}</p>
         </div>
 
         {/* Avatar group */}
@@ -219,7 +226,7 @@ export function OrgSettingsPage({
                 <div className="flex flex-col flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">
                     {member.user.displayName ?? member.user.email}
-                    {isCurrentUser && <span className="text-muted-foreground font-normal"> (you)</span>}
+                    {isCurrentUser && <span className="text-muted-foreground font-normal"> (deg)</span>}
                   </p>
                   <p className="text-xs text-muted-foreground truncate">{member.user.email}</p>
                 </div>
@@ -234,13 +241,13 @@ export function OrgSettingsPage({
                     </SelectTrigger>
                     <SelectContent className='p-1'>
                       <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="member">Member</SelectItem>
-                      <SelectItem value="viewer">Viewer</SelectItem>
+                      <SelectItem value="member">Medlem</SelectItem>
+                      <SelectItem value="viewer">Leser</SelectItem>
                     </SelectContent>
                   </Select>
                 ) : (
                   <Badge variant="outline" className={`text-xs ${ROLE_COLORS[member.role]}`}>
-                    {member.role}
+                    {ROLE_LABELS[member.role] ?? member.role}
                   </Badge>
                 )}
 
@@ -273,16 +280,16 @@ export function OrgSettingsPage({
       >
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Remove member</DialogTitle>
+            <DialogTitle>Fjern medlem</DialogTitle>
             <DialogDescription>
-              Are you sure you want to remove{" "}
-              <strong>{memberToRemove?.user.displayName ?? memberToRemove?.user.email ?? "this member"}</strong>{" "}
-              from <strong>{org.name}</strong>?
+              Er du sikker på at du vil fjerne{" "}
+              <strong>{memberToRemove?.user.displayName ?? memberToRemove?.user.email ?? "dette medlemmet"}</strong>{" "}
+              fra <strong>{org.name}</strong>?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRemoveOpen(false)} disabled={isRemoving}>
-              Cancel
+              Avbryt
             </Button>
             <Button
               variant="destructive"
@@ -294,7 +301,7 @@ export function OrgSettingsPage({
                 setMemberToRemove(null)
               }}
             >
-              {isRemoving ? "Removing..." : "Remove member"}
+              {isRemoving ? "Fjerner..." : "Fjern medlem"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -304,8 +311,8 @@ export function OrgSettingsPage({
       {isAdmin && (
       <section className="flex flex-col gap-4">
         <div>
-          <h2 className="text-xl font-medium mb-1">Invite members</h2>
-          <p className="text-sm text-muted-foreground">Generate an invite link locked to a specific email</p>
+          <h2 className="text-xl font-medium mb-1">Inviter medlemmer</h2>
+          <p className="text-sm text-muted-foreground">Generer en invitasjonslenke knyttet til en bestemt e-postadresse</p>
         </div>
         <InviteForm orgId={org.id} orgSlug={org.slug} />
       </section>
@@ -314,17 +321,17 @@ export function OrgSettingsPage({
       {/* Pending invites */}
       {isAdmin && pendingInvites.length > 0 && (
         <section className="flex flex-col gap-4">
-          <h2 className="text-xl font-medium">Pending invitations</h2>
+          <h2 className="text-xl font-medium">Ventende invitasjoner</h2>
           <div className="flex flex-col gap-2">
             {pendingInvites.map((invite) => (
               <div key={invite.id} className="flex items-center gap-3 rounded-xl border px-4 py-3">
                 <div className="flex flex-col flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{invite.email}</p>
                   <p className="text-xs text-muted-foreground">
-                    Expires {formatDate(invite.expiresAt)} · {invite.role}
+                    Utløper {formatDate(invite.expiresAt)} · {ROLE_LABELS[invite.role] ?? invite.role}
                   </p>
                 </div>
-                <Badge variant="outline" className="text-xs">Pending</Badge>
+                <Badge variant="outline" className="text-xs">Venter</Badge>
                 <Button
                   size="icon-sm"
                   variant="ghost"
@@ -342,9 +349,9 @@ export function OrgSettingsPage({
       {/* Danger zone */}
       <section className="flex flex-col gap-4 pt-6 border-t">
         <div>
-          <h2 className="text-xl font-medium mb-1 text-destructive">Danger zone</h2>
+          <h2 className="text-xl font-medium mb-1 text-destructive">Faresone</h2>
           <p className="text-sm text-muted-foreground">
-            Leave this organization or permanently delete it.
+            Forlat organisasjonen eller slett den permanent.
           </p>
         </div>
         <div className="flex flex-wrap gap-3">

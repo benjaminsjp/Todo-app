@@ -23,7 +23,7 @@ export function DeleteOrgButton({ orgSlug, orgName }: { orgSlug: string; orgName
     setIsPending(false)
 
     if ('error' in result) {
-      setError(result.error ?? 'Could not delete organization')
+      setError(result.error ?? 'Kunne ikke slette organisasjonen')
       return
     }
 
@@ -33,36 +33,36 @@ export function DeleteOrgButton({ orgSlug, orgName }: { orgSlug: string; orgName
   return (
     <>
       <Button variant="destructive" onClick={() => setOpen(true)}>
-        <Trash2 className="size-4" /> Delete organization
+        <Trash2 className="size-4" /> Slett organisasjon
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Delete organization</DialogTitle>
+            <DialogTitle>Slett organisasjon</DialogTitle>
             <DialogDescription>
-              This will permanently delete <strong>{orgName}</strong> and all its tasks, members, and data. Type <strong>delete</strong> to confirm.
+              Dette vil permanent slette <strong>{orgName}</strong> og alle oppgaver, medlemmer og data. Skriv <strong>slett</strong> for å bekrefte.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="confirm-delete-org">Confirmation</Label>
+              <Label htmlFor="confirm-delete-org">Bekreftelse</Label>
               <Input
                 id="confirm-delete-org"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                placeholder="delete"
+                placeholder="slett"
               />
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setOpen(false)}>Avbryt</Button>
               <Button
                 variant="destructive"
                 onClick={handleDelete}
-                disabled={confirm !== 'delete' || isPending}
+                disabled={confirm !== 'slett' || isPending}
               >
-                {isPending ? 'Deleting...' : 'Delete organization'}
+                {isPending ? 'Sletter...' : 'Slett organisasjon'}
               </Button>
             </div>
           </div>

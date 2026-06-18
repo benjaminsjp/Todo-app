@@ -13,7 +13,7 @@ export function ExportDataButton() {
 
     try {
       const res = await fetch('/api/export-data')
-      if (!res.ok) { toast.error('Export failed'); return }
+      if (!res.ok) { toast.error('Eksport feilet'); return }
 
       const blob     = await res.blob()
       const url      = URL.createObjectURL(blob)
@@ -23,9 +23,9 @@ export function ExportDataButton() {
       link.click()
       URL.revokeObjectURL(url)
 
-      toast.success('Data exported!')
+      toast.success('Data eksportert!')
     } catch {
-      toast.error('Something went wrong')
+      toast.error('Noe gikk galt')
     } finally {
       setIsPending(false)
     }
@@ -34,8 +34,8 @@ export function ExportDataButton() {
   return (
     <Button variant="outline" onClick={handleExport} disabled={isPending}>
       {isPending
-        ? <><Loader2 className="size-4 animate-spin" /> Exporting...</>
-        : <><Download className="size-4" /> Download my data</>
+        ? <><Loader2 className="size-4 animate-spin" /> Eksporterer...</>
+        : <><Download className="size-4" /> Last ned mine data</>
       }
     </Button>
   )

@@ -10,7 +10,14 @@ import { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
 
-export const metadata: Metadata = { title: "Tasks | På'n" }
+export const metadata: Metadata = { title: "Organisasjoner | På'n" }
+
+const ROLE_LABELS: Record<string, string> = {
+  owner:  'Eier',
+  admin:  'Admin',
+  member: 'Medlem',
+  viewer: 'Leser',
+}
 
 export default async function Page() {
   const { data: session } = await auth.getSession()
@@ -39,10 +46,10 @@ export default async function Page() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-5xl font-medium font-heading text-heading-strong">
-              Organizations
+              Organisasjoner
             </h1>
             <p className="text-muted-foreground mt-2">
-              Manage your organizations and collaborate with others.
+              Administrer organisasjonene dine og samarbeid med andre.
             </p>
           </div>
         </div>
@@ -52,9 +59,9 @@ export default async function Page() {
             <div className="rounded-full bg-muted p-6">
               <Building2 className="size-8 text-muted-foreground" />
             </div>
-            <h2 className="text-xl font-medium">No organizations yet</h2>
+            <h2 className="text-xl font-medium">Ingen organisasjoner ennå</h2>
             <p className="text-muted-foreground max-w-sm text-sm">
-              Create an organization to collaborate with your team on tasks and projects.
+              Opprett en organisasjon for å samarbeide med teamet ditt om oppgaver og prosjekter.
             </p>
             <CreateOrgButton />
           </div>
@@ -69,18 +76,18 @@ export default async function Page() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h2 className="font-semibold truncate">{org.name}</h2>
-                      <p className="text-xs text-muted-foreground capitalize">{org.role}</p>
+                      <p className="text-xs text-muted-foreground">{ROLE_LABELS[org.role] ?? org.role}</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-4 pt-2 border-t">
                     <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                       <ListTodo className="size-4" />
-                      {org.tasks.length} tasks
+                      {org.tasks.length} {org.tasks.length === 1 ? 'oppgave' : 'oppgaver'}
                     </div>
                     <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                       <Users className="size-4" />
-                      {org.members.length} members
+                      {org.members.length} {org.members.length === 1 ? 'medlem' : 'medlemmer'}
                     </div>
                   </div>
                 </div>

@@ -4,17 +4,17 @@ import { db } from '@/lib/db'
 import { statuses, tasks } from '@/lib/db/schema'
 import { auth } from '@/lib/auth/server'
 import { revalidatePath } from 'next/cache'
-import { eq } from 'drizzle-orm'
+import { eq, asc } from 'drizzle-orm'
 
 export async function createStatus(
   _prev: { error: string } | null,
   formData: FormData
 ): Promise<{ error: string } | null> {
   const { data: session } = await auth.getSession()
-  if (!session?.user) return { error: 'Not logged in' }
+  if (!session?.user) return { error: 'Ikke innlogget' }
 
   const label = formData.get('label') as string
-  if (!label?.trim()) return { error: 'Label is required' }
+  if (!label?.trim()) return { error: 'Navn er påkrevd' }
 
   const color  = (formData.get('color') as string) || 'gray'
   const icon   = (formData.get('icon') as string) || null
@@ -49,7 +49,7 @@ export async function updateStatus(
 ): Promise<{ error: string } | { success: true }> {
   try {
     const { data: session } = await auth.getSession()
-    if (!session?.user) return { error: 'Not logged in' }
+    if (!session?.user) return { error: 'Ikke innlogget' }
 
     await db.update(statuses)
       .set(data)
@@ -60,7 +60,7 @@ export async function updateStatus(
     return { success: true }
   } catch (e) {
     console.error('updateStatus feil:', e)
-    return { error: e instanceof Error ? e.message : 'Something went wrong' }
+    return { error: e instanceof Error ? e.message : 'Noe gikk galt' }
   }
 }
 
@@ -69,7 +69,7 @@ export async function deleteStatus(
 ): Promise<{ error: string } | { success: true }> {
   try {
     const { data: session } = await auth.getSession()
-    if (!session?.user) return { error: 'Not logged in' }
+    if (!session?.user) return { error: 'Ikke innlogget' }
 
     // Fjern status-referansen fra tasks først
     await db.update(tasks)
@@ -84,6 +84,43 @@ export async function deleteStatus(
     return { success: true }
   } catch (e) {
     console.error('deleteStatus feil:', e)
-    return { error: e instanceof Error ? e.message : 'Something went wrong' }
+    return { error: e instanceof Error ? e.message : 'Noe gikk galt' }
+  }
+}
+
+export async function moveStatus(
+  statusId: number,
+  direction: 'left' | 'right'
+): Promise<{ error: string } | { success: true }> {
+  try {
+    const { data: session } = await auth.getSession()
+    if (!session?.user) return { error: 'Ikke innlogget' }
+
+    const status = await db.query.statuses.findFirst({
+      where: eq(statuses.id, statusId),
+    })
+    if (!status) return { error: 'Status ikke funnet' }
+
+    const all = await db.query.statuses.findMany({
+      where: status.orgId
+        ? eq(statuses.orgId, status.orgId)
+        : eq(statuses.userId, session.user.id),
+      orderBy: [asc(statuses.order)],
+    })
+
+    const idx = all.findIndex((s) => s.id === statusId)
+    const swapIdx = direction === 'left' ? idx - 1 : idx + 1
+    if (idx < 0 || swapIdx < 0 || swapIdx >= all.length) return { success: true }
+
+    const other = all[swapIdx]
+    await db.update(statuses).set({ order: other.order }).where(eq(statuses.id, status.id))
+    await db.update(statuses).set({ order: status.order }).where(eq(statuses.id, other.id))
+
+    revalidatePath('/tasks')
+    revalidatePath('/org/[slug]', 'page')
+    return { success: true }
+  } catch (e) {
+    console.error('moveStatus feil:', e)
+    return { error: e instanceof Error ? e.message : 'Noe gikk galt' }
   }
 }

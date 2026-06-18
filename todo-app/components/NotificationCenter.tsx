@@ -26,6 +26,13 @@ type OrgInvitationNotification = {
   expiresAt: string
 }
 
+const ROLE_LABELS: Record<string, string> = {
+  owner: 'eier',
+  admin: 'admin',
+  member: 'medlem',
+  viewer: 'leser',
+}
+
 export function NotificationCenter() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -67,7 +74,7 @@ export function NotificationCenter() {
       return
     }
 
-    toast.success(`Joined ${notification.orgName}`)
+    toast.success(`Ble med i ${notification.orgName}`)
     setNotifications((prev) => prev.filter((n) => n.id !== notification.id))
     setOpen(false)
     router.push(`/org/${notification.orgSlug}`)
@@ -84,7 +91,7 @@ export function NotificationCenter() {
       return
     }
 
-    toast.success('Invitation declined')
+    toast.success('Invitasjonen ble avslått')
     setNotifications((prev) => prev.filter((n) => n.id !== notification.id))
   }
 
@@ -103,24 +110,24 @@ export function NotificationCenter() {
               {count > 9 ? '9+' : count}
             </Badge>
           )}
-          <span className="sr-only">Notifications</span>
+          <span className="sr-only">Varsler</span>
         </Button>
       </PopoverTrigger>
 
       <PopoverContent align="end" className="w-80 p-0">
         <div className="border-b px-4 py-3">
-          <p className="font-medium">Notifications</p>
+          <p className="font-medium">Varsler</p>
           <p className="text-xs text-muted-foreground">
-            {count === 0 ? 'No new notifications' : `${count} pending`}
+            {count === 0 ? 'Ingen nye varsler' : `${count} ventende`}
           </p>
         </div>
 
         <div className="max-h-80 overflow-y-auto">
           {loading && notifications.length === 0 ? (
-            <p className="px-4 py-6 text-sm text-muted-foreground text-center">Loading…</p>
+            <p className="px-4 py-6 text-sm text-muted-foreground text-center">Laster…</p>
           ) : notifications.length === 0 ? (
             <p className="px-4 py-6 text-sm text-muted-foreground text-center">
-              You're all caught up.
+              Du er helt oppdatert.
             </p>
           ) : (
             <ul className="divide-y">
@@ -132,10 +139,10 @@ export function NotificationCenter() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium leading-snug">
-                        Invitation to {notification.orgName}
+                        Invitasjon til {notification.orgName}
                       </p>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        Join as {notification.role} · expires {formatDate(new Date(notification.expiresAt))}
+                        Bli med som {ROLE_LABELS[notification.role] ?? notification.role} · utløper {formatDate(new Date(notification.expiresAt))}
                       </p>
                     </div>
                   </div>
@@ -147,7 +154,7 @@ export function NotificationCenter() {
                       disabled={actingOn === notification.id}
                       onClick={() => void handleAccept(notification)}
                     >
-                      {actingOn === notification.id ? 'Joining…' : 'Accept'}
+                      {actingOn === notification.id ? 'Blir med…' : 'Godta'}
                     </Button>
                     <Button
                       variant="outline"
@@ -156,7 +163,7 @@ export function NotificationCenter() {
                       disabled={actingOn === notification.id}
                       onClick={() => void handleDecline(notification)}
                     >
-                      Decline
+                      Avslå
                     </Button>
                   </div>
                 </li>

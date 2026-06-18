@@ -23,7 +23,7 @@ export function ProfileForm({ displayName, email, avatarUrl, createdAt }: Props)
 
   useEffect(() => {
     if (isPending) {
-      toastId.current = toast.loading('Saving changes...')
+      toastId.current = toast.loading('Lagrer endringer...')
     }
   }, [isPending])
 
@@ -31,7 +31,7 @@ export function ProfileForm({ displayName, email, avatarUrl, createdAt }: Props)
   useEffect(() => {
     if (!state) return
     if ('success' in state) {
-      toast.success('Profile updated!', { id: toastId.current })
+      toast.success('Profil oppdatert!', { id: toastId.current })
     }
     if ('error' in state) {
       toast.error(state.error, { id: toastId.current })
@@ -51,24 +51,24 @@ export function ProfileForm({ displayName, email, avatarUrl, createdAt }: Props)
       />
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="displayName">Display name</Label>
+        <Label htmlFor="displayName">Visningsnavn</Label>
         <Input id="displayName" name="displayName" defaultValue={displayName} required />
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label>Email</Label>
+        <Label>E-post</Label>
         <Input value={email} disabled className="opacity-60" />
-        <p className="text-xs text-muted-foreground">Email cannot be changed.</p>
+        <p className="text-xs text-muted-foreground">E-postadressen kan ikke endres.</p>
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label>Member since</Label>
+        <Label>Medlem siden</Label>
         <p className="text-sm text-muted-foreground">{formatDate(createdAt)}</p>
       </div>
 
       <div className="flex justify-end">
         <Button variant="brand" type="submit" disabled={isPending}>
-          {isPending ? 'Saving...' : 'Save changes'}
+          {isPending ? 'Lagrer...' : 'Lagre endringer'}
         </Button>
       </div>
     </form>

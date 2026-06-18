@@ -35,10 +35,10 @@ function PresenceDot({ others }: { others: TaskPresence[] }) {
 
   const tooltip = [
     editing.length > 0
-      ? `Editing (${editing.length}): ${editing.map((u) => u.user?.displayName ?? u.user?.email ?? 'Someone').join(', ')}`
+      ? `Redigerer (${editing.length}): ${editing.map((u) => u.user?.displayName ?? u.user?.email ?? 'Noen').join(', ')}`
       : null,
     viewing.length > 0
-      ? `Viewing (${viewing.length}): ${viewing.map((u) => u.user?.displayName ?? u.user?.email ?? 'Someone').join(', ')}`
+      ? `Ser på (${viewing.length}): ${viewing.map((u) => u.user?.displayName ?? u.user?.email ?? 'Noen').join(', ')}`
       : null,
   ].filter(Boolean).join('\n')
 
@@ -94,7 +94,7 @@ export function TaskCard({
             <span className="text-xs text-muted-foreground truncate">{task.group.title}</span>
           </>
         ) : (
-          <span className="text-xs text-muted-foreground">Not organized</span>
+          <span className="text-xs text-muted-foreground">Ikke organisert</span>
         )}
 
         <div className="ml-auto flex items-center gap-2">
@@ -122,7 +122,7 @@ export function TaskCard({
       <div className="relative z-10 flex items-center justify-between mt-auto cursor-pointer">
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <CalendarClock className="size-3" />
-          {task.deadline ?? 'No deadline'}
+          {task.deadline ?? 'Ingen frist'}
         </div>
 
         <div className="flex items-center gap-1 text-xs text-muted-foreground ml-auto">

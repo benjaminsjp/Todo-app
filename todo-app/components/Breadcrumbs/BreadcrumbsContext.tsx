@@ -9,12 +9,12 @@ const BreadcrumbLabelContext = React.createContext<{
 }>({
   labels: {},
   setLabel: () => {},
-  rootLabel: 'Home',
+  rootLabel: 'Hjem',
 });
 
 export function BreadcrumbProvider({
   children,
-  rootLabel = 'Home',
+  rootLabel = 'Hjem',
 }: {
   children: React.ReactNode;
   rootLabel?: string;

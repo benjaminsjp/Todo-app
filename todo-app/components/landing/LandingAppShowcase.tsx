@@ -5,7 +5,7 @@ export function LandingAppShowcase() {
     <figure className="overflow-hidden rounded-2xl border border-border/80 bg-card transition-transform duration-500 hover:scale-[1.01] motion-reduce:hover:scale-100">
       <Image
         src="/app-showcase-light.jpg"
-        alt="På'n personal task board with sidebar groups and a Kanban view in light mode"
+        alt="På'n personlig oppgavetavle med sidegrupper og Kanban-visning i lys modus"
         width={1440}
         height={900}
         priority
@@ -14,7 +14,7 @@ export function LandingAppShowcase() {
       />
       <Image
         src="/app-showcase-dark.jpg"
-        alt="På'n personal task board with sidebar groups and a Kanban view in dark mode"
+        alt="På'n personlig oppgavetavle med sidegrupper og Kanban-visning i mørk modus"
         width={1440}
         height={900}
         priority

@@ -36,7 +36,7 @@ export function CreateTaskDeadline({ value, onChange, disabled }: CreateTaskDead
         className="grow justify-start text-left font-normal data-[empty=true]:text-muted-foreground"
       >
         <CalendarIcon />
-        {date ? format(date, "PPP") : <span>Pick a date</span>}
+        {date ? format(date, "PPP") : <span>Velg en dato</span>}
       </Button>
     )
   }
@@ -50,7 +50,7 @@ export function CreateTaskDeadline({ value, onChange, disabled }: CreateTaskDead
           className=" grow justify-start text-left font-normal data-[empty=true]:text-muted-foreground"
         >
           <CalendarIcon />
-          {date ? format(date, "PPP") : <span>Pick a date</span>}
+          {date ? format(date, "PPP") : <span>Velg en dato</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0">

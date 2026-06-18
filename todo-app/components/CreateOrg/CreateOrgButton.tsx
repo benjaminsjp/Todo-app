@@ -18,7 +18,7 @@ export function CreateOrgButton() {
           <Plus className="size-5 text-muted-foreground" />
         </div>
         <span className="text-sm font-medium text-muted-foreground">
-          New organization
+          Ny organisasjon
         </span>
       </Button>
 

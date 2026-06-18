@@ -91,14 +91,14 @@ export function AvatarUpload({ currentUrl, displayName, onUpload }: AvatarUpload
           disabled={isLoading}
         >
           {isLoading ? (
-            <><Loader2 className="size-4 animate-spin" /> Uploading...</>
+            <><Loader2 className="size-4 animate-spin" /> Laster opp...</>
           ) : (
-            <><Camera className="size-4" /> Change photo</>
+            <><Camera className="size-4" /> Bytt bilde</>
           )}
         </Button>
         {error
           ? <p className="text-xs text-destructive">{error}</p>
-          : <p className="text-xs text-muted-foreground">JPG, PNG or GIF · Max 2MB</p>
+          : <p className="text-xs text-muted-foreground">JPG, PNG eller GIF · Maks 2 MB</p>
         }
       </div>
     </div>

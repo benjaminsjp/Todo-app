@@ -10,14 +10,14 @@ import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 
 export const COLORS = [
-  { label: 'Pink',   value: 'bg-pink-500' },
-  { label: 'Purple', value: 'bg-purple-500' },
-  { label: 'Blue',   value: 'bg-blue-500' },
-  { label: 'Green',  value: 'bg-green-500' },
-  { label: 'Orange', value: 'bg-orange-500' },
-  { label: 'Red',    value: 'bg-red-500' },
-  { label: 'Yellow', value: 'bg-yellow-500' },
-  { label: 'Gray',   value: 'bg-gray-500' },
+  { label: 'Rosa',    value: 'bg-pink-500' },
+  { label: 'Lilla',   value: 'bg-purple-500' },
+  { label: 'Blå',     value: 'bg-blue-500' },
+  { label: 'Grønn',   value: 'bg-green-500' },
+  { label: 'Oransje', value: 'bg-orange-500' },
+  { label: 'Rød',     value: 'bg-red-500' },
+  { label: 'Gul',     value: 'bg-yellow-500' },
+  { label: 'Grå',     value: 'bg-gray-500' },
 ]
 
 interface Props {
@@ -68,13 +68,13 @@ export function TaskGroupModal({ open, onClose, orgId, group }: Props) {
       <DialogContent className="max-w-sm gap-2">
         <DialogHeader>
           <DialogTitle className="text-xl font-sans font-medium">
-            {isEditing ? 'Edit group' : 'New group'}
+            {isEditing ? 'Rediger gruppe' : 'Ny gruppe'}
           </DialogTitle>
         </DialogHeader>
         <DialogDescription className='mb-4'>
           {isEditing
-            ? 'Make changes to your group and save them.'
-            : 'Create a new group to organize your tasks.'}
+            ? 'Gjør endringer i gruppen og lagre dem.'
+            : 'Opprett en ny gruppe for å organisere oppgavene dine.'}
         </DialogDescription>
         <form action={action} className="flex flex-col gap-6">
           {!isEditing && orgId && (
@@ -83,11 +83,11 @@ export function TaskGroupModal({ open, onClose, orgId, group }: Props) {
           <input type="hidden" name="color" value={selectedColor} />
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="title" className="pb-2">Name *</Label>
+            <Label htmlFor="title" className="pb-2">Navn *</Label>
             <Input
               id="title"
               name="title"
-              placeholder="E.g., Todo-app"
+              placeholder="F.eks. Todo-app"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
@@ -95,7 +95,7 @@ export function TaskGroupModal({ open, onClose, orgId, group }: Props) {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label className="pb-2">Color</Label>
+            <Label className="pb-2">Farge</Label>
             <div className="flex flex-wrap gap-2">
               {COLORS.map((c) => (
                 <button
@@ -118,9 +118,9 @@ export function TaskGroupModal({ open, onClose, orgId, group }: Props) {
           )}
 
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={onClose}>Avbryt</Button>
             <Button type="submit" variant="brand" disabled={isPending}>
-              {isPending ? (isEditing ? 'Saving...' : 'Creating...') : (isEditing ? 'Save' : 'Create group')}
+              {isPending ? (isEditing ? 'Lagrer...' : 'Oppretter...') : (isEditing ? 'Lagre' : 'Opprett gruppe')}
             </Button>
           </div>
         </form>

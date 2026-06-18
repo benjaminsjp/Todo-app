@@ -1,9 +1,11 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
-import { Pencil, Eye } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Pencil, ArrowLeft } from "lucide-react"
+import Link from "next/link"
 import { StatusOption } from "@/lib/types"
 import Comments from "@/components/TaskComments/Comments"
 import { CreateTaskEditor } from "@/components/CreateTask/CreateTaskEditor"
@@ -13,6 +15,9 @@ import { TaskSidebar } from "./TaskSidebar"
 import { useOrgRealtime } from "@/lib/hooks/useOrgRealtime"
 import { useTaskPresence } from "@/lib/hooks/useTaskPresence"
 import { TaskRevisionHistory } from "./TaskRevisionHistory"
+import { DEFAULT_STATUS_LABELS } from '@/lib/statusDefaults'
+import { TaskOptionsMenu } from '@/components/Kanban/TaskOptionsMenu'
+import type { TaskGroup } from '@/lib/types'
 
 const CHECKBOX_SAVE_DEBOUNCE_MS = 450
 
@@ -49,6 +54,7 @@ export default function TaskDetails({
   statuses,
   currentUserId,
   currentUser,
+  boardHref,
 }: {
   task:             Task
   taskGroup:        string | undefined
@@ -57,6 +63,7 @@ export default function TaskDetails({
   statuses:         Status[]
   currentUserId?:   string
   currentUser?:     User | null
+  boardHref:        string
 }) {
   const router = useRouter()
   const [isEditing,       setIsEditing]   = useState(false)
@@ -65,7 +72,7 @@ export default function TaskDetails({
   const [title,           setTitle]       = useState(task.title)
   const [description,     setDescription] = useState(task.description ?? '')
   const [liveComments,    setLiveComments] = useState(task.comments ?? [])
-  const [status,          setStatus]      = useState(task.status?.label ?? 'Todo')
+  const [status,          setStatus]      = useState(task.status?.label ?? DEFAULT_STATUS_LABELS.todo)
   const [assignedGroupId, setGroupId]     = useState(task.groupId ? String(task.groupId) : 'none')
   const [deadline,        setDeadline]    = useState<Date | undefined>(
     task.deadline ? new Date(task.deadline) : undefined
@@ -156,7 +163,7 @@ export default function TaskDetails({
       const next = updated.comments ?? []
       return commentsEqual(prev, next) ? prev : next
     })
-    setStatus((prev) => (prev === (updated.status?.label ?? 'Todo') ? prev : updated.status?.label ?? 'Todo'))
+    setStatus((prev) => (prev === (updated.status?.label ?? DEFAULT_STATUS_LABELS.todo) ? prev : updated.status?.label ?? DEFAULT_STATUS_LABELS.todo))
     setGroupId((prev) => {
       const next = updated.groupId ? String(updated.groupId) : 'none'
       return prev === next ? prev : next
@@ -248,7 +255,7 @@ export default function TaskDetails({
     setDescription(next)
     descriptionRef.current = next
     lastSavedDescriptionRef.current = next
-    setStatus(task.status?.label ?? 'Todo')
+    setStatus(task.status?.label ?? DEFAULT_STATUS_LABELS.todo)
     setGroupId(task.groupId ? String(task.groupId) : 'none')
     setDeadline(task.deadline ? new Date(task.deadline) : undefined)
     setIsEditing(false)
@@ -268,8 +275,8 @@ export default function TaskDetails({
     const res = await acquireTaskLock(task.id)
     if ('error' in res) { setError(res.error ?? null); return }
     if (res.success === false) {
-      const who = res.lockedBy?.displayName ?? res.lockedBy?.email ?? 'another user'
-      setError(`Task is currently locked (being edited by ${who}).`)
+      const who = res.lockedBy?.displayName ?? res.lockedBy?.email ?? 'en annen bruker'
+      setError(`Oppgaven er låst (redigeres av ${who}).`)
       return
     }
     setIsEditing(true)
@@ -306,6 +313,44 @@ export default function TaskDetails({
     )
   }
 
+  const taskGroups = useMemo<TaskGroup[]>(
+    () =>
+      taskGroupOptions.map((g) => ({
+        id: Number(g.value),
+        title: g.label,
+        color: g.color || 'bg-gray-500',
+        createdBy: null,
+        orgId: task.orgId,
+        createdAt: null,
+      })),
+    [taskGroupOptions, task.orgId]
+  )
+
+  const liveTask = useMemo<Task>(
+    () => ({
+      ...task,
+      status: statuses.find((s) => s.label === status) ?? task.status,
+      groupId: assignedGroupId === 'none' ? null : Number(assignedGroupId),
+      group: taskGroups.find((g) => String(g.id) === assignedGroupId) ?? task.group,
+      deadline: deadline ? deadline.toISOString().split('T')[0] : null,
+    }),
+    [task, statuses, status, assignedGroupId, taskGroups, deadline]
+  )
+
+  const handleQuickEditPatch = useCallback((taskId: number, patch: Partial<Task>) => {
+    if (patch.status) setStatus(patch.status.label)
+    if ('groupId' in patch) setGroupId(patch.groupId ? String(patch.groupId) : 'none')
+    if ('deadline' in patch) {
+      setDeadline(patch.deadline ? new Date(patch.deadline) : undefined)
+    }
+  }, [])
+
+  const handleQuickEditRollback = useCallback((_taskId: number, prev: Task) => {
+    setStatus(prev.status?.label ?? DEFAULT_STATUS_LABELS.todo)
+    setGroupId(prev.groupId ? String(prev.groupId) : 'none')
+    setDeadline(prev.deadline ? new Date(prev.deadline) : undefined)
+  }, [])
+
 
 
   return (
@@ -316,8 +361,20 @@ export default function TaskDetails({
         <div className="flex flex-1 min-h-0 overflow-y-auto">
           <div className="flex flex-1 flex-col gap-4 max-w-prose py-12 px-8 mx-auto">
           {isEditing ? (
+            <Badge variant="secondary" className="w-fit">
+              <Pencil data-icon="inline-start" />
+              Redigerer oppgave
+            </Badge>
+          ) : (
+            <Button variant="ghost" size="sm" className="-ml-2 w-fit text-muted-foreground" asChild>
+              <Link href={boardHref}>
+                <ArrowLeft className="size-4" />
+                Tilbake til tavle
+              </Link>
+            </Button>
+          )}
+          {isEditing ? (
             <>
-              <Badge variant="secondary"><Pencil data-icon="inline-start" />Editing task</Badge>
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -327,10 +384,9 @@ export default function TaskDetails({
             </>
           ) : (
             <>
-              <Badge variant="secondary"><Eye data-icon="inline-start" />Viewing</Badge>
               {editingUsers.length > 0 && (
                 <div className="rounded-xl border bg-amber-500/10 border-amber-500/20 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
-                  This task is being edited by {editingUsers.map((u) => u.user?.displayName ?? u.user?.email ?? 'Someone').join(', ')}.
+                  Denne oppgaven redigeres av {editingUsers.map((u) => u.user?.displayName ?? u.user?.email ?? 'Noen').join(', ')}.
                 </div>
               )}
               <h1 className="text-5xl font-medium text-center sm:text-left font-heading text-heading-strong mb-6">
@@ -343,7 +399,7 @@ export default function TaskDetails({
                   dangerouslySetInnerHTML={{ __html: description }}
                 />
               ) : (
-                <p className="text-muted-foreground text-sm italic">No description yet.</p>
+                <p className="text-muted-foreground text-sm italic">Ingen beskrivelse ennå.</p>
               )}
               <Comments
                 taskId={task.id}
@@ -380,7 +436,21 @@ export default function TaskDetails({
           onSave={isEditing ? handleSave : handleStartEditing}
           onCancel={handleCancel}
           isSaving={isSaving}
-          headerSlot={<TaskRevisionHistory taskId={task.id} statuses={statuses} />}
+          headerSlot={
+            <div className="flex items-center gap-1">
+              <TaskRevisionHistory taskId={task.id} statuses={statuses} />
+              {!isEditing && (
+                <TaskOptionsMenu
+                  task={liveTask}
+                  statuses={statuses}
+                  taskGroups={taskGroups}
+                  onOptimisticPatch={handleQuickEditPatch}
+                  onOptimisticRollback={handleQuickEditRollback}
+                  onDeleted={() => router.push(boardHref)}
+                />
+              )}
+            </div>
+          }
         />
       </div>
     </div>

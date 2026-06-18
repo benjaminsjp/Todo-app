@@ -34,8 +34,8 @@ export default async function Page() {
 
   const stats = {
     total:      allTasks.length,
-    done:       allTasks.filter((t) => t.status?.label === 'Done').length,
-    inProgress: allTasks.filter((t) => t.status?.label === 'In Progress').length,
+    done:       allTasks.filter((t) => t.status?.order === 2).length,
+    inProgress: allTasks.filter((t) => t.status?.order === 1).length,
     orgs:       memberships.length,
   }
 
@@ -44,14 +44,14 @@ export default async function Page() {
       <div className="container mx-auto flex-1 flex flex-col px-8 py-12 max-w-2xl">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-5xl font-medium font-heading text-heading-strong">
-            My profile
+            Min profil
           </h1>
           <LogoutButton />
         </div>
 
         {/* Profile form */}
         <div className="rounded-2xl border bg-card p-6 mb-6 animate-fade-up animate-once animate-duration-250">
-          <h2 className="text-lg font-medium mb-6">Profile information</h2>
+          <h2 className="text-lg font-medium mb-6">Profilinformasjon</h2>
           <ProfileForm
             displayName={user.displayName ?? ''}
             email={user.email}
@@ -62,9 +62,9 @@ export default async function Page() {
 
         {/* Data */}
         <div className="rounded-2xl border bg-card p-6 mb-6 animate-fade-up animate-once animate-duration-250 animate-delay-100">
-          <h2 className="text-lg font-medium mb-2">Your data</h2>
+          <h2 className="text-lg font-medium mb-2">Dine data</h2>
           <p className="text-sm text-muted-foreground mb-4">
-            Download a copy of all your data stored in På'n.
+            Last ned en kopi av alle dataene dine lagret i På'n.
           </p>
           <ExportDataButton />
         </div>
@@ -72,9 +72,9 @@ export default async function Page() {
         {/* Danger zone */}
         {!isDemo && (
         <div className="rounded-2xl border border-destructive/30 bg-card p-6 animate-fade-up animate-once animate-duration-250 animate-delay-150">
-          <h2 className="text-lg font-medium text-destructive mb-2">Danger zone</h2>
+          <h2 className="text-lg font-medium text-destructive mb-2">Faresone</h2>
           <p className="text-sm text-muted-foreground mb-4">
-            Permanently delete your account and all associated data. This cannot be undone.
+            Slett kontoen din og alle tilknyttede data permanent. Dette kan ikke angres.
           </p>
           <DeleteAccountButton />
         </div>

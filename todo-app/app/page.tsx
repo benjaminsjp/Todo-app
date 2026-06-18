@@ -4,9 +4,9 @@ import { LandingPage } from '@/components/landing/LandingPage'
 import { isDemoConfigured, isDemoUser } from '@/lib/demo/config'
 
 export const metadata: Metadata = {
-  title: "På'n – Task management for teams and individuals",
+  title: "På'n – Oppgavestyring for team og enkeltpersoner",
   description:
-    'Plan, track, and complete tasks with Kanban boards, organizations, and real-time collaboration.',
+    'Planlegg, følg opp og fullfør oppgaver med Kanban-tavler, organisasjoner og sanntidssamarbeid.',
 }
 
 export const dynamic = 'force-dynamic'

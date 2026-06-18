@@ -11,13 +11,20 @@ type OrgPreview = {
   memberCount: number
 }
 
+const ROLE_LABELS: Record<string, string> = {
+  owner:  'Eier',
+  admin:  'Admin',
+  member: 'Medlem',
+  viewer: 'Leser',
+}
+
 export function OrgsWidget({ orgs }: { orgs: OrgPreview[] }) {
   const preview = orgs.slice(0, 3)
 
   return (
-    <DashboardWidget title="Organizations" href="/org" icon={Building2} iconColor="text-violet-500">
+    <DashboardWidget title="Organisasjoner" href="/org" icon={Building2} iconColor="text-violet-500">
       {preview.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No organizations yet.</p>
+        <p className="text-sm text-muted-foreground">Ingen organisasjoner ennå.</p>
       ) : (
         <div className="flex flex-col gap-2">
           {preview.map((org) => (
@@ -31,7 +38,7 @@ export function OrgsWidget({ orgs }: { orgs: OrgPreview[] }) {
               </div>
               <div className="flex flex-col flex-1 min-w-0">
                 <span className="text-sm font-medium truncate">{org.name}</span>
-                <span className="text-xs text-muted-foreground capitalize">{org.role}</span>
+                <span className="text-xs text-muted-foreground">{ROLE_LABELS[org.role] ?? org.role}</span>
               </div>
               <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
                 <span className="flex items-center gap-1">

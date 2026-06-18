@@ -56,11 +56,14 @@ export default function AuthPage() {
 
     if (error) {
       setPassword('')
-      const message = error.message || 'Sign in failed'
-      const needsVerification = /verif/i.test(message) || /invalid email or password/i.test(message)
+      const message = error.message || 'Innlogging mislyktes'
+      const needsVerification =
+        /verif/i.test(message) ||
+        /invalid email or password/i.test(message) ||
+        /ugyldig e-post eller passord/i.test(message)
       setAuthError(
         needsVerification && !isSignUp
-          ? `${message}. If you recently signed up, check your inbox for a verification code first.`
+          ? `${message}. Hvis du nylig registrerte deg, sjekk innboksen for en bekreftelseskode først.`
           : message
       )
       setAuthPending(false)
@@ -79,7 +82,7 @@ export default function AuthPage() {
 
     if (error) {
       setPassword('')
-      setAuthError(error.message || 'Sign up failed')
+      setAuthError(error.message || 'Registrering mislyktes')
       setAuthPending(false)
       return
     }
@@ -94,7 +97,7 @@ export default function AuthPage() {
     const { error } = await authClient.emailOtp.verifyEmail({ email, otp })
     if (error) {
       setIsPending(false)
-      return setOtpError(error.message || 'Invalid code')
+      return setOtpError(error.message || 'Ugyldig kode')
     }
     await finishLogin()
   }
@@ -121,12 +124,12 @@ export default function AuthPage() {
 
       if (!res.ok) {
         const body = await res.json().catch(() => null)
-        throw new Error(body?.message || 'Could not send reset email')
+        throw new Error(body?.message || 'Kunne ikke sende tilbakestillings-e-post')
       }
 
       setResetEmailSent(true)
     } catch (e) {
-      setResetEmailError(e instanceof Error ? e.message : 'Could not send reset email')
+      setResetEmailError(e instanceof Error ? e.message : 'Kunne ikke sende tilbakestillings-e-post')
     } finally {
       setResetEmailPending(false)
     }
@@ -145,7 +148,7 @@ export default function AuthPage() {
 
       if (!res.ok) {
         const body = await res.json().catch(() => null)
-        throw new Error(body?.message || 'Could not reset password')
+        throw new Error(body?.message || 'Kunne ikke tilbakestille passord')
       }
 
       setIsSignUp(false)
@@ -154,7 +157,7 @@ export default function AuthPage() {
       setResetOtp('')
       setStep('auth')
     } catch (e) {
-      setResetError(e instanceof Error ? e.message : 'Could not reset password')
+      setResetError(e instanceof Error ? e.message : 'Kunne ikke tilbakestille passord')
     } finally {
       setResetPending(false)
     }
@@ -164,9 +167,9 @@ export default function AuthPage() {
     return (
       <div className={authShell}>
         <div className="text-center">
-          <h1 className="text-3xl font-heading font-medium mb-2">Check your inbox</h1>
+          <h1 className="text-3xl font-heading font-medium mb-2">Sjekk innboksen din</h1>
           <p className="text-muted-foreground text-sm">
-            We sent a code to <span className="font-medium text-foreground">{email}</span>
+            Vi sendte en kode til <span className="font-medium text-foreground">{email}</span>
           </p>
         </div>
         <Input
@@ -179,17 +182,17 @@ export default function AuthPage() {
         />
         {otpError && <p className="text-sm text-destructive">{otpError}</p>}
         <Button className="w-full" onClick={handleVerifyOtp} disabled={isPending || otp.length < 6}>
-          {isPending ? 'Verifying...' : 'Confirm code'}
+          {isPending ? 'Bekrefter...' : 'Bekreft kode'}
         </Button>
         <button onClick={handleResend} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-          Resend code
+          Send kode på nytt
         </button>
         <Button
           variant="ghost"
           onClick={() => setStep('auth')}
           className="text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
-          Back to login
+          Tilbake til innlogging
         </Button>
       </div>
     )
@@ -199,12 +202,12 @@ export default function AuthPage() {
     return (
       <div className={authShell}>
         <div className="text-center">
-          <h1 className="text-3xl font-heading font-medium mb-2">Reset your password</h1>
-          <p className="text-muted-foreground text-sm">We&apos;ll send you a password reset email.</p>
+          <h1 className="text-3xl font-heading font-medium mb-2">Tilbakestill passordet ditt</h1>
+          <p className="text-muted-foreground text-sm">Vi sender deg en e-post for å tilbakestille passordet.</p>
         </div>
 
         <div className={fieldGroup}>
-          <Label className={fieldLabel} htmlFor="reset-email">Email</Label>
+          <Label className={fieldLabel} htmlFor="reset-email">E-post</Label>
           <Input
             id="reset-email"
             name="email"
@@ -216,7 +219,7 @@ export default function AuthPage() {
         </div>
 
         {resetEmailError && <p className="text-sm text-destructive">{resetEmailError}</p>}
-        {resetEmailSent && <p className="text-sm text-muted-foreground">Check your inbox for a reset link.</p>}
+        {resetEmailSent && <p className="text-sm text-muted-foreground">Sjekk innboksen for en tilbakestillingslenke.</p>}
 
         <Button
           variant="brand"
@@ -224,7 +227,7 @@ export default function AuthPage() {
           onClick={handleSendResetEmail}
           disabled={resetEmailPending || !email}
         >
-          {resetEmailPending ? 'Sending…' : 'Send reset email'}
+          {resetEmailPending ? 'Sender…' : 'Send tilbakestillings-e-post'}
         </Button>
 
         <Button
@@ -232,7 +235,7 @@ export default function AuthPage() {
           onClick={() => setStep('auth')}
           className="text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
-          Back to login
+          Tilbake til innlogging
         </Button>
       </div>
     )
@@ -247,7 +250,7 @@ export default function AuthPage() {
       setResetError('')
 
       try {
-        if (!token) throw new Error('Invalid or expired reset link.')
+        if (!token) throw new Error('Ugyldig eller utløpt tilbakestillingslenke.')
 
         const res = await fetch('/api/auth/reset-password', {
           method: 'POST',
@@ -257,7 +260,7 @@ export default function AuthPage() {
 
         if (!res.ok) {
           const body = await res.json().catch(() => null)
-          throw new Error(body?.message || 'Could not reset password')
+          throw new Error(body?.message || 'Kunne ikke tilbakestille passord')
         }
 
         setIsSignUp(false)
@@ -266,7 +269,7 @@ export default function AuthPage() {
         window.history.replaceState({}, '', '/auth/sign-in')
         setStep('auth')
       } catch (e) {
-        setResetError(e instanceof Error ? e.message : 'Could not reset password')
+        setResetError(e instanceof Error ? e.message : 'Kunne ikke tilbakestille passord')
       } finally {
         setResetPending(false)
       }
@@ -275,13 +278,13 @@ export default function AuthPage() {
     return (
       <div className={authShell}>
         <div className="text-center">
-          <h1 className="text-3xl font-heading font-medium mb-2">New password</h1>
-          <p className="text-muted-foreground text-sm">Choose a new password for your account.</p>
+          <h1 className="text-3xl font-heading font-medium mb-2">Nytt passord</h1>
+          <p className="text-muted-foreground text-sm">Velg et nytt passord for kontoen din.</p>
         </div>
 
         {!isLinkReset && (
           <div className={fieldGroup}>
-            <Label className={fieldLabel} htmlFor="reset-otp">Code</Label>
+            <Label className={fieldLabel} htmlFor="reset-otp">Kode</Label>
             <Input
               id="reset-otp"
               type="text"
@@ -294,7 +297,7 @@ export default function AuthPage() {
         )}
 
         <div className={fieldGroup}>
-          <Label className={fieldLabel} htmlFor="new-password">New password</Label>
+          <Label className={fieldLabel} htmlFor="new-password">Nytt passord</Label>
           <Input
             id="new-password"
             type="password"
@@ -311,7 +314,7 @@ export default function AuthPage() {
           onClick={isLinkReset ? handleLinkReset : handleResetWithOtp}
           disabled={resetPending || newPassword.length < 8 || (!isLinkReset && resetOtp.length < 6)}
         >
-          {resetPending ? 'Saving…' : 'Set new password'}
+          {resetPending ? 'Lagrer…' : 'Sett nytt passord'}
         </Button>
 
         <div className="flex gap-2">
@@ -326,7 +329,7 @@ export default function AuthPage() {
             }}
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            Back to login
+            Tilbake til innlogging
           </Button>
           <Button
             variant="ghost"
@@ -341,7 +344,7 @@ export default function AuthPage() {
             }}
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            Request a new reset
+            Be om ny tilbakestilling
           </Button>
         </div>
       </div>
@@ -352,7 +355,7 @@ export default function AuthPage() {
     <div className={authShell}>
       <div className="text-center">
         <h1 className="text-3xl font-heading font-medium mb-1">
-          {isSignUp ? 'Create an account' : 'Login to your account'}
+          {isSignUp ? 'Opprett konto' : 'Logg inn på kontoen din'}
         </h1>
       </div>
 
@@ -362,7 +365,7 @@ export default function AuthPage() {
       >
         {isSignUp && (
           <div className={fieldGroup}>
-            <Label className={fieldLabel} htmlFor="name">Name</Label>
+            <Label className={fieldLabel} htmlFor="name">Navn</Label>
             <Input
               id="name"
               name="name"
@@ -374,7 +377,7 @@ export default function AuthPage() {
           </div>
         )}
         <div className={fieldGroup}>
-          <Label className={fieldLabel} htmlFor="email">Email</Label>
+          <Label className={fieldLabel} htmlFor="email">E-post</Label>
           <Input
             id="email"
             name="email"
@@ -385,7 +388,7 @@ export default function AuthPage() {
           />
         </div>
         <div className={fieldGroup}>
-          <Label className={fieldLabel} htmlFor="password">Password</Label>
+          <Label className={fieldLabel} htmlFor="password">Passord</Label>
           <Input
             id="password"
             name="password"
@@ -399,26 +402,26 @@ export default function AuthPage() {
         {authError && (
           <div className="flex flex-col gap-2">
             <p className="text-sm text-destructive">{authError}</p>
-            {!isSignUp && /verification code/i.test(authError) && (
+            {!isSignUp && /verification code|bekreftelseskode/i.test(authError) && (
               <button
                 type="button"
                 onClick={() => setStep('verify')}
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors text-left"
               >
-                Enter verification code
+                Skriv inn bekreftelseskode
               </button>
             )}
           </div>
         )}
 
         <Button variant="brand" type="submit" className="w-full" disabled={authPending}>
-          {authPending ? (isSignUp ? 'Creating account…' : 'Logging in…') : (isSignUp ? 'Create account' : 'Login')}
+          {authPending ? (isSignUp ? 'Oppretter konto…' : 'Logger inn…') : (isSignUp ? 'Opprett konto' : 'Logg inn')}
         </Button>
       </form>
 
       {!isSignUp && (
         <button onClick={() => setStep('forgot')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-          Forgot password?
+          Glemt passord?
         </button>
       )}
 
@@ -430,11 +433,11 @@ export default function AuthPage() {
         }}
         className="text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
-        {isSignUp ? 'Already have an account? Sign in' : 'No account? Sign up'}
+        {isSignUp ? 'Har du allerede en konto? Logg inn' : 'Ingen konto? Registrer deg'}
       </Button>
 
       <Button variant="outline" className="w-full" asChild>
-        <Link href="/auth/demo">Try demo without signing up</Link>
+        <Link href="/auth/demo">Prøv demo uten å registrere deg</Link>
       </Button>
     </div>
   )

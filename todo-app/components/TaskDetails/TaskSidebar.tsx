@@ -9,6 +9,8 @@ import { formatDate, Status } from '@/lib/types'
 import Link from 'next/link'
 import { StatusOption } from '@/lib/types'
 import React from 'react'
+import { DEFAULT_STATUS_LABELS } from '@/lib/statusDefaults'
+
 interface TaskSidebarProps {
   mode: 'create' | 'edit' | 'view'
   headerSlot?: React.ReactNode
@@ -57,16 +59,16 @@ export function TaskSidebar({
   return (
     <div className="flex flex-col gap-4 min-w-sm max-w-lg border-l px-8 py-12">
 
-      <div className="flex gap-3 items-center">
-        {headerSlot}
+      <div className="flex flex-wrap gap-3 items-center justify-between">
+        <div className="flex flex-wrap gap-3 items-center min-w-0">
         {mode === 'create' && (
           <>
             <Button variant="brand" type="submit" disabled={isPending}>
-              {isPending ? 'Creating...' : 'Create task'}
+              {isPending ? 'Oppretter...' : 'Opprett oppgave'}
             </Button>
             {cancelHref && (
               <Button variant="ghost" type="button" asChild>
-                <Link href={cancelHref}>Cancel</Link>
+                <Link href={cancelHref}>Tilbake til tavle</Link>
               </Button>
             )}
           </>
@@ -74,28 +76,34 @@ export function TaskSidebar({
         {mode === 'edit' && (
           <>
             <Button variant="brand" onClick={onSave} disabled={isSaving}>
-              {isSaving ? 'Saving...' : 'Save changes'}
+              {isSaving ? 'Lagrer...' : 'Lagre endringer'}
             </Button>
             <Button variant="ghost" onClick={onCancel} disabled={isSaving}>
-              Cancel
+              Avbryt
             </Button>
           </>
         )}
         {mode === 'view' && (
           <>
             <Button variant="secondary" onClick={onSave}>
-              Edit
+              Rediger
             </Button>
             <span className="text-sm font-medium text-muted-foreground">
-              Last edited: {formatDate(updatedAt)}
+              Sist redigert: {formatDate(updatedAt)}
             </span>
           </>
+        )}
+        </div>
+        {headerSlot && (
+          <div className="flex items-center gap-1 shrink-0 ml-auto">
+            {headerSlot}
+          </div>
         )}
       </div>
 
       {mode !== 'create' && createdAt && (
         <div className="flex items-center">
-          <span className="w-1/2">Created:</span>
+          <span className="w-1/2">Opprettet:</span>
           <p>{formatDate(createdAt)}</p>
         </div>
       )}
@@ -104,7 +112,7 @@ export function TaskSidebar({
         <div className="flex items-center">
           <span className="w-1/2">Status:</span>
           <Select
-            value={status ?? 'Todo'}
+            value={status ?? DEFAULT_STATUS_LABELS.todo}
             onValueChange={onStatusChange ?? (() => {})}
             disabled={!onStatusChange}
           >
@@ -123,7 +131,7 @@ export function TaskSidebar({
       )}
 
       <div className="flex items-center">
-        <span className="w-1/2">Deadline:</span>
+        <span className="w-1/2">Frist:</span>
         <CreateTaskDeadline
           value={deadline}
           onChange={onDeadlineChange ?? (() => {})}
@@ -133,13 +141,13 @@ export function TaskSidebar({
       </div>
 
       <div className="flex items-center">
-        <span className="w-1/2">Group:</span>
+        <span className="w-1/2">Gruppe:</span>
           <Select value={groupId} onValueChange={onGroupChange ?? (() => {})} disabled={!onGroupChange}>
             <SelectTrigger className="shadow-none focus:ring-0 h-auto">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="p-1">
-              <SelectItem value="none">No group</SelectItem>
+              <SelectItem value="none">Ingen gruppe</SelectItem>
               {taskGroupOptions.map((g) => (
                 <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
               ))}

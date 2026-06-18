@@ -20,7 +20,7 @@ export function DemoButton({
 
   return (
     <Button variant={variant} size={size} className={className} asChild>
-      <Link href="/auth/demo">Try demo</Link>
+      <Link href="/auth/demo">Prøv demo</Link>
     </Button>
   )
 }

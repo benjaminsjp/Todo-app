@@ -51,7 +51,7 @@ function ToolbarTooltip({ label, shortcut, children }: ToolbarTooltipProps) {
 export default function Editor({
   content = '',
   onChange,
-  placeholder = 'Type something...',
+  placeholder = 'Skriv noe...',
   variant = 'default',
   minHeight = 'h-40',
 }: EditorProps) {
@@ -173,18 +173,18 @@ export default function Editor({
               toggleIfChanged('strike', () => editor.chain().focus().toggleStrike().run())
             }}
           >
-            <ToolbarTooltip label="Bold" shortcut={`${mod}+B`}>
-              <ToggleGroupItem value="bold" aria-label="Bold" size="sm">
+            <ToolbarTooltip label="Fet" shortcut={`${mod}+B`}>
+              <ToggleGroupItem value="bold" aria-label="Fet" size="sm">
                 <Bold className="h-4 w-4" />
               </ToggleGroupItem>
             </ToolbarTooltip>
-            <ToolbarTooltip label="Italic" shortcut={`${mod}+I`}>
-              <ToggleGroupItem value="italic" aria-label="Italic" size="sm">
+            <ToolbarTooltip label="Kursiv" shortcut={`${mod}+I`}>
+              <ToggleGroupItem value="italic" aria-label="Kursiv" size="sm">
                 <Italic className="h-4 w-4" />
               </ToggleGroupItem>
             </ToolbarTooltip>
-            <ToolbarTooltip label="Strikethrough" shortcut={`${mod}+Shift+S`}>
-              <ToggleGroupItem value="strike" aria-label="Strikethrough" size="sm">
+            <ToolbarTooltip label="Gjennomstreking" shortcut={`${mod}+Shift+S`}>
+              <ToggleGroupItem value="strike" aria-label="Gjennomstreking" size="sm">
                 <Strikethrough className="h-4 w-4" />
               </ToggleGroupItem>
             </ToolbarTooltip>
@@ -208,13 +208,13 @@ export default function Editor({
               }
             }}
           >
-            <ToolbarTooltip label="Bullet list" shortcut={`${mod}+Shift+8`}>
-              <ToggleGroupItem value="bullet" aria-label="Bullet list" size="sm">
+            <ToolbarTooltip label="Punktliste" shortcut={`${mod}+Shift+8`}>
+              <ToggleGroupItem value="bullet" aria-label="Punktliste" size="sm">
                 <List className="h-4 w-4" />
               </ToggleGroupItem>
             </ToolbarTooltip>
-            <ToolbarTooltip label="Ordered list" shortcut={`${mod}+Shift+7`}>
-              <ToggleGroupItem value="ordered" aria-label="Ordered list" size="sm">
+            <ToolbarTooltip label="Nummerert liste" shortcut={`${mod}+Shift+7`}>
+              <ToggleGroupItem value="ordered" aria-label="Nummerert liste" size="sm">
                 <ListOrdered className="h-4 w-4" />
               </ToggleGroupItem>
             </ToolbarTooltip>

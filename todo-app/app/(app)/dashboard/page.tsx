@@ -58,23 +58,23 @@ export default async function DashboardPage() {
       <div className="container mx-auto flex-1 flex flex-col px-8 py-12">
         <div className="mb-8">
           <h1 className="text-5xl font-medium font-heading text-heading-strong">
-            Welcome back!
+            Velkommen tilbake!
           </h1>
-          <p className="text-muted-foreground mt-4">Here&apos;s an overview of what&apos;s happening.</p>
+          <p className="text-muted-foreground mt-4">Her er en oversikt over det som skjer.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-fr">
           <TasksWidget tasks={tasks} taskGroups={taskGroups} statuses={statuses} />
           <OrgsWidget orgs={orgs} />
           <PlaceholderWidget
-            title="Notes"
+            title="Notater"
             icon={NotebookPen}
-            description="Write and organize notes, ideas, and thoughts in one place."
+            description="Skriv og organiser notater, ideer og tanker på ett sted."
           />
           <PlaceholderWidget
-            title="Calendar"
+            title="Kalender"
             icon={Calendar}
-            description="Get an overview of upcoming deadlines and events."
+            description="Få oversikt over kommende frister og hendelser."
             className="md:col-span-2 xl:col-span-1"
           />
         </div>

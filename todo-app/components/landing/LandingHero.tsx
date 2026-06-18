@@ -8,16 +8,16 @@ import { LandingAnimatedShowcase } from './LandingAnimatedShowcase'
 import { LandingSplitText } from './LandingSplitText'
 import { LANDING_HERO_STAGGER } from './motion'
 
-const EYEBROW = 'Task board · Personal & team'
+const EYEBROW = 'Oppgavetavle · Personlig og team'
 const LINE_ONE = 'Få fart på'
 const LINE_TWO = 'oppgavelisten din.'
 const DESCRIPTION =
-  "På'n is a focused workspace for moving tasks across a Kanban board, grouping them in the sidebar, and opening shared org boards when you need more than a solo list."
+  'På\'n er et fokusert arbeidsområde for å flytte oppgaver på en Kanban-tavle, gruppere dem i sidepanelet, og åpne delte org-tavler når du trenger mer enn en solo-liste.'
 
 const STATS = [
-  { label: 'Board', value: 'Drag & drop Kanban' },
-  { label: 'Sidebar', value: 'Groups & quick nav' },
-  { label: 'Orgs', value: 'Shared realtime boards' },
+  { label: 'Tavle', value: 'Dra-og-slipp Kanban' },
+  { label: 'Sidepanel', value: 'Grupper og hurtignav' },
+  { label: 'Orger', value: 'Delte sanntidstavler' },
 ] as const
 
 interface LandingHeroProps {
@@ -78,7 +78,7 @@ export function LandingHero({
             >
               <Button variant="brand" size="lg" asChild>
                 <Link href="/auth/sign-in">
-                  Start for free
+                  Kom i gang gratis
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>
@@ -98,8 +98,8 @@ export function LandingHero({
             style={{ animationDelay: `${bodyStart + 50}ms` }}
           >
             {isDemoSession
-              ? "You're in the demo — open the app to keep exploring, or exit from the header."
-              : 'Welcome back. Pick up where you left off from the header.'}
+              ? 'Du er i demoen — åpne appen for å fortsette å utforske, eller avslutt fra headeren.'
+              : 'Velkommen tilbake. Fortsett der du slapp fra headeren.'}
           </p>
         )}
 
@@ -108,7 +108,7 @@ export function LandingHero({
             className="mt-4 text-sm text-muted-foreground landing-animate-rise"
             style={{ animationDelay: `${bodyStart + 120}ms` }}
           >
-            Try the demo to walk through sample tasks and an example org — no signup.
+            Prøv demoen for å gå gjennom eksempeloppgaver og en eksempel-org — uten registrering.
           </p>
         )}
 

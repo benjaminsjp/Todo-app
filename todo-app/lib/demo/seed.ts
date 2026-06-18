@@ -12,12 +12,7 @@ import {
 import { and, eq, isNull } from 'drizzle-orm'
 import { seedUserStatuses } from '@/lib/db/userStatuses'
 import { DEMO_ORG_SLUG } from './config'
-
-const DEFAULT_ORG_STATUSES = [
-  { label: 'Todo',        color: 'gray',  icon: 'CircleDashed',   order: 0 },
-  { label: 'In Progress', color: 'blue',  icon: 'CircleEllipsis', order: 1 },
-  { label: 'Done',        color: 'green', icon: 'CircleCheck',    order: 2 },
-]
+import { DEFAULT_STATUSES } from '@/lib/statusDefaults'
 
 export async function resetDemoData(userId: string) {
   const personalTasks = await db.query.tasks.findMany({
@@ -45,33 +40,33 @@ export async function resetDemoData(userId: string) {
   const [todoStatus, inProgressStatus, doneStatus] = userStatuses
 
   const [personalGroup] = await db.insert(taskGroups).values({
-    title: 'Getting started',
+    title: 'Kom i gang',
     color: 'bg-blue-500',
     createdBy: userId,
   }).returning()
 
   await db.insert(tasks).values([
     {
-      title: 'Explore the Kanban board',
+      title: 'Utforsk Kanban-tavlen',
       slug: 'explore-the-kanban-board',
-      description: 'Drag tasks between columns to update their status.',
+      description: 'Dra oppgaver mellom kolonner for å oppdatere status.',
       statusId: todoStatus?.id,
       createdBy: userId,
       order: 0,
     },
     {
-      title: 'Create your first task',
+      title: 'Opprett din første oppgave',
       slug: 'create-your-first-task',
-      description: 'Use the sidebar to add tasks and organize them into groups.',
+      description: 'Bruk sidepanelet for å legge til oppgaver og organisere dem i grupper.',
       statusId: inProgressStatus?.id,
       groupId: personalGroup.id,
       createdBy: userId,
       order: 1,
     },
     {
-      title: 'Invite your team',
+      title: 'Inviter teamet ditt',
       slug: 'invite-your-team',
-      description: 'Create an organization and collaborate on shared projects.',
+      description: 'Opprett en organisasjon og samarbeid om delte prosjekter.',
       statusId: doneStatus?.id,
       createdBy: userId,
       order: 2,
@@ -84,13 +79,13 @@ export async function resetDemoData(userId: string) {
 
   if (!org) {
     const [created] = await db.insert(organizations).values({
-      name: 'Acme Team',
+      name: 'Acme-teamet',
       slug: DEMO_ORG_SLUG,
     }).returning()
     org = created
 
     await db.insert(statuses).values(
-      DEFAULT_ORG_STATUSES.map((s) => ({ ...s, orgId: org!.id }))
+      DEFAULT_STATUSES.map((s) => ({ ...s, orgId: org!.id }))
     )
   }
 
@@ -124,7 +119,7 @@ export async function resetDemoData(userId: string) {
   })
   if (orgStatuses.length === 0) {
     await db.insert(statuses).values(
-      DEFAULT_ORG_STATUSES.map((s) => ({ ...s, orgId: org.id }))
+      DEFAULT_STATUSES.map((s) => ({ ...s, orgId: org.id }))
     )
     orgStatuses = await db.query.statuses.findMany({
       where: eq(statuses.orgId, org.id),
@@ -143,9 +138,9 @@ export async function resetDemoData(userId: string) {
 
   await db.insert(tasks).values([
     {
-      title: 'Design landing page',
+      title: 'Design landingsside',
       slug: 'design-landing-page',
-      description: 'Finalize hero section and feature highlights.',
+      description: 'Fullfør hero-seksjonen og fremhev funksjonene.',
       statusId: orgDone?.id,
       orgId: org.id,
       groupId: sprintGroup.id,
@@ -154,9 +149,9 @@ export async function resetDemoData(userId: string) {
       order: 0,
     },
     {
-      title: 'Implement realtime sync',
+      title: 'Implementer sanntidssynkronisering',
       slug: 'implement-realtime-sync',
-      description: 'Wire up SSE for live Kanban updates across team members.',
+      description: 'Koble opp SSE for live Kanban-oppdateringer på tvers av teammedlemmer.',
       statusId: orgInProgress?.id,
       orgId: org.id,
       groupId: sprintGroup.id,
@@ -165,9 +160,9 @@ export async function resetDemoData(userId: string) {
       order: 1,
     },
     {
-      title: 'Write release notes',
+      title: 'Skriv utgivelsesnotater',
       slug: 'write-release-notes',
-      description: 'Summarize new features for the upcoming launch.',
+      description: 'Oppsummer nye funksjoner for den kommende lanseringen.',
       statusId: orgTodo?.id,
       orgId: org.id,
       createdBy: userId,

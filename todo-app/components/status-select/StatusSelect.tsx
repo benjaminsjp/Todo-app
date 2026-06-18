@@ -2,12 +2,13 @@
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { StatusOption, StatusSelectProps } from "@/lib/types"
+import { DEFAULT_STATUS_LABELS } from "@/lib/statusDefaults"
 
 
 export const DEFAULT_STATUS_OPTIONS: StatusOption[] = [
-  { value: "Todo",        label: "Todo",        color: "bg-muted-foreground"   },
-  { value: "In Progress", label: "In Progress", color: "bg-blue-500" },
-  { value: "Done",        label: "Done",        color: "bg-green-500"  },
+  { value: DEFAULT_STATUS_LABELS.todo,        label: DEFAULT_STATUS_LABELS.todo,        color: "bg-muted-foreground"   },
+  { value: DEFAULT_STATUS_LABELS.inProgress, label: DEFAULT_STATUS_LABELS.inProgress, color: "bg-blue-500" },
+  { value: DEFAULT_STATUS_LABELS.done,        label: DEFAULT_STATUS_LABELS.done,        color: "bg-green-500"  },
 ]
 
 export default function StatusSelect({

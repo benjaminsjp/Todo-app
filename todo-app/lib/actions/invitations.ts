@@ -18,7 +18,7 @@ async function requireOrgAdmin(userId: string, orgId: number) {
     ),
   })
   if (!membership || !['owner', 'admin'].includes(membership.role)) {
-    throw new Error('Unauthorized')
+    throw new Error('Ingen tilgang')
   }
   return membership
 }
@@ -28,18 +28,18 @@ export async function createInvitation(
   formData: FormData
 ): Promise<{ error: string } | { link: string }> {
   const { data: session } = await auth.getSession()
-  if (!session?.user) return { error: 'Not logged in' }
+  if (!session?.user) return { error: 'Ikke innlogget' }
 
   const orgId = Number(formData.get('orgId'))
   const email = (formData.get('email') as string)?.trim().toLowerCase()
   const role  = (formData.get('role') as string) || 'member'
 
-  if (!email) return { error: 'Email is required' }
+  if (!email) return { error: 'E-post er påkrevd' }
 
   try {
     await requireOrgAdmin(session.user.id, orgId)
   } catch {
-    return { error: 'You do not have permission to invite members' }
+    return { error: 'Du har ikke tillatelse til å invitere medlemmer' }
   }
 
   // Check if already a member
@@ -53,7 +53,7 @@ export async function createInvitation(
         eq(organizationMembers.userId, existingUser.id),
       ),
     })
-    if (existingMember) return { error: 'This person is already a member' }
+    if (existingMember) return { error: 'Denne personen er allerede medlem' }
   }
 
   const existing = await db.query.invitations.findFirst({
@@ -82,18 +82,18 @@ export async function createInvitation(
 
 export async function deleteInvitation(id: number, orgSlug: string) {
   const { data: session } = await auth.getSession()
-  if (!session?.user) return { error: 'Not logged in' }
+  if (!session?.user) return { error: 'Ikke innlogget' }
 
   const invitation = await db.query.invitations.findFirst({
     where: eq(invitations.id, id),
     with: { org: true },
   })
-  if (!invitation) return { error: 'Invitation not found' }
+  if (!invitation) return { error: 'Invitasjonen ble ikke funnet' }
 
   try {
     await requireOrgAdmin(session.user.id, invitation.orgId)
   } catch {
-    return { error: 'Unauthorized' }
+    return { error: 'Ingen tilgang' }
   }
 
   await db.delete(invitations).where(eq(invitations.id, id))
@@ -103,17 +103,17 @@ export async function deleteInvitation(id: number, orgSlug: string) {
 
 export async function removeMember(memberId: number, orgSlug: string) {
   const { data: session } = await auth.getSession()
-  if (!session?.user) return { error: 'Not logged in' }
+  if (!session?.user) return { error: 'Ikke innlogget' }
 
   const member = await db.query.organizationMembers.findFirst({
     where: eq(organizationMembers.id, memberId),
   })
-  if (!member) return { error: 'Member not found' }
+  if (!member) return { error: 'Medlemmet ble ikke funnet' }
 
   try {
     await requireOrgAdmin(session.user.id, member.orgId)
   } catch {
-    return { error: 'Unauthorized' }
+    return { error: 'Ingen tilgang' }
   }
 
   if (member.role === 'owner') {
@@ -135,20 +135,20 @@ export async function updateMemberRole(
   orgSlug: string
 ) {
   const { data: session } = await auth.getSession()
-  if (!session?.user) return { error: 'Not logged in' }
+  if (!session?.user) return { error: 'Ikke innlogget' }
 
   const member = await db.query.organizationMembers.findFirst({
     where: eq(organizationMembers.id, memberId),
   })
-  if (!member) return { error: 'Member not found' }
+  if (!member) return { error: 'Medlemmet ble ikke funnet' }
 
   try {
     await requireOrgAdmin(session.user.id, member.orgId)
   } catch {
-    return { error: 'Unauthorized' }
+    return { error: 'Ingen tilgang' }
   }
 
-  if (member.role === 'owner') return { error: 'Cannot change owner role' }
+  if (member.role === 'owner') return { error: 'Kan ikke endre eierrolle' }
 
   await db.update(organizationMembers)
     .set({ role })
@@ -162,16 +162,16 @@ export async function acceptInvitation(
   token: string
 ): Promise<{ error: string } | { success: true; orgSlug: string }> {
   const { data: session } = await auth.getSession()
-  if (!session?.user) return { error: 'Not logged in' }
+  if (!session?.user) return { error: 'Ikke innlogget' }
 
   const invite = await db.query.invitations.findFirst({
     where: eq(invitations.token, token),
     with:  { org: true },
   })
 
-  if (!invite)                        return { error: 'Invalid invitation' }
-  if (invite.expiresAt < new Date())  return { error: 'Invitation has expired' }
-  if (invite.email !== session.user.email) return { error: 'This invitation is for a different email' }
+  if (!invite)                        return { error: 'Ugyldig invitasjon' }
+  if (invite.expiresAt < new Date())  return { error: 'Invitasjonen har utløpt' }
+  if (invite.email !== session.user.email) return { error: 'Denne invitasjonen er for en annen e-postadresse' }
 
   await db.insert(organizationMembers).values({
     orgId:  invite.orgId,
@@ -191,14 +191,14 @@ export async function declineInvitation(
   token: string
 ): Promise<{ error: string } | { success: true }> {
   const { data: session } = await auth.getSession()
-  if (!session?.user) return { error: 'Not logged in' }
+  if (!session?.user) return { error: 'Ikke innlogget' }
 
   const invite = await db.query.invitations.findFirst({
     where: eq(invitations.token, token),
   })
 
-  if (!invite) return { error: 'Invitation not found' }
-  if (invite.email !== session.user.email) return { error: 'Unauthorized' }
+  if (!invite) return { error: 'Invitasjonen ble ikke funnet' }
+  if (invite.email !== session.user.email) return { error: 'Ingen tilgang' }
 
   await db.delete(invitations).where(eq(invitations.token, token))
   return { success: true }

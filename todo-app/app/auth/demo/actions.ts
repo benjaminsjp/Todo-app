@@ -17,7 +17,7 @@ export async function startDemoSession(): Promise<StartDemoSessionResult> {
   if (!isDemoConfigured()) {
     return {
       success: false,
-      error: 'Demo mode is not configured. Set DEMO_USER_ID in your environment.',
+      error: 'Demomodus er ikke konfigurert. Sett DEMO_USER_ID i miljøet ditt.',
     }
   }
 
@@ -27,7 +27,7 @@ export async function startDemoSession(): Promise<StartDemoSessionResult> {
   await syncUser({
     id: userId,
     email,
-    name: 'Demo User',
+    name: 'Demobruker',
     image: null,
   })
 

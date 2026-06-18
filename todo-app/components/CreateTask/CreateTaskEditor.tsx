@@ -30,7 +30,7 @@ export function CreateTaskEditor({ content = '', onChange }: CreateTaskEditorPro
   const editor = useEditor({
     extensions: [
       StarterKit,
-      Placeholder.configure({ placeholder: 'Add a description...' }),
+      Placeholder.configure({ placeholder: 'Legg til en beskrivelse...' }),
       TaskList,
       TaskItem.configure({ nested: true }),
     ],
@@ -158,9 +158,9 @@ export function CreateTaskEditor({ content = '', onChange }: CreateTaskEditorPro
               toggle('strike', () => editor.chain().focus().toggleStrike().run())
             }}
           >
-            <ToggleGroupItem value="bold"   aria-label="Bold"          size="sm"><Bold          className="h-4 w-4" /></ToggleGroupItem>
-            <ToggleGroupItem value="italic" aria-label="Italic"        size="sm"><Italic        className="h-4 w-4" /></ToggleGroupItem>
-            <ToggleGroupItem value="strike" aria-label="Strikethrough" size="sm"><Strikethrough className="h-4 w-4" /></ToggleGroupItem>
+            <ToggleGroupItem value="bold"   aria-label="Fet"              size="sm"><Bold          className="h-4 w-4" /></ToggleGroupItem>
+            <ToggleGroupItem value="italic" aria-label="Kursiv"           size="sm"><Italic        className="h-4 w-4" /></ToggleGroupItem>
+            <ToggleGroupItem value="strike" aria-label="Gjennomstreking"  size="sm"><Strikethrough className="h-4 w-4" /></ToggleGroupItem>
           </ToggleGroup>
 
           <div className="w-px h-5 bg-border mx-1" />
@@ -171,9 +171,9 @@ export function CreateTaskEditor({ content = '', onChange }: CreateTaskEditorPro
             value={listValue}
             onValueChange={handleListChange}
           >
-            <ToggleGroupItem value="bullet"  aria-label="Bullet list"  size="sm"><List        className="h-4 w-4" /></ToggleGroupItem>
-            <ToggleGroupItem value="ordered" aria-label="Ordered list" size="sm"><ListOrdered className="h-4 w-4" /></ToggleGroupItem>
-            <ToggleGroupItem value="task"    aria-label="Task list"    size="sm"><SquareCheck  className="h-4 w-4" /></ToggleGroupItem>
+            <ToggleGroupItem value="bullet"  aria-label="Punktliste"      size="sm"><List        className="h-4 w-4" /></ToggleGroupItem>
+            <ToggleGroupItem value="ordered" aria-label="Nummerert liste" size="sm"><ListOrdered className="h-4 w-4" /></ToggleGroupItem>
+            <ToggleGroupItem value="task"    aria-label="Oppgaveliste"    size="sm"><SquareCheck  className="h-4 w-4" /></ToggleGroupItem>
           </ToggleGroup>
         </div>
       )}

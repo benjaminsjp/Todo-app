@@ -7,12 +7,7 @@ import { redirect } from 'next/navigation'
 import { and, eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { transferOrDeleteOrg } from '@/lib/db/orgOwnership'
-
-const DEFAULT_STATUSES = [
-  { label: 'Todo',        color: 'gray',  icon: 'CircleDashed',   order: 0 },
-  { label: 'In Progress', color: 'blue',  icon: 'CircleEllipsis', order: 1 },
-  { label: 'Done',        color: 'green', icon: 'CircleCheck',    order: 2 },
-]
+import { DEFAULT_STATUSES } from '@/lib/statusDefaults'
 
 export async function createOrganization(
   _prev: { error: string } | { slug: string } | null,
@@ -22,7 +17,7 @@ export async function createOrganization(
   if (!session?.user) redirect('/auth/sign-in')
 
   const name = formData.get('name') as string
-  if (!name?.trim()) return { error: 'Name is required' }
+  if (!name?.trim()) return { error: 'Navn er påkrevd' }
 
   const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
 
@@ -45,12 +40,12 @@ export async function createOrganization(
 
 export async function leaveOrganization(orgSlug: string) {
   const { data: session } = await auth.getSession()
-  if (!session?.user) return { error: 'Not logged in' }
+  if (!session?.user) return { error: 'Ikke innlogget' }
 
   const org = await db.query.organizations.findFirst({
     where: eq(organizations.slug, orgSlug),
   })
-  if (!org) return { error: 'Organization not found' }
+  if (!org) return { error: 'Organisasjonen ble ikke funnet' }
 
   const membership = await db.query.organizationMembers.findFirst({
     where: and(
@@ -58,7 +53,7 @@ export async function leaveOrganization(orgSlug: string) {
       eq(organizationMembers.userId, session.user.id),
     ),
   })
-  if (!membership) return { error: 'You are not a member of this organization' }
+  if (!membership) return { error: 'Du er ikke medlem av denne organisasjonen' }
 
   if (membership.role === 'owner') {
     await transferOrDeleteOrg(org.id, session.user.id)
@@ -75,12 +70,12 @@ export async function leaveOrganization(orgSlug: string) {
 
 export async function deleteOrganization(orgSlug: string) {
   const { data: session } = await auth.getSession()
-  if (!session?.user) return { error: 'Not logged in' }
+  if (!session?.user) return { error: 'Ikke innlogget' }
 
   const org = await db.query.organizations.findFirst({
     where: eq(organizations.slug, orgSlug),
   })
-  if (!org) return { error: 'Organization not found' }
+  if (!org) return { error: 'Organisasjonen ble ikke funnet' }
 
   const membership = await db.query.organizationMembers.findFirst({
     where: and(
@@ -89,7 +84,7 @@ export async function deleteOrganization(orgSlug: string) {
     ),
   })
   if (!membership || membership.role !== 'owner') {
-    return { error: 'Only the owner can delete this organization' }
+    return { error: 'Bare eieren kan slette denne organisasjonen' }
   }
 
   await db.delete(organizations).where(eq(organizations.id, org.id))

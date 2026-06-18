@@ -79,7 +79,7 @@ export function TaskGroupPill({ group, isActive, filterHref }: TaskGroupPillProp
 
         <ContextMenuContent className="w-48">
           <ContextMenuItem onClick={() => setEditOpen(true)}>
-            <Pencil className="size-4" /> Edit group
+            <Pencil className="size-4" /> Rediger gruppe
           </ContextMenuItem>
           <ContextMenuSeparator />
           <ContextMenuItem
@@ -88,7 +88,7 @@ export function TaskGroupPill({ group, isActive, filterHref }: TaskGroupPillProp
             disabled={isDeleting}
           >
             <Trash2 className="size-4 text-destructive!" />
-            {isDeleting ? 'Deleting...' : 'Delete group'}
+            {isDeleting ? 'Sletter...' : 'Slett gruppe'}
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
@@ -96,15 +96,15 @@ export function TaskGroupPill({ group, isActive, filterHref }: TaskGroupPillProp
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Delete group</DialogTitle>
+            <DialogTitle>Slett gruppe</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this task group?
+              Er du sikker på at du vil slette denne oppgavegruppen?
             </DialogDescription>
           </DialogHeader>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={isDeleting}>
-              Cancel
+              Avbryt
             </Button>
             <Button
               variant="destructive"
@@ -114,7 +114,7 @@ export function TaskGroupPill({ group, isActive, filterHref }: TaskGroupPillProp
               }}
               disabled={isDeleting}
             >
-              {isDeleting ? 'Deleting...' : 'Delete group'}
+              {isDeleting ? 'Sletter...' : 'Slett gruppe'}
             </Button>
           </DialogFooter>
         </DialogContent>

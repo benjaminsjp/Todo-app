@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { signOutApp } from '@/lib/actions/auth'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -32,9 +31,8 @@ export default function AppMenubar() {
       .then((data) => { if (data) setUser(data) })
   }, [])
 
-  const handleSignOut = async () => {
-    await signOutApp()
-    window.location.href = '/'
+  const handleSignOut = () => {
+    window.location.href = '/api/auth/sign-out'
   }
 
   const initials = user?.name
@@ -60,17 +58,17 @@ export default function AppMenubar() {
             <DropdownMenuContent align="end" className="w-32">
               <DropdownMenuGroup>
                 <DropdownMenuItem onClick={() => router.push('/account')}>
-                  <UserRound className="size-4" /> Profile
+                  <UserRound className="size-4" /> Profil
                 </DropdownMenuItem>
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>
-                    <Brush className="size-4" /> Appearance
+                    <Brush className="size-4" /> Utseende
                   </DropdownMenuSubTrigger>
                   <DropdownMenuPortal>
                     <DropdownMenuSubContent>
                       <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
-                        <DropdownMenuRadioItem value="dark"><Moon className="size-4" /> Dark</DropdownMenuRadioItem>
-                        <DropdownMenuRadioItem value="light"><Sun className="size-4" /> Light</DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="dark"><Moon className="size-4" /> Mørk</DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="light"><Sun className="size-4" /> Lys</DropdownMenuRadioItem>
                         <DropdownMenuRadioItem value="system"><SunMoon className="size-4" /> System</DropdownMenuRadioItem>
                       </DropdownMenuRadioGroup>
                     </DropdownMenuSubContent>
@@ -80,7 +78,7 @@ export default function AppMenubar() {
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
                 <DropdownMenuItem variant="destructive" onClick={handleSignOut}>
-                  <LogOut className="size-4" /> Log out
+                  <LogOut className="size-4" /> Logg ut
                 </DropdownMenuItem>
               </DropdownMenuGroup>
             </DropdownMenuContent>

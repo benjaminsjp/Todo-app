@@ -1,9 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useTransition } from 'react'
 import { Button } from '@/components/ui/button'
-import { signOutApp } from '@/lib/actions/auth'
 
 interface LandingSessionActionsProps {
   isDemoSession: boolean
@@ -14,22 +12,17 @@ export function LandingSessionActions({
   isDemoSession,
   size = 'sm',
 }: LandingSessionActionsProps) {
-  const [isPending, startTransition] = useTransition()
-
   const handleLeave = () => {
-    startTransition(async () => {
-      await signOutApp()
-      window.location.href = '/'
-    })
+    window.location.href = '/api/auth/sign-out'
   }
 
   return (
     <div className="flex items-center gap-2">
       <Button variant="brand" size={size} asChild>
-        <Link href="/dashboard">Open app</Link>
+        <Link href="/dashboard">Åpne appen</Link>
       </Button>
-      <Button variant="outline" size={size} onClick={handleLeave} disabled={isPending}>
-        {isPending ? 'Leaving...' : isDemoSession ? 'Exit demo' : 'Sign out'}
+      <Button variant="outline" size={size} onClick={handleLeave}>
+        {isDemoSession ? 'Avslutt demo' : 'Logg ut'}
       </Button>
     </div>
   )

@@ -19,9 +19,9 @@ const personalHighlights = [
     icon: <CircleDashed />,
     children: (
       <>
-        Personal tasks live under{' '}
-        <code className="rounded bg-muted px-1.5 py-0.5 text-xs">/tasks</code> with your statuses
-        and groups.
+        Personlige oppgaver ligger under{' '}
+        <code className="rounded bg-muted px-1.5 py-0.5 text-xs">/tasks</code> med dine statuser
+        og grupper.
       </>
     ),
   },
@@ -29,9 +29,9 @@ const personalHighlights = [
     icon: <Users />,
     children: (
       <>
-        Org boards live under{' '}
-        <code className="rounded bg-muted px-1.5 py-0.5 text-xs">/org/your-team</code> with invites
-        and member roles.
+        Org-tavler ligger under{' '}
+        <code className="rounded bg-muted px-1.5 py-0.5 text-xs">/org/ditt-team</code> med invitasjoner
+        og medlemsroller.
       </>
     ),
   },
@@ -39,8 +39,8 @@ const personalHighlights = [
     icon: <GripVertical />,
     children: (
       <>
-        Drag cards on the board <em>or</em> drag tasks between groups in the sidebar — both update
-        the same task.
+        Dra kort på tavlen <em>eller</em> dra oppgaver mellom grupper i sidepanelet — begge oppdaterer
+        samme oppgave.
       </>
     ),
   },
@@ -55,27 +55,27 @@ interface LandingPageProps {
 const workflow = [
   {
     step: '01',
-    title: 'Your own board, out of the box',
-    body: 'Every account gets a personal Kanban with Todo, In Progress, and Done columns. Drag cards between statuses, set deadlines, and add rich-text descriptions — no setup wizard required.',
-    detail: 'Statuses use icons and colors you can customize later.',
+    title: 'Din egen tavle, klar med en gang',
+    body: 'Hver konto får en personlig Kanban med kolonnene Å gjøre, Pågår og Ferdig. Dra kort mellom statuser, sett frister og legg til rik tekst — ingen oppsettsveiviser.',
+    detail: 'Statuser har ikoner og farger du kan tilpasse senere.',
   },
   {
     step: '02',
-    title: 'Sidebar groups keep related work together',
-    body: 'Tasks don\'t have to live in a flat list. Drop them into colored groups like "Getting started" or "Sprint 12", then drag between groups from the sidebar without losing context.',
-    detail: 'Ungrouped tasks stay visible at the top until you organize them.',
+    title: 'Sidegrupper holder relatert arbeid samlet',
+    body: 'Oppgaver trenger ikke ligge i en flat liste. Legg dem i fargede grupper som «Kom i gang» eller «Sprint 12», og dra mellom grupper fra sidepanelet uten å miste kontekst.',
+    detail: 'Ugrupperte oppgaver vises øverst til du organiserer dem.',
   },
   {
     step: '03',
-    title: 'Organizations when the work gets shared',
-    body: 'Create a workspace for your team, invite members by email, and switch between Personal and org views from the sidebar. Each org gets its own board, statuses, and task groups.',
-    detail: 'Roles cover owners, admins, members, and viewers.',
+    title: 'Organisasjoner når arbeidet deles',
+    body: 'Opprett et arbeidsområde for teamet, inviter medlemmer på e-post, og bytt mellom Personlig og org-visning fra sidepanelet. Hver org får sin egen tavle, statuser og oppgavegrupper.',
+    detail: 'Roller dekker eiere, administratorer, medlemmer og lesere.',
   },
   {
     step: '04',
-    title: 'Live updates while you collaborate',
-    body: 'Org boards sync in real time over SSE. See when someone else is editing a task — a red presence dot means hands off, green means they\'re just looking.',
-    detail: 'Comments and revision history keep the thread on each card.',
+    title: 'Sanntidsoppdateringer mens dere samarbeider',
+    body: 'Org-tavler synkroniseres i sanntid via SSE. Se når noen andre redigerer en oppgave — en rød tilstedeværelsesprikk betyr «ikke rør», grønn betyr at de bare ser på.',
+    detail: 'Kommentarer og revisjonshistorikk holder tråden på hvert kort.',
   },
 ]
 
@@ -92,14 +92,14 @@ export function LandingPage({
             På&apos;n
           </Link>
           <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
-            <a href="#how-it-works" className="transition-colors hover:text-foreground hover:translate-y-px">How it works</a>
-            <a href="#preview" className="transition-colors hover:text-foreground hover:translate-y-px">In the app</a>
+            <a href="#how-it-works" className="transition-colors hover:text-foreground hover:translate-y-px">Slik fungerer det</a>
+            <a href="#preview" className="transition-colors hover:text-foreground hover:translate-y-px">I appen</a>
           </nav>
           {isAuthenticated ? (
             <LandingSessionActions isDemoSession={isDemoSession} />
           ) : (
             <Button variant="secondary" size="sm" asChild>
-              <Link href="/auth/sign-in">Sign in</Link>
+              <Link href="/auth/sign-in">Logg inn</Link>
             </Button>
           )}
         </div>
@@ -124,8 +124,8 @@ export function LandingPage({
         <section id="how-it-works" className="border-b border-border/60 bg-surface-2/40 py-20 md:py-28">
           <div className="mx-auto max-w-6xl px-6">
             <LandingSectionHeader
-              title="What you actually do in På'n"
-              description="Not another abstract “productivity suite”. Here's the loop most people follow on day one."
+              title="Det du faktisk gjør i På'n"
+              description="Ikke enda en abstrakt «produktivitetspakke». Her er løkken de fleste følger på dag én."
               titleClassName="font-heading text-3xl font-medium text-heading-strong md:text-4xl"
               descriptionClassName="mt-4 text-lg text-muted-foreground"
             />
@@ -155,8 +155,8 @@ export function LandingPage({
             <div className="grid items-start gap-12 lg:grid-cols-2">
               <div>
                 <LandingSectionHeader
-                  title="Personal today, shared tomorrow"
-                  description="Start on Personal with your own tasks and groups. When a project needs more people, spin up an organization — the UI stays familiar, but the board belongs to everyone on the team."
+                  title="Personlig i dag, delt i morgen"
+                  description="Start på Personlig med egne oppgaver og grupper. Når et prosjekt trenger flere folk, opprett en organisasjon — grensesnittet er det samme, men tavlen tilhører hele teamet."
                   titleClassName="font-heading text-3xl font-medium text-heading-strong"
                   descriptionClassName="mt-4 text-muted-foreground leading-relaxed"
                 />
@@ -176,11 +176,11 @@ export function LandingPage({
             <LandingReveal>
             <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 px-6 sm:flex-row sm:items-center">
               <LandingSectionHeader
-                title="See it with your own clicks"
+                title="Se det med egne klikk"
                 description={
                   demoEnabled
-                    ? 'The demo loads a personal board and an Acme Team org with sample tasks already in place.'
-                    : 'Create an account and your board is ready with default columns in seconds.'
+                    ? 'Demoen laster en personlig tavle og en Acme Team-org med eksempeloppgaver allerede på plass.'
+                    : 'Opprett en konto, så er tavlen din klar med standardkolonner på sekunder.'
                 }
                 titleClassName="font-heading text-2xl font-medium text-heading-strong"
                 descriptionClassName="mt-2 max-w-md text-muted-foreground"
@@ -191,7 +191,7 @@ export function LandingPage({
                 ) : (
                   <Button variant="brand" size="lg" asChild>
                     <Link href="/auth/sign-in">
-                      Start for free
+                      Kom i gang gratis
                       <ArrowRight className="size-4" />
                     </Link>
                   </Button>
@@ -208,7 +208,7 @@ export function LandingPage({
           <div className="flex items-center gap-2">
             <span className="font-heading text-foreground">På&apos;n</span>
             <span className="hidden sm:inline">·</span>
-            <span className="hidden sm:inline">Kanban for people who like lists that move</span>
+            <span className="hidden sm:inline">Kanban for folk som liker lister som beveger seg</span>
           </div>
           <span>© {new Date().getFullYear()}</span>
         </div>
