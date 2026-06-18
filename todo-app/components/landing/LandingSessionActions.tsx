@@ -19,7 +19,7 @@ export function LandingSessionActions({
   return (
     <div className="flex items-center gap-2">
       <Button variant="brand" size={size} asChild>
-        <Link href="/dashboard">Åpne appen</Link>
+        <Link href="/dashboard">Gå til appen</Link>
       </Button>
       <Button variant="outline" size={size} onClick={handleLeave}>
         {isDemoSession ? 'Avslutt demo' : 'Logg ut'}

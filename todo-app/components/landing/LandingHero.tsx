@@ -93,14 +93,22 @@ export function LandingHero({
         )}
 
         {isAuthenticated && (
-          <p
-            className="mt-6 text-sm text-muted-foreground landing-animate-rise"
+          <div
+            className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center landing-animate-rise"
             style={{ animationDelay: `${bodyStart + 50}ms` }}
           >
-            {isDemoSession
-              ? 'Du er i demoen — åpne appen for å fortsette å utforske, eller avslutt fra headeren.'
-              : 'Velkommen tilbake. Fortsett der du slapp fra headeren.'}
-          </p>
+            <Button variant="brand" size="lg" asChild>
+              <Link href="/dashboard">
+                Gå til dashboard
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+            {isDemoSession && (
+              <p className="text-sm text-muted-foreground sm:max-w-xs">
+                Du er i demomodus — endringer deles med andre besøkende.
+              </p>
+            )}
+          </div>
         )}
 
         {!isAuthenticated && demoEnabled && (
