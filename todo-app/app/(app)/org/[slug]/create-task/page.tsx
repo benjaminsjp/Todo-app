@@ -5,6 +5,7 @@ import { taskGroups, organizations } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { CreateTaskForm } from '@/components/CreateTask/CreateTaskForm'
 import { notFound } from 'next/navigation'
+import { getOrgAssigneeOptions } from '@/lib/db/queries'
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const { data: session } = await auth.getSession()
@@ -18,12 +19,15 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
 
   if (!org) notFound()
 
-  const groups = await db.select({
-    id:    taskGroups.id,
-    title: taskGroups.title,
-  })
-  .from(taskGroups)
-  .where(eq(taskGroups.orgId, org.id))
+  const [groups, assigneeOptions] = await Promise.all([
+    db.select({
+      id:    taskGroups.id,
+      title: taskGroups.title,
+    })
+    .from(taskGroups)
+    .where(eq(taskGroups.orgId, org.id)),
+    getOrgAssigneeOptions(org.id),
+  ])
 
-  return <CreateTaskForm taskGroups={groups} orgId={org.id} orgSlug={slug} />
+  return <CreateTaskForm taskGroups={groups} assigneeOptions={assigneeOptions} orgId={org.id} orgSlug={slug} />
 }

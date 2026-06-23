@@ -17,6 +17,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { TaskCard } from './TaskCard'
+import { KanbanOverlayLockProvider, useKanbanOverlayLocked } from './KanbanOverlayLock'
 import { CreateTaskGroupButton } from '../CreateTaskGroup/CreateTaskGroupButton'
 import { TaskGroupPill } from './TaskGroupPill'
 import { toast } from 'sonner'
@@ -28,7 +29,7 @@ import { EditStatusMenu } from '../Status/EditStatusMenu'
 import { Circle, Plus, ChevronLeft, ChevronRight } from 'lucide-react'
 import { resolveStatusIcon } from '@/lib/statusIcons'
 
-import { type Task, TaskGroup, Status } from "@/lib/types"
+import { type Task, TaskGroup, Status, AssigneeOption } from "@/lib/types"
 import { updateTaskStatus, updateTaskOrder } from '@/lib/actions/tasks'
 import { reorderStatuses } from '@/lib/actions/statuses'
 
@@ -39,12 +40,13 @@ import { cn } from '@/lib/utils'
 import { useOrgRealtime, type TaskPresence } from '@/lib/hooks/useOrgRealtime'
 
 interface KanbanBoardProps {
-  tasks:      Task[]
-  taskGroups: TaskGroup[]
-  statuses:   Status[]
-  orgSlug?:   string
-  orgId?:     number
-  userId?:    string
+  tasks:           Task[]
+  taskGroups:      TaskGroup[]
+  statuses:        Status[]
+  assigneeOptions: AssigneeOption[]
+  orgSlug?:        string
+  orgId?:          number
+  userId?:         string
 }
 
 export function getStatusStyle(color: string, icon?: string | null) {
@@ -59,6 +61,7 @@ function SortableTaskCard({
   currentUserId,
   statuses,
   taskGroups,
+  assigneeOptions,
   onOptimisticPatch,
   onOptimisticRollback,
 }: {
@@ -68,11 +71,14 @@ function SortableTaskCard({
   currentUserId?: string
   statuses: Status[]
   taskGroups: TaskGroup[]
+  assigneeOptions: AssigneeOption[]
   onOptimisticPatch: (taskId: number, patch: Partial<Task>) => void
   onOptimisticRollback: (taskId: number, prev: Task) => void
 }) {
+  const overlayLocked = useKanbanOverlayLocked()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
+    disabled: overlayLocked,
   })
 
   return (
@@ -80,7 +86,7 @@ function SortableTaskCard({
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       {...attributes}
-      {...listeners}
+      {...(overlayLocked ? {} : listeners)}
       className={isDragging ? 'opacity-40' : ''}
     >
       <TaskCard
@@ -90,6 +96,7 @@ function SortableTaskCard({
         currentUserId={currentUserId}
         statuses={statuses}
         taskGroups={taskGroups}
+        assigneeOptions={assigneeOptions}
         onOptimisticPatch={onOptimisticPatch}
         onOptimisticRollback={onOptimisticRollback}
       />
@@ -107,6 +114,7 @@ function KanbanColumn({
   currentUserId,
   statuses,
   taskGroups,
+  assigneeOptions,
   onOptimisticPatch,
   onOptimisticRollback,
   onMoveStatus,
@@ -120,6 +128,7 @@ function KanbanColumn({
   currentUserId?: string
   statuses: Status[]
   taskGroups: TaskGroup[]
+  assigneeOptions: AssigneeOption[]
   onOptimisticPatch: (taskId: number, patch: Partial<Task>) => void
   onOptimisticRollback: (taskId: number, prev: Task) => void
   onMoveStatus: (statusId: number, direction: 'left' | 'right') => void
@@ -181,6 +190,7 @@ function KanbanColumn({
                 currentUserId={currentUserId}
                 statuses={statuses}
                 taskGroups={taskGroups}
+                assigneeOptions={assigneeOptions}
                 onOptimisticPatch={onOptimisticPatch}
                 onOptimisticRollback={onOptimisticRollback}
               />
@@ -192,7 +202,23 @@ function KanbanColumn({
   )
 }
 
-export function KanbanBoard({ tasks: initialTasks, taskGroups, statuses, orgSlug, orgId, userId }: KanbanBoardProps) {
+export function KanbanBoard(props: KanbanBoardProps) {
+  return (
+    <KanbanOverlayLockProvider>
+      <KanbanBoardContent {...props} />
+    </KanbanOverlayLockProvider>
+  )
+}
+
+function KanbanBoardContent({
+  tasks: initialTasks,
+  taskGroups,
+  statuses,
+  assigneeOptions,
+  orgSlug,
+  orgId,
+  userId,
+}: KanbanBoardProps) {
   const [tasks, setTasks]           = useState<Task[]>(initialTasks)
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [isMounted, setIsMounted]   = useState(false)
@@ -422,6 +448,7 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, statuses, orgSlug
                   currentUserId={userId}
                   statuses={sortedStatuses}
                   taskGroups={liveTaskGroups}
+                  assigneeOptions={assigneeOptions}
                   onOptimisticPatch={patchTaskOptimistic}
                   onOptimisticRollback={rollbackTaskOptimistic}
                   onMoveStatus={handleMoveStatus}
@@ -457,6 +484,7 @@ export function KanbanBoard({ tasks: initialTasks, taskGroups, statuses, orgSlug
               orgSlug={orgSlug}
               statuses={liveStatuses}
               taskGroups={liveTaskGroups}
+              assigneeOptions={assigneeOptions}
               onOptimisticPatch={patchTaskOptimistic}
               onOptimisticRollback={rollbackTaskOptimistic}
             />

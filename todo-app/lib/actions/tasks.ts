@@ -1,7 +1,7 @@
 'use server'
 
 import { db } from '@/lib/db'
-import { organizationMembers, taskPresence, taskRevisions, tasks, statuses, users } from '@/lib/db/schema'
+import { organizationMembers, taskAssignees, taskPresence, taskRevisions, tasks, statuses, users } from '@/lib/db/schema'
 import { auth } from '@/lib/auth/server'
 import { revalidatePath } from 'next/cache'
 import { eq, and, isNull, gt, ne, asc } from 'drizzle-orm'
@@ -46,37 +46,89 @@ async function requireNotLocked(userId: string, taskId: number) {
   throw new Error(`Oppgaven er låst (redigeres av ${name})`)
 }
 
+async function resolveAssigneeIds(
+  currentUserId: string,
+  orgId: number | null,
+  assigneeIds: string[],
+): Promise<string[]> {
+  const unique = [...new Set(assigneeIds.filter(Boolean))]
+  if (unique.length === 0) return []
+
+  if (!orgId) {
+    if (unique.length !== 1 || unique[0] !== currentUserId) {
+      throw new Error('Personlige oppgaver kan bare tildeles deg selv')
+    }
+    return unique
+  }
+
+  for (const assigneeId of unique) {
+    const member = await db.query.organizationMembers.findFirst({
+      where: and(
+        eq(organizationMembers.orgId, orgId),
+        eq(organizationMembers.userId, assigneeId),
+      ),
+      columns: { id: true },
+    })
+    if (!member) throw new Error('Valgt ansvarlig er ikke medlem av organisasjonen')
+  }
+
+  return unique
+}
+
+async function getTaskAssigneeIds(taskId: number): Promise<string[]> {
+  const rows = await db.query.taskAssignees.findMany({
+    where: eq(taskAssignees.taskId, taskId),
+    columns: { userId: true },
+  })
+  return rows.map((row) => row.userId).sort()
+}
+
+async function syncTaskAssignees(taskId: number, userIds: string[]) {
+  await db.delete(taskAssignees).where(eq(taskAssignees.taskId, taskId))
+  if (userIds.length === 0) return
+  await db.insert(taskAssignees).values(
+    userIds.map((userId) => ({ taskId, userId })),
+  )
+}
+
 function snapshotTaskRow(task: {
   title:       string
   description: string | null
   deadline:    string | null
   statusId:    number | null
   groupId:     number | null
-  assigneeId:  string | null
   order:       number
   updatedAt:   Date | null
   orgId:       number | null
-}) {
+}, assigneeIds: string[]) {
   return {
     title:       task.title,
     description: task.description,
     deadline:    task.deadline,
     statusId:    task.statusId,
     groupId:     task.groupId,
-    assigneeId:  task.assigneeId,
+    assigneeIds: [...assigneeIds].sort(),
     order:       task.order,
     updatedAt:   task.updatedAt,
     orgId:       task.orgId,
   }
 }
 
-const TRACKED_FIELDS = ['title', 'description', 'deadline', 'statusId', 'groupId'] as const
+const TRACKED_FIELDS = ['title', 'description', 'deadline', 'statusId', 'groupId', 'assigneeIds'] as const
 
 function hasTrackedChanges(
   before: ReturnType<typeof snapshotTaskRow>,
   after:  ReturnType<typeof snapshotTaskRow>
 ): boolean {
-  return TRACKED_FIELDS.some((key) => before[key] !== after[key])
+  return TRACKED_FIELDS.some((key) => {
+    if (key === 'assigneeIds') {
+      const a = before.assigneeIds
+      const b = after.assigneeIds
+      if (a.length !== b.length) return true
+      return a.some((id, index) => id !== b[index])
+    }
+    return before[key] !== after[key]
+  })
 }
 
 function isMissingRevisionsTableError(err: unknown): boolean {
@@ -176,6 +228,9 @@ export async function createTask(
     const groupId  = formData.get('groupId') && formData.get('groupId') !== 'none'
       ? Number(formData.get('groupId'))
       : null
+    const assigneeIds = formData.getAll('assigneeIds')
+      .map((value) => String(value))
+      .filter(Boolean)
 
     slug    = await generateUniqueSlug(baseSlug, orgId)
     orgSlug = (formData.get('orgSlug') as string) ?? ''
@@ -187,7 +242,9 @@ export async function createTask(
       orderBy: [asc(statuses.order)],
     })
 
-    await db.insert(tasks).values({
+    const resolvedAssigneeIds = await resolveAssigneeIds(session.user.id, orgId, assigneeIds)
+
+    const [created] = await db.insert(tasks).values({
       title,
       description: (formData.get('description') as string) || null,
       slug,
@@ -196,7 +253,9 @@ export async function createTask(
       statusId:    firstStatus?.id ?? null,
       orgId,
       createdBy:   session.user.id,
-    })
+    }).returning({ id: tasks.id })
+
+    await syncTaskAssignees(created.id, resolvedAssigneeIds)
 
     revalidatePath('/tasks')
     if (orgSlug) revalidatePath(`/org/${orgSlug}`)
@@ -217,14 +276,23 @@ export async function updateTask(
     deadline?:    string | null
     statusId?:    number | null
     groupId?:     number | null
+    assigneeIds?: string[]
   }
 ): Promise<{ error: string } | { success: true }> {
   try {
     const { data: session } = await auth.getSession()
     if (!session?.user) return { error: 'Ikke innlogget' }
 
-    await requireCanEditTask(session.user.id, taskId)
+    const { orgId } = await requireCanEditTask(session.user.id, taskId)
     await requireNotLocked(session.user.id, taskId)
+
+    const { assigneeIds, ...taskFields } = data
+    const nextData = { ...taskFields }
+    let resolvedAssigneeIds: string[] | undefined
+
+    if (assigneeIds !== undefined) {
+      resolvedAssigneeIds = await resolveAssigneeIds(session.user.id, orgId, assigneeIds)
+    }
 
     const beforeRow = await db.query.tasks.findFirst({
       where: eq(tasks.id, taskId),
@@ -234,7 +302,6 @@ export async function updateTask(
         deadline:    true,
         statusId:    true,
         groupId:     true,
-        assigneeId:  true,
         order:       true,
         updatedAt:   true,
         orgId:       true,
@@ -242,8 +309,10 @@ export async function updateTask(
     })
     if (!beforeRow) return { error: 'Oppgave ikke funnet' }
 
+    const beforeAssigneeIds = await getTaskAssigneeIds(taskId)
+
     const [afterRow] = await db.update(tasks)
-      .set({ ...data, updatedAt: new Date() })
+      .set({ ...nextData, updatedAt: new Date() })
       .where(eq(tasks.id, taskId))
       .returning({
         title:       tasks.title,
@@ -251,21 +320,29 @@ export async function updateTask(
         deadline:    tasks.deadline,
         statusId:    tasks.statusId,
         groupId:     tasks.groupId,
-        assigneeId:  tasks.assigneeId,
         order:       tasks.order,
         updatedAt:   tasks.updatedAt,
         orgId:       tasks.orgId,
       })
 
-    if (afterRow && hasTrackedChanges(snapshotTaskRow(beforeRow), snapshotTaskRow(afterRow))) {
+    if (resolvedAssigneeIds !== undefined) {
+      await syncTaskAssignees(taskId, resolvedAssigneeIds)
+    }
+
+    const afterAssigneeIds = resolvedAssigneeIds ?? beforeAssigneeIds
+
+    if (afterRow && hasTrackedChanges(
+      snapshotTaskRow(beforeRow, beforeAssigneeIds),
+      snapshotTaskRow(afterRow, afterAssigneeIds),
+    )) {
       try {
         await db.insert(taskRevisions).values({
           orgId:  afterRow.orgId ?? null,
           taskId,
           userId: session.user.id,
           action: 'update',
-          before: snapshotTaskRow(beforeRow) as any,
-          after:  snapshotTaskRow(afterRow)  as any,
+          before: snapshotTaskRow(beforeRow, beforeAssigneeIds) as any,
+          after:  snapshotTaskRow(afterRow, afterAssigneeIds)  as any,
         })
       } catch (e) {
         if (!isMissingRevisionsTableError(e)) throw e
@@ -311,13 +388,14 @@ export async function updateTaskStatus(
         deadline:    true,
         statusId:    true,
         groupId:     true,
-        assigneeId:  true,
         order:       true,
         updatedAt:   true,
         orgId:       true,
       },
     })
     if (!beforeRow) return { error: 'Oppgave ikke funnet' }
+
+    const assigneeIds = await getTaskAssigneeIds(taskId)
 
     // Ingen endring
     if (beforeRow.statusId === status.id) return { success: true }
@@ -333,8 +411,8 @@ export async function updateTaskStatus(
         taskId,
         userId: session.user.id,
         action: 'status',
-        before: snapshotTaskRow(beforeRow) as any,
-        after:  snapshotTaskRow(afterRow)  as any,
+        before: snapshotTaskRow(beforeRow, assigneeIds) as any,
+        after:  snapshotTaskRow(afterRow, assigneeIds)  as any,
       })
     } catch (e) {
       if (!isMissingRevisionsTableError(e)) throw e
@@ -386,13 +464,14 @@ export async function updateTaskGroup(
         deadline:    true,
         statusId:    true,
         groupId:     true,
-        assigneeId:  true,
         order:       true,
         updatedAt:   true,
         orgId:       true,
       },
     })
     if (!beforeRow) return { error: 'Oppgave ikke funnet' }
+
+    const assigneeIds = await getTaskAssigneeIds(taskId)
 
     // Ingen endring
     if (beforeRow.groupId === groupId) return { success: true }
@@ -408,8 +487,8 @@ export async function updateTaskGroup(
         taskId,
         userId: session.user.id,
         action: 'group',
-        before: snapshotTaskRow(beforeRow) as any,
-        after:  snapshotTaskRow(afterRow)  as any,
+        before: snapshotTaskRow(beforeRow, assigneeIds) as any,
+        after:  snapshotTaskRow(afterRow, assigneeIds)  as any,
       })
     } catch (e) {
       if (!isMissingRevisionsTableError(e)) throw e

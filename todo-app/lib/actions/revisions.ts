@@ -2,7 +2,7 @@
 
 import { auth } from '@/lib/auth/server'
 import { db } from '@/lib/db'
-import { organizationMembers, taskRevisions, tasks } from '@/lib/db/schema'
+import { organizationMembers, taskAssignees, taskRevisions, tasks } from '@/lib/db/schema'
 import { and, desc, eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 
@@ -82,7 +82,6 @@ export async function rollbackTaskToRevision(taskId: number, revisionId: number)
         deadline: true,
         statusId: true,
         groupId: true,
-        assigneeId: true,
         order: true,
         updatedAt: true,
         orgId: true,
@@ -90,7 +89,18 @@ export async function rollbackTaskToRevision(taskId: number, revisionId: number)
     })
     if (!current) return { error: 'Oppgave ikke funnet' as const }
 
+    const currentAssigneeRows = await db.query.taskAssignees.findMany({
+      where: eq(taskAssignees.taskId, taskId),
+      columns: { userId: true },
+    })
+    const currentAssigneeIds = currentAssigneeRows.map((row) => row.userId).sort()
+
     const target = rev.before as any
+    const targetAssigneeIds = Array.isArray(target.assigneeIds)
+      ? [...target.assigneeIds].sort()
+      : target.assigneeId
+        ? [target.assigneeId]
+        : []
 
     const [updated] = await db.update(tasks)
       .set({
@@ -99,12 +109,18 @@ export async function rollbackTaskToRevision(taskId: number, revisionId: number)
         deadline: target.deadline ?? current.deadline,
         statusId: target.statusId ?? current.statusId,
         groupId: target.groupId ?? current.groupId,
-        assigneeId: target.assigneeId ?? current.assigneeId,
         order: target.order ?? current.order,
         updatedAt: new Date(),
       })
       .where(eq(tasks.id, taskId))
       .returning()
+
+    await db.delete(taskAssignees).where(eq(taskAssignees.taskId, taskId))
+    if (targetAssigneeIds.length > 0) {
+      await db.insert(taskAssignees).values(
+        targetAssigneeIds.map((userId: string) => ({ taskId, userId })),
+      )
+    }
 
     try {
       await db.insert(taskRevisions).values({
@@ -112,14 +128,14 @@ export async function rollbackTaskToRevision(taskId: number, revisionId: number)
         taskId,
         userId: session.user.id,
         action: 'rollback',
-        before: current as any,
+        before: { ...current, assigneeIds: currentAssigneeIds } as any,
         after: {
           title: updated.title,
           description: updated.description,
           deadline: updated.deadline,
           statusId: updated.statusId,
           groupId: updated.groupId,
-          assigneeId: updated.assigneeId,
+          assigneeIds: targetAssigneeIds,
           order: updated.order,
           updatedAt: updated.updatedAt,
           orgId: updated.orgId,

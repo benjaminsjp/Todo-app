@@ -11,14 +11,16 @@ import { Button } from '@/components/ui/button'
 
 interface Props {
   taskGroups: { id: number; title: string }[]
+  assigneeOptions: { value: string; label: string }[]
   orgId?: number
   orgSlug?: string
 }
 
-export function CreateTaskForm({ taskGroups, orgId, orgSlug }: Props) {
+export function CreateTaskForm({ taskGroups, assigneeOptions, orgId, orgSlug }: Props) {
   const [description, setDescription] = useState('')
   const [deadline, setDeadline]       = useState<Date | undefined>()
   const [groupId, setGroupId]         = useState<string>('none')
+  const [assigneeIds, setAssigneeIds]   = useState<string[]>([])
   const [state, action, isPending]    = useActionState(createTask, null)
 
   return (
@@ -40,7 +42,10 @@ export function CreateTaskForm({ taskGroups, orgId, orgSlug }: Props) {
           {orgSlug && <input type="hidden" name="orgSlug" value={orgSlug} />}
 
           {/* Pass groupId to action */}
-          <input type="hidden" name="groupId"     value={groupId === 'none' ? '' : groupId} />
+          <input type="hidden" name="groupId" value={groupId === 'none' ? '' : groupId} />
+          {assigneeIds.map((id) => (
+            <input key={id} type="hidden" name="assigneeIds" value={id} />
+          ))}
           <input type="hidden" name="description" value={description} />
 
           <input
@@ -56,14 +61,17 @@ export function CreateTaskForm({ taskGroups, orgId, orgSlug }: Props) {
         <TaskSidebar
           mode="create"
           groupId={groupId}
+          assigneeIds={assigneeIds}
           deadline={deadline}
           onDeadlineChange={setDeadline}
           onGroupChange={setGroupId}
+          onAssigneesChange={setAssigneeIds}
           taskGroupOptions={taskGroups.map((g) => ({
             value: String(g.id),
             label: g.title,
             color: '',
           }))}
+          assigneeOptions={assigneeOptions}
           cancelHref={orgSlug ? `/org/${orgSlug}` : '/tasks'}
           isPending={isPending}
         />

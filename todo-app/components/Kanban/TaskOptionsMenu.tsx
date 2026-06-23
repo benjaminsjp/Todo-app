@@ -1,9 +1,12 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { toast } from "sonner"
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react"
 
+import { TaskDeleteDialog } from "@/components/Task/TaskDeleteDialog"
+import { TaskQuickEditDialog } from "@/components/Task/TaskQuickEditDialog"
+import { useKanbanOverlayLock } from "@/components/Kanban/KanbanOverlayLock"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -12,31 +15,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-
-import { CreateTaskDeadline } from "@/components/CreateTask/CreateTaskDeadline"
-import type { Status, Task, TaskGroup } from "@/lib/types"
-import { updateTask, deleteTask } from "@/lib/actions/tasks"
+import type { AssigneeOption, Status, Task, TaskGroup } from "@/lib/types"
+import { deleteTask } from "@/lib/actions/tasks"
 
 export function TaskOptionsMenu({
   task,
   statuses,
   taskGroups,
+  assigneeOptions = [],
   onOptimisticPatch,
   onOptimisticRollback,
   onDeleted,
@@ -44,74 +30,16 @@ export function TaskOptionsMenu({
   task: Task
   statuses: Status[]
   taskGroups: TaskGroup[]
+  assigneeOptions?: AssigneeOption[]
   onOptimisticPatch: (taskId: number, patch: Partial<Task>) => void
   onOptimisticRollback: (taskId: number, prev: Task) => void
   onDeleted?: () => void
 }) {
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  const statusIdInitial = task.status?.id
-    ? String(task.status.id)
-    : statuses[0]?.id
-      ? String(statuses[0].id)
-      : "none"
-  const groupIdInitial = task.groupId ? String(task.groupId) : "none"
-  const deadlineInitial = task.deadline ? new Date(task.deadline) : undefined
-
-  const [statusId, setStatusId] = useState(statusIdInitial)
-  const [groupId, setGroupId] = useState(groupIdInitial)
-  const [deadline, setDeadline] = useState<Date | undefined>(deadlineInitial)
-
-  const statusById = useMemo(() => {
-    const map = new Map<number, Status>()
-    for (const s of statuses) map.set(s.id, s)
-    return map
-  }, [statuses])
-
-  const groupById = useMemo(() => {
-    const map = new Map<number, TaskGroup>()
-    for (const g of taskGroups) map.set(g.id, g)
-    return map
-  }, [taskGroups])
-
-  const handleSave = async () => {
-    setIsSaving(true)
-    const prev = task
-
-    const nextStatus =
-      statusId === "none" ? null : statusById.get(Number(statusId)) ?? null
-    const nextGroup =
-      groupId === "none" ? null : groupById.get(Number(groupId)) ?? null
-
-    const patch: Partial<Task> = {
-      status: nextStatus,
-      statusId: nextStatus?.id ?? null,
-      group: nextGroup,
-      groupId: nextGroup?.id ?? null,
-      deadline: deadline ? deadline.toISOString().split("T")[0] : null,
-    }
-
-    onOptimisticPatch(task.id, patch)
-
-    const result = await updateTask(task.id, {
-      statusId: nextStatus?.id ?? null,
-      groupId: nextGroup?.id ?? null,
-      deadline: deadline ? deadline.toISOString().split("T")[0] : null,
-    })
-
-    setIsSaving(false)
-
-    if ("error" in result) {
-      toast.error(result.error)
-      onOptimisticRollback(task.id, prev)
-      return
-    }
-
-    setEditOpen(false)
-  }
+  useKanbanOverlayLock(editOpen || deleteOpen)
 
   const handleDelete = async () => {
     setIsDeleting(true)
@@ -145,9 +73,6 @@ export function TaskOptionsMenu({
           <DropdownMenuItem
             onSelect={(e) => {
               e.preventDefault()
-              setStatusId(statusIdInitial)
-              setGroupId(groupIdInitial)
-              setDeadline(deadlineInitial)
               setEditOpen(true)
             }}
           >
@@ -166,85 +91,25 @@ export function TaskOptionsMenu({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-sm" data-no-nav>
-          <DialogHeader>
-            <DialogTitle>Rediger oppgave</DialogTitle>
-            <DialogDescription>
-              Oppdater status, gruppe eller frist.
-            </DialogDescription>
-          </DialogHeader>
+      <TaskQuickEditDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        task={task}
+        statuses={statuses}
+        taskGroups={taskGroups}
+        assigneeOptions={assigneeOptions}
+        onOptimisticPatch={onOptimisticPatch}
+        onOptimisticRollback={onOptimisticRollback}
+        contentClassName="data-no-nav"
+      />
 
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label>Status</Label>
-              <Select value={statusId} onValueChange={setStatusId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Velg status" />
-                </SelectTrigger>
-                <SelectContent className="p-1">
-                  {statuses.map((s) => (
-                    <SelectItem key={s.id} value={String(s.id)}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <Label>Gruppe</Label>
-              <Select value={groupId} onValueChange={setGroupId}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="p-1">
-                  <SelectItem value="none">Ingen gruppe</SelectItem>
-                  {taskGroups.map((g) => (
-                    <SelectItem key={g.id} value={String(g.id)}>
-                      {g.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <Label>Frist</Label>
-              <CreateTaskDeadline value={deadline} onChange={setDeadline} />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditOpen(false)} disabled={isSaving}>
-              Avbryt
-            </Button>
-            <Button variant="brand" onClick={handleSave} disabled={isSaving}>
-              {isSaving ? "Lagrer..." : "Lagre endringer"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <DialogContent className="max-w-sm" data-no-nav>
-          <DialogHeader>
-            <DialogTitle>Slett oppgave</DialogTitle>
-            <DialogDescription>
-              Er du sikker på at du vil slette denne oppgaven?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={isDeleting}>
-              Avbryt
-            </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
-              {isDeleting ? "Sletter..." : "Slett oppgave"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <TaskDeleteDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        onConfirm={handleDelete}
+        isDeleting={isDeleting}
+        contentClassName="data-no-nav"
+      />
     </>
   )
 }
-

@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
 import { organizations, organizationMembers } from '@/lib/db/schema'
 import { and, eq } from 'drizzle-orm'
-import { getTasksForOrg, getTaskGroupsForOrg, getStatusesForOrg } from '@/lib/db/queries'
+import { getTasksForOrg, getTaskGroupsForOrg, getStatusesForOrg, getOrgAssigneeOptions } from '@/lib/db/queries'
 import { KanbanBoard } from '@/components/Kanban/KanbanBoard'
 import { CreateTaskButton } from '@/components/CreateTask/CreateTaskButton'
 import { Settings } from 'lucide-react'
@@ -34,10 +34,11 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
     })
     if (!membership) redirect('/tasks')
 
-    const [tasks, taskGroups, statuses] = await Promise.all([
+    const [tasks, taskGroups, statuses, assigneeOptions] = await Promise.all([
     getTasksForOrg(org.id),
     getTaskGroupsForOrg(org.id),
     getStatusesForOrg(org.id),
+    getOrgAssigneeOptions(org.id),
     ])
 
     return (
@@ -65,6 +66,7 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
               tasks={tasks}
               taskGroups={taskGroups}
               statuses={statuses}
+              assigneeOptions={assigneeOptions}
               orgSlug={org.slug}
               orgId={org.id}
               userId={session.user.id}

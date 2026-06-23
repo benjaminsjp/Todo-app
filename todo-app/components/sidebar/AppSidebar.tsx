@@ -29,13 +29,14 @@ import { Button } from "@/components/ui/button"
 import { CreateTaskButton } from "@/components/CreateTask/CreateTaskButton"
 import { CreateTaskGroupButton } from "@/components/CreateTaskGroup/CreateTaskGroupButton"
 import { ChevronRight, Folder, FolderOpen, Plus, FolderPlus, GripVertical } from "lucide-react"
-import { getColor, Task, TaskGroup, Org, Status } from "@/lib/types"
+import { getColor, Task, TaskGroup, Org, Status, AssigneeOption } from "@/lib/types"
 import { updateTaskGroup } from "@/lib/actions/tasks"
 import { cn } from "@/lib/utils"
 import { useDemoBanner } from "@/components/DemoBannerShell"
 import { useOrgRealtime } from "@/lib/hooks/useOrgRealtime"
 import Link from "next/link"
 import { TaskOptionsMenu } from "@/components/Kanban/TaskOptionsMenu"
+import { resolveAssigneeOptionsForTask } from '@/lib/taskAssignees'
 import { Skeleton } from "@/components/ui/skeleton"
 
 function groupsWithTasks(groups: TaskGroup[], allTasks: Task[]): TaskGroup[] {
@@ -68,10 +69,12 @@ function SidebarNavSkeleton() {
 }
 
 interface AppSidebarProps {
-  personalTasks:      Task[]
-  personalGroups:     TaskGroup[]
-  personalStatuses:   Status[]
-  orgs:               Org[]
+  personalTasks:           Task[]
+  personalGroups:          TaskGroup[]
+  personalStatuses:        Status[]
+  personalAssigneeOptions: AssigneeOption[]
+  orgAssigneeOptionsByOrgId: Record<number, AssigneeOption[]>
+  orgs:                    Org[]
 }
 
 function mergeTaskPatch(task: Task, patch: Partial<Task>): Task {
@@ -80,6 +83,7 @@ function mergeTaskPatch(task: Task, patch: Partial<Task>): Task {
     ...patch,
     status: patch.status !== undefined ? patch.status : task.status,
     group:  patch.group  !== undefined ? patch.group  : task.group,
+    assignees: patch.assignees !== undefined ? patch.assignees : task.assignees,
   }
 }
 
@@ -88,6 +92,8 @@ function TaskItem({
   href,
   statuses,
   taskGroups,
+  orgAssigneeOptionsByOrgId,
+  personalAssigneeOptions,
   onOptimisticPatch,
   onOptimisticRollback,
   onDeleted,
@@ -96,12 +102,19 @@ function TaskItem({
   href: string
   statuses: Status[]
   taskGroups: TaskGroup[]
+  orgAssigneeOptionsByOrgId: Record<number, AssigneeOption[]>
+  personalAssigneeOptions: AssigneeOption[]
   onOptimisticPatch: (taskId: number, patch: Partial<Task>) => void
   onOptimisticRollback: (taskId: number, prev: Task) => void
   onDeleted: (taskId: number) => void
 }) {
   const pathname = usePathname()
   const isActive = pathname === href
+  const assigneeOptions = resolveAssigneeOptionsForTask(
+    task,
+    orgAssigneeOptionsByOrgId,
+    personalAssigneeOptions,
+  )
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id:   `task-${task.id}`,
@@ -148,6 +161,7 @@ function TaskItem({
           task={task}
           statuses={statuses}
           taskGroups={taskGroups}
+          assigneeOptions={assigneeOptions}
           onOptimisticPatch={onOptimisticPatch}
           onOptimisticRollback={onOptimisticRollback}
           onDeleted={() => onDeleted(task.id)}
@@ -163,6 +177,8 @@ function GroupCollapsible({
   isOver,
   statuses,
   taskGroups,
+  orgAssigneeOptionsByOrgId,
+  personalAssigneeOptions,
   onOptimisticPatch,
   onOptimisticRollback,
   onDeleted,
@@ -172,6 +188,8 @@ function GroupCollapsible({
   isOver:  boolean
   statuses: Status[]
   taskGroups: TaskGroup[]
+  orgAssigneeOptionsByOrgId: Record<number, AssigneeOption[]>
+  personalAssigneeOptions: AssigneeOption[]
   onOptimisticPatch: (taskId: number, patch: Partial<Task>) => void
   onOptimisticRollback: (taskId: number, prev: Task) => void
   onDeleted: (taskId: number) => void
@@ -228,6 +246,8 @@ function GroupCollapsible({
                     href={`${baseUrl}/${task.slug}`}
                     statuses={statuses}
                     taskGroups={taskGroups}
+                    orgAssigneeOptionsByOrgId={orgAssigneeOptionsByOrgId}
+                    personalAssigneeOptions={personalAssigneeOptions}
                     onOptimisticPatch={onOptimisticPatch}
                     onOptimisticRollback={onOptimisticRollback}
                     onDeleted={onDeleted}
@@ -248,6 +268,8 @@ function UngroupedZone({
   isOver,
   statuses,
   taskGroups,
+  orgAssigneeOptionsByOrgId,
+  personalAssigneeOptions,
   onOptimisticPatch,
   onOptimisticRollback,
   onDeleted,
@@ -257,6 +279,8 @@ function UngroupedZone({
   isOver:  boolean
   statuses: Status[]
   taskGroups: TaskGroup[]
+  orgAssigneeOptionsByOrgId: Record<number, AssigneeOption[]>
+  personalAssigneeOptions: AssigneeOption[]
   onOptimisticPatch: (taskId: number, patch: Partial<Task>) => void
   onOptimisticRollback: (taskId: number, prev: Task) => void
   onDeleted: (taskId: number) => void
@@ -281,6 +305,8 @@ function UngroupedZone({
           href={`${baseUrl}/${task.slug}`}
           statuses={statuses}
           taskGroups={taskGroups}
+          orgAssigneeOptionsByOrgId={orgAssigneeOptionsByOrgId}
+          personalAssigneeOptions={personalAssigneeOptions}
           onOptimisticPatch={onOptimisticPatch}
           onOptimisticRollback={onOptimisticRollback}
           onDeleted={onDeleted}
@@ -301,12 +327,16 @@ function SidebarDndContent({
   baseUrl,
   orgId,
   statuses,
+  orgAssigneeOptionsByOrgId,
+  personalAssigneeOptions,
 }: {
   ungroupedTasks: Task[]
   groups:         TaskGroup[]
   baseUrl:        string
   orgId?:         number
   statuses:       Status[]
+  orgAssigneeOptionsByOrgId: Record<number, AssigneeOption[]>
+  personalAssigneeOptions: AssigneeOption[]
 }) {
   const [localTasks,  setLocalTasks]  = useState(ungroupedTasks)
   const [localGroups, setLocalGroups] = useState(groups)
@@ -365,6 +395,7 @@ function SidebarDndContent({
       group: prev.group,
       groupId: prev.groupId,
       deadline: prev.deadline,
+      assignees: prev.assignees,
     })
   }
 
@@ -449,6 +480,8 @@ function SidebarDndContent({
         isOver={overId === 'ungrouped'}
         statuses={statuses}
         taskGroups={taskGroupsForMenu}
+        orgAssigneeOptionsByOrgId={orgAssigneeOptionsByOrgId}
+        personalAssigneeOptions={personalAssigneeOptions}
         onOptimisticPatch={handleOptimisticPatch}
         onOptimisticRollback={handleOptimisticRollback}
         onDeleted={handleTaskDeleted}
@@ -462,6 +495,8 @@ function SidebarDndContent({
           isOver={overId === `group-${group.id}`}
           statuses={statuses}
           taskGroups={taskGroupsForMenu}
+          orgAssigneeOptionsByOrgId={orgAssigneeOptionsByOrgId}
+          personalAssigneeOptions={personalAssigneeOptions}
           onOptimisticPatch={handleOptimisticPatch}
           onOptimisticRollback={handleOptimisticRollback}
           onDeleted={handleTaskDeleted}
@@ -488,7 +523,14 @@ function SidebarDndContent({
   )
 }
 
-export function AppSidebar({ personalTasks, personalGroups, personalStatuses, orgs }: AppSidebarProps) {
+export function AppSidebar({
+  personalTasks,
+  personalGroups,
+  personalStatuses,
+  personalAssigneeOptions,
+  orgAssigneeOptionsByOrgId,
+  orgs,
+}: AppSidebarProps) {
   const pathname       = usePathname()
   const { visible: demoBannerVisible } = useDemoBanner()
   const currentOrgSlug = pathname.startsWith('/org/') ? pathname.split('/')[2] : undefined
@@ -553,6 +595,8 @@ export function AppSidebar({ personalTasks, personalGroups, personalStatuses, or
               baseUrl={baseUrl}
               orgId={activeOrg?.id}
               statuses={statuses}
+              orgAssigneeOptionsByOrgId={orgAssigneeOptionsByOrgId}
+              personalAssigneeOptions={personalAssigneeOptions}
             />
           )}
         </SidebarContent>

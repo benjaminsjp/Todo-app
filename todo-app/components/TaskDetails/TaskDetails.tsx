@@ -6,16 +6,18 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Pencil, ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import { StatusOption } from "@/lib/types"
+import { AssigneeOption, StatusOption } from "@/lib/types"
 import Comments from "@/components/TaskComments/Comments"
 import { CreateTaskEditor } from "@/components/CreateTask/CreateTaskEditor"
-import { acquireTaskLock, releaseTaskLock, updateTask } from "@/lib/actions/tasks"
+import { acquireTaskLock, releaseTaskLock, updateTask, deleteTask } from "@/lib/actions/tasks"
 import { type Task, mapComments, Status, type Comment, type User } from "@/lib/types"
 import { TaskSidebar } from "./TaskSidebar"
 import { useOrgRealtime } from "@/lib/hooks/useOrgRealtime"
 import { useTaskPresence } from "@/lib/hooks/useTaskPresence"
 import { TaskRevisionHistory } from "./TaskRevisionHistory"
 import { DEFAULT_STATUS_LABELS } from '@/lib/statusDefaults'
+import { usersFromAssigneeIds } from '@/lib/taskAssignees'
+import { toast } from 'sonner'
 
 const CHECKBOX_SAVE_DEBOUNCE_MS = 450
 
@@ -50,6 +52,7 @@ export default function TaskDetails({
   taskGroupOptions,
   statusOptions,
   statuses,
+  assigneeOptions,
   currentUserId,
   currentUser,
   boardHref,
@@ -59,6 +62,7 @@ export default function TaskDetails({
   taskGroupOptions: StatusOption[]
   statusOptions:    StatusOption[]
   statuses:         Status[]
+  assigneeOptions:  AssigneeOption[]
   currentUserId?:   string
   currentUser?:     User | null
   boardHref:        string
@@ -72,6 +76,9 @@ export default function TaskDetails({
   const [liveComments,    setLiveComments] = useState(task.comments ?? [])
   const [status,          setStatus]      = useState(task.status?.label ?? DEFAULT_STATUS_LABELS.todo)
   const [assignedGroupId, setGroupId]     = useState(task.groupId ? String(task.groupId) : 'none')
+  const [assigneeIds,     setAssigneeIds] = useState((task.assignees ?? []).map((user) => user.id))
+  const [liveAssignees,   setLiveAssignees] = useState<User[]>(task.assignees ?? [])
+  const [assigneesSaving, setAssigneesSaving] = useState(false)
   const [deadline,        setDeadline]    = useState<Date | undefined>(
     task.deadline ? new Date(task.deadline) : undefined
   )
@@ -85,6 +92,10 @@ export default function TaskDetails({
   const editingUsers = (orgRealtime.presenceByTaskId.get(task.id) ?? [])
   .filter((p) => p.userId !== currentUserId && p.mode === 'editing')
   const isLockedByOther = Boolean(task.orgId) && editingUsers.length > 0
+
+  useEffect(() => {
+    setLiveAssignees(task.assignees ?? [])
+  }, [task.assignees])
 
   useTaskPresence({
     orgId: task.orgId,
@@ -166,6 +177,16 @@ export default function TaskDetails({
       const next = updated.groupId ? String(updated.groupId) : 'none'
       return prev === next ? prev : next
     })
+    setAssigneeIds((prev) => {
+      const next = (updated.assignees ?? []).map((user) => user.id)
+      if (prev.length === next.length && prev.every((id, index) => id === next[index])) return prev
+      return next
+    })
+    setLiveAssignees((prev) => {
+      const next = updated.assignees ?? []
+      if (prev.length === next.length && prev.every((user, index) => user.id === next[index]?.id)) return prev
+      return next
+    })
     setDeadline((prev) => {
       const next = updated.deadline ? new Date(updated.deadline) : undefined
       const prevTime = prev?.getTime()
@@ -230,6 +251,7 @@ export default function TaskDetails({
       description,
       statusId: statusMatch?.id ?? null,
       groupId: assignedGroupId === 'none' ? null : Number(assignedGroupId),
+      assigneeIds,
       deadline: deadline ? deadline.toISOString().split('T')[0] : null,
     })
     setIsSaving(false)
@@ -255,6 +277,8 @@ export default function TaskDetails({
     lastSavedDescriptionRef.current = next
     setStatus(task.status?.label ?? DEFAULT_STATUS_LABELS.todo)
     setGroupId(task.groupId ? String(task.groupId) : 'none')
+    setAssigneeIds((task.assignees ?? []).map((user) => user.id))
+    setLiveAssignees(task.assignees ?? [])
     setDeadline(task.deadline ? new Date(task.deadline) : undefined)
     setIsEditing(false)
     setError(null)
@@ -290,6 +314,44 @@ export default function TaskDetails({
 
   const handleDeadlineChange = (date: Date | undefined) => {
     setDeadline(date)
+  }
+
+  const handleAssigneesChangeLocal = useCallback((nextAssigneeIds: string[]) => {
+    setAssigneeIds(nextAssigneeIds)
+    setLiveAssignees(usersFromAssigneeIds(nextAssigneeIds, liveAssignees, assigneeOptions))
+  }, [liveAssignees, assigneeOptions])
+
+  const handleAssigneesChange = async (nextAssigneeIds: string[]) => {
+    if (assigneesSaving) return
+
+    const prevIds = assigneeIds
+    const prevAssignees = liveAssignees
+
+    setAssigneeIds(nextAssigneeIds)
+    setLiveAssignees(usersFromAssigneeIds(nextAssigneeIds, liveAssignees, assigneeOptions))
+
+    setAssigneesSaving(true)
+    const result = await updateTask(task.id, { assigneeIds: nextAssigneeIds })
+    setAssigneesSaving(false)
+
+    if ('error' in result) {
+      toast.error(result.error)
+      setAssigneeIds(prevIds)
+      setLiveAssignees(prevAssignees)
+      return
+    }
+
+    router.refresh()
+  }
+
+  const handleDeleteTask = async () => {
+    const result = await deleteTask(task.id)
+    if ('error' in result) {
+      toast.error(result.error)
+      return { error: result.error }
+    }
+    toast.success('Oppgaven ble slettet')
+    router.push(boardHref)
   }
 
   const handleOptimisticCommentAdd = (comment: Comment) => {
@@ -385,16 +447,29 @@ export default function TaskDetails({
           status={status}
           deadline={deadline}
           groupId={assignedGroupId}
+          assigneeIds={assigneeIds}
+          assignees={liveAssignees}
           createdAt={task.createdAt}
           updatedAt={task.updatedAt}
           statusOptions={taskGroupOptions}
           statuses={statuses}
           taskGroupOptions={taskGroupOptions}
+          assigneeOptions={assigneeOptions}
           onStatusChange={isEditing ? handleStatusChange : undefined}
           onDeadlineChange={isEditing ? handleDeadlineChange : undefined}
           onGroupChange={isEditing ? handleGroupChange : undefined}
+          onAssigneesChange={
+            isEditing
+              ? handleAssigneesChangeLocal
+              : assigneeOptions.length > 0
+                ? handleAssigneesChange
+                : undefined
+          }
+          assigneesSaving={assigneesSaving}
+          taskId={task.id}
           onSave={isEditing ? handleSave : handleStartEditing}
           onCancel={handleCancel}
+          onDeleteTask={handleDeleteTask}
           isSaving={isSaving}
           headerSlot={<TaskRevisionHistory taskId={task.id} statuses={statuses} />}
         />

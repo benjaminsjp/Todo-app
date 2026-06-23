@@ -8,6 +8,7 @@ import {
   statuses,
   taskGroups,
   tasks,
+  taskAssignees,
 } from '@/lib/db/schema'
 import { and, eq, isNull } from 'drizzle-orm'
 import { seedUserStatuses } from '@/lib/db/userStatuses'
@@ -136,7 +137,7 @@ export async function resetDemoData(userId: string) {
     createdBy: userId,
   }).returning()
 
-  await db.insert(tasks).values([
+  const orgTaskRows = await db.insert(tasks).values([
     {
       title: 'Design landingsside',
       slug: 'design-landing-page',
@@ -144,7 +145,6 @@ export async function resetDemoData(userId: string) {
       statusId: orgDone?.id,
       orgId: org.id,
       groupId: sprintGroup.id,
-      assigneeId: userId,
       createdBy: userId,
       order: 0,
     },
@@ -155,7 +155,6 @@ export async function resetDemoData(userId: string) {
       statusId: orgInProgress?.id,
       orgId: org.id,
       groupId: sprintGroup.id,
-      assigneeId: userId,
       createdBy: userId,
       order: 1,
     },
@@ -168,5 +167,10 @@ export async function resetDemoData(userId: string) {
       createdBy: userId,
       order: 2,
     },
+  ]).returning({ id: tasks.id })
+
+  await db.insert(taskAssignees).values([
+    { taskId: orgTaskRows[0]!.id, userId },
+    { taskId: orgTaskRows[1]!.id, userId },
   ])
 }

@@ -1,7 +1,8 @@
 import 'server-only'
 import { db } from '@/lib/db'
-import { tasks, taskGroups, statuses, organizationMembers, invitations, comments } from '@/lib/db/schema'
+import { tasks, taskGroups, statuses, organizationMembers, invitations, comments, users, userNotifications } from '@/lib/db/schema'
 import { eq, isNull, and, gt, inArray, count } from 'drizzle-orm'
+import { normalizeTaskAssignees, TASK_WITH_ASSIGNEES } from '@/lib/taskAssignees'
 
 async function attachCommentCounts<T extends { id: number }>(
   rows: T[],
@@ -26,10 +27,10 @@ async function attachCommentCounts<T extends { id: number }>(
 export async function getTasksForUser(userId: string) {
   const rows = await db.query.tasks.findMany({
     where: and(eq(tasks.createdBy, userId), isNull(tasks.orgId)),
-    with: { group: true, status: true },
+    with: TASK_WITH_ASSIGNEES,
     orderBy: (tasks, { asc }) => [asc(tasks.order)],
   })
-  return attachCommentCounts(rows)
+  return attachCommentCounts(rows.map(normalizeTaskAssignees))
 }
 
 async function attachTaskCounts<T extends { id: number }>(
@@ -71,14 +72,14 @@ export async function getTaskGroupsForOrg(orgId: number) {
 }
 
 export async function getTaskBySlug(slug: string, _userId: string) {
-  return db.query.tasks.findFirst({
+  const row = await db.query.tasks.findFirst({
     where: eq(tasks.slug, slug),
     with: {
-      group:    true,
-      status:   true,
+      ...TASK_WITH_ASSIGNEES,
       comments: { with: { user: true } },
     },
   })
+  return row ? normalizeTaskAssignees(row) : null
 }
 
 export async function getTaskGroupOptions(userId: string, orgId?: number | null) {
@@ -97,10 +98,10 @@ export async function getTaskGroupOptions(userId: string, orgId?: number | null)
 export async function getTasksForOrg(orgId: number) {
   const rows = await db.query.tasks.findMany({
     where: eq(tasks.orgId, orgId),
-    with: { group: true, status: true },
+    with: TASK_WITH_ASSIGNEES,
     orderBy: (tasks, { asc }) => [asc(tasks.order)],
   })
-  return attachCommentCounts(rows)
+  return attachCommentCounts(rows.map(normalizeTaskAssignees))
 }
 
 
@@ -119,11 +120,12 @@ export async function getStatusesForOrg(orgId: number) {
 }
 
 export async function getPersonalTasksForSidebar(userId: string) {
-  return db.query.tasks.findMany({
+  const rows = await db.query.tasks.findMany({
     where: and(eq(tasks.createdBy, userId), isNull(tasks.orgId)),
-    with: { group: true, status: true },
+    with: TASK_WITH_ASSIGNEES,
     orderBy: (tasks, { asc }) => [asc(tasks.order)],
   })
+  return rows.map(normalizeTaskAssignees)
 }
 
 export async function getPersonalGroupsForSidebar(userId: string) {
@@ -144,6 +146,16 @@ export async function getPendingInvitationsForEmail(email: string) {
   })
 }
 
+export async function getUnreadNotificationsForUser(userId: string) {
+  return db.query.userNotifications.findMany({
+    where: and(
+      eq(userNotifications.userId, userId),
+      isNull(userNotifications.readAt),
+    ),
+    orderBy: (notification, { desc }) => [desc(notification.createdAt)],
+  })
+}
+
 export async function getOrgListForUser(userId: string) {
   const memberships = await db.query.organizationMembers.findMany({
     where: eq(organizationMembers.userId, userId),
@@ -161,7 +173,7 @@ export async function getOrgNavData(orgId: number) {
   const [orgTasks, orgGroups, orgStatuses] = await Promise.all([
     db.query.tasks.findMany({
       where: eq(tasks.orgId, orgId),
-      with: { group: true, status: true },
+      with: TASK_WITH_ASSIGNEES,
       orderBy: (tasks, { asc }) => [asc(tasks.order)],
     }),
     db.query.taskGroups.findMany({
@@ -171,7 +183,43 @@ export async function getOrgNavData(orgId: number) {
     getStatusesForOrg(orgId),
   ])
 
-  return { tasks: orgTasks, groups: orgGroups, statuses: orgStatuses }
+  return { tasks: orgTasks.map(normalizeTaskAssignees), groups: orgGroups, statuses: orgStatuses }
+}
+
+export async function getPersonalAssigneeOptions(userId: string) {
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+    columns: { id: true, displayName: true, email: true, avatarUrl: true },
+  })
+
+  if (!user) return []
+
+  return [
+    {
+      value: user.id,
+      label: user.displayName ?? user.email,
+      avatarUrl: user.avatarUrl,
+    },
+  ]
+}
+
+export async function getOrgAssigneeOptions(orgId: number) {
+  const members = await db.query.organizationMembers.findMany({
+    where: eq(organizationMembers.orgId, orgId),
+    with: {
+      user: {
+        columns: { id: true, displayName: true, email: true, avatarUrl: true },
+      },
+    },
+  })
+
+  return members
+    .filter((member) => member.user)
+    .map((member) => ({
+      value: member.user!.id,
+      label: member.user!.displayName ?? member.user!.email,
+      avatarUrl: member.user!.avatarUrl,
+    }))
 }
 
 export async function getOrgPreviewsForUser(userId: string) {

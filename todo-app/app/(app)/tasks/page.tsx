@@ -1,7 +1,7 @@
 import { Metadata } from 'next'
 import { auth } from '@/lib/auth/server'
 import { redirect } from 'next/navigation'
-import { getTasksForUser, getTaskGroupsForUser } from '@/lib/db/queries'
+import { getTasksForUser, getTaskGroupsForUser, getPersonalAssigneeOptions } from '@/lib/db/queries'
 import { KanbanBoard } from '@/components/Kanban/KanbanBoard'
 import { CreateTaskButton } from '@/components/CreateTask/CreateTaskButton'
 import { getStatusesForUser } from '@/lib/db/queries'
@@ -13,10 +13,11 @@ export default async function Page() {
   const { data: session } = await auth.getSession()
   if (!session?.user) redirect('/auth/sign-in')
 
-  const [tasks, taskGroups, statuses] = await Promise.all([
+  const [tasks, taskGroups, statuses, assigneeOptions] = await Promise.all([
     getTasksForUser(session.user.id),
     getTaskGroupsForUser(session.user.id),
     getStatusesForUser(session.user.id),
+    getPersonalAssigneeOptions(session.user.id),
   ])
 
   return (
@@ -26,7 +27,13 @@ export default async function Page() {
           <h1 className="text-5xl font-medium font-heading text-heading-strong">Oppgaver</h1>
           <CreateTaskButton />
         </div>
-        <KanbanBoard tasks={tasks} taskGroups={taskGroups} statuses={statuses} userId={session.user.id} />
+        <KanbanBoard
+          tasks={tasks}
+          taskGroups={taskGroups}
+          statuses={statuses}
+          assigneeOptions={assigneeOptions}
+          userId={session.user.id}
+        />
       </div>
 
       

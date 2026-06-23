@@ -1,18 +1,23 @@
 import { auth } from '@/lib/auth/server'
-import { getPendingInvitationsForEmail } from '@/lib/db/queries'
+import { getPendingInvitationsForEmail, getUnreadNotificationsForUser } from '@/lib/db/queries'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   const { data: session } = await auth.getSession()
-  if (!session?.user?.email) {
+  if (!session?.user) {
     return Response.json({ notifications: [] })
   }
 
-  const invites = await getPendingInvitationsForEmail(session.user.email)
+  const [invites, userNotes] = await Promise.all([
+    session.user.email
+      ? getPendingInvitationsForEmail(session.user.email)
+      : Promise.resolve([]),
+    getUnreadNotificationsForUser(session.user.id),
+  ])
 
-  return Response.json({
-    notifications: invites.map((inv) => ({
+  const notifications = [
+    ...invites.map((inv) => ({
       id:        `invite-${inv.id}`,
       type:      'org_invitation' as const,
       token:     inv.token,
@@ -22,5 +27,18 @@ export async function GET() {
       createdAt: inv.createdAt?.toISOString() ?? new Date().toISOString(),
       expiresAt: inv.expiresAt.toISOString(),
     })),
-  })
+    ...userNotes.map((note) => ({
+      id:           `task-${note.id}`,
+      type:         'task_assigned' as const,
+      notificationId: note.id,
+      taskId:       note.taskId,
+      taskTitle:    note.taskTitle ?? 'Oppgave',
+      taskSlug:     note.taskSlug,
+      orgSlug:      note.orgSlug,
+      fromUserName: note.fromUserName ?? 'Noen',
+      createdAt:    note.createdAt?.toISOString() ?? new Date().toISOString(),
+    })),
+  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+  return Response.json({ notifications })
 }

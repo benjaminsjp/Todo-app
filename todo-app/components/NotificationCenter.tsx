@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Bell, Building2 } from 'lucide-react'
+import { Bell, Building2, ClipboardList } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { acceptInvitation, declineInvitation } from '@/lib/actions/invitations'
+import { markNotificationRead } from '@/lib/actions/notifications'
 import { formatDate } from '@/lib/types'
 
 type OrgInvitationNotification = {
@@ -26,6 +27,20 @@ type OrgInvitationNotification = {
   expiresAt: string
 }
 
+type TaskAssignedNotification = {
+  id:               string
+  type:             'task_assigned'
+  notificationId:   number
+  taskId:           number | null
+  taskTitle:        string
+  taskSlug:         string | null
+  orgSlug:          string | null
+  fromUserName:     string
+  createdAt:        string
+}
+
+type AppNotification = OrgInvitationNotification | TaskAssignedNotification
+
 const ROLE_LABELS: Record<string, string> = {
   owner: 'eier',
   admin: 'admin',
@@ -33,10 +48,18 @@ const ROLE_LABELS: Record<string, string> = {
   viewer: 'leser',
 }
 
+function taskHref(notification: TaskAssignedNotification) {
+  if (notification.orgSlug && notification.taskSlug) {
+    return `/org/${notification.orgSlug}/${notification.taskSlug}`
+  }
+  if (notification.taskSlug) return `/tasks/${notification.taskSlug}`
+  return null
+}
+
 export function NotificationCenter() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
-  const [notifications, setNotifications] = useState<OrgInvitationNotification[]>([])
+  const [notifications, setNotifications] = useState<AppNotification[]>([])
   const [loading, setLoading] = useState(true)
   const [actingOn, setActingOn] = useState<string | null>(null)
 
@@ -44,7 +67,7 @@ export function NotificationCenter() {
     try {
       const res = await fetch('/api/notifications')
       if (!res.ok) return
-      const data = await res.json() as { notifications: OrgInvitationNotification[] }
+      const data = await res.json() as { notifications: AppNotification[] }
       setNotifications(data.notifications ?? [])
     } catch {
       // ignore
@@ -95,6 +118,28 @@ export function NotificationCenter() {
     setNotifications((prev) => prev.filter((n) => n.id !== notification.id))
   }
 
+  const handleOpenTask = async (notification: TaskAssignedNotification) => {
+    const href = taskHref(notification)
+    if (!href) {
+      toast.error('Kunne ikke åpne oppgaven')
+      return
+    }
+
+    setActingOn(notification.id)
+    const result = await markNotificationRead(notification.notificationId)
+    setActingOn(null)
+
+    if ('error' in result) {
+      toast.error(result.error)
+      return
+    }
+
+    setNotifications((prev) => prev.filter((n) => n.id !== notification.id))
+    setOpen(false)
+    router.push(href)
+    router.refresh()
+  }
+
   const count = notifications.length
 
   return (
@@ -133,39 +178,68 @@ export function NotificationCenter() {
             <ul className="divide-y">
               {notifications.map((notification) => (
                 <li key={notification.id} className="px-4 py-3 flex flex-col gap-3">
-                  <div className="flex gap-3">
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted">
-                      <Building2 className="size-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium leading-snug">
-                        Invitasjon til {notification.orgName}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Bli med som {ROLE_LABELS[notification.role] ?? notification.role} · utløper {formatDate(new Date(notification.expiresAt))}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="brand"
-                      size="sm"
-                      className="flex-1"
-                      disabled={actingOn === notification.id}
-                      onClick={() => void handleAccept(notification)}
-                    >
-                      {actingOn === notification.id ? 'Blir med…' : 'Godta'}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      disabled={actingOn === notification.id}
-                      onClick={() => void handleDecline(notification)}
-                    >
-                      Avslå
-                    </Button>
-                  </div>
+                  {notification.type === 'org_invitation' ? (
+                    <>
+                      <div className="flex gap-3">
+                        <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted">
+                          <Building2 className="size-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium leading-snug">
+                            Invitasjon til {notification.orgName}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Bli med som {ROLE_LABELS[notification.role] ?? notification.role} · utløper {formatDate(new Date(notification.expiresAt))}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="brand"
+                          size="sm"
+                          className="flex-1"
+                          disabled={actingOn === notification.id}
+                          onClick={() => void handleAccept(notification)}
+                        >
+                          {actingOn === notification.id ? 'Blir med…' : 'Godta'}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          disabled={actingOn === notification.id}
+                          onClick={() => void handleDecline(notification)}
+                        >
+                          Avslå
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex gap-3">
+                        <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted">
+                          <ClipboardList className="size-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium leading-snug">
+                            {notification.fromUserName} vil at du skal se på oppgaven
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                            {notification.taskTitle}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="brand"
+                        size="sm"
+                        className="w-full"
+                        disabled={actingOn === notification.id}
+                        onClick={() => void handleOpenTask(notification)}
+                      >
+                        {actingOn === notification.id ? 'Åpner…' : 'Åpne oppgave'}
+                      </Button>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>

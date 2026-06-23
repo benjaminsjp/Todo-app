@@ -605,11 +605,11 @@ ul[data-type="taskList"] li > div > p{
 }
 
 .landing-animate-rise {
-  animation: landing-rise-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: landing-rise-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .landing-animate-fade {
-  animation: landing-fade-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: landing-fade-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 /* Hover lift — keep separate from entrance animations so transform transitions stay smooth */
@@ -636,7 +636,7 @@ ul[data-type="taskList"] li > div > p{
 }
 
 .landing-animate-showcase {
-  animation: landing-showcase-in 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: landing-showcase-in 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .landing-animate-pop {

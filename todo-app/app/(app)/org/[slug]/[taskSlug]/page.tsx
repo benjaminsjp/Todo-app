@@ -2,7 +2,8 @@ import { auth } from '@/lib/auth/server'
 import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
 import { organizations, organizationMembers, tasks, taskGroups, users } from '@/lib/db/schema'
-import { getStatusesForOrg } from '@/lib/db/queries'
+import { getOrgAssigneeOptions, getStatusesForOrg } from '@/lib/db/queries'
+import { normalizeTaskAssignees, TASK_WITH_ASSIGNEES } from '@/lib/taskAssignees'
 import { and, eq } from 'drizzle-orm'
 import TaskDetails from '@/components/TaskDetails/TaskDetails'
 export const dynamic = 'force-dynamic'
@@ -30,15 +31,15 @@ export default async function OrgTaskPage({
   })
   if (!membership) redirect('/tasks')
 
-  const task = await db.query.tasks.findFirst({
+  const taskRow = await db.query.tasks.findFirst({
     where: and(eq(tasks.slug, taskSlug), eq(tasks.orgId, org.id)),
     with: {
-      group:    true,
-      status:   true,
+      ...TASK_WITH_ASSIGNEES,
       comments: { with: { user: true } },
     },
   })
-  if (!task) redirect(`/org/${slug}`)
+  if (!taskRow) redirect(`/org/${slug}`)
+  const task = normalizeTaskAssignees(taskRow)
 
   const groups = await db.query.taskGroups.findMany({
     where: eq(taskGroups.orgId, org.id),
@@ -53,11 +54,13 @@ export default async function OrgTaskPage({
 
   const taskGroup = task.group?.title
 
-  const statuses = await getStatusesForOrg(org.id)
-
-  const currentUser = await db.query.users.findFirst({
-    where: eq(users.id, session.user.id),
-  })
+  const [statuses, currentUser, assigneeOptions] = await Promise.all([
+    getStatusesForOrg(org.id),
+    db.query.users.findFirst({
+      where: eq(users.id, session.user.id),
+    }),
+    getOrgAssigneeOptions(org.id),
+  ])
 
   const statusOptions = statuses.map((s) => ({
     value: String(s.id),
@@ -73,6 +76,7 @@ export default async function OrgTaskPage({
       taskGroupOptions={taskGroupOptions}
       statusOptions={statusOptions}
       statuses={statuses}
+      assigneeOptions={assigneeOptions}
       currentUserId={session.user.id}
       currentUser={currentUser}
       boardHref={`/org/${slug}`}

@@ -3,12 +3,14 @@
 import { useSyncExternalStore } from 'react'
 import { AppSidebar } from './AppSidebar'
 import { AppSidebarPlaceholder } from './AppSidebarPlaceholder'
-import type { Org, Status, Task, TaskGroup } from '@/lib/types'
+import type { AssigneeOption, Org, Status, Task, TaskGroup } from '@/lib/types'
 
 export function AppSidebarClientOnly(props: {
   personalTasks: Task[]
   personalGroups: TaskGroup[]
   personalStatuses: Status[]
+  personalAssigneeOptions: AssigneeOption[]
+  orgAssigneeOptionsByOrgId: Record<number, AssigneeOption[]>
   orgs: Org[]
 }) {
   const mounted = useSyncExternalStore(

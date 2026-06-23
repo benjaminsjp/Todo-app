@@ -1,6 +1,6 @@
 import { auth } from '@/lib/auth/server'
 import { redirect, notFound } from 'next/navigation'
-import { getTaskBySlug, getTaskGroupOptions, getStatusesForUser } from '@/lib/db/queries'
+import { getPersonalAssigneeOptions, getTaskBySlug, getTaskGroupOptions, getStatusesForUser } from '@/lib/db/queries'
 import { db } from '@/lib/db'
 import { users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
@@ -14,10 +14,11 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
 
   const { slug } = await params
 
-  const [task, taskGroupOptions, statuses] = await Promise.all([
+  const [task, taskGroupOptions, statuses, assigneeOptions] = await Promise.all([
     getTaskBySlug(slug, session.user.id),
     getTaskGroupOptions(session.user.id, null),
     getStatusesForUser(session.user.id),
+    getPersonalAssigneeOptions(session.user.id),
   ])
 
   if (!task) notFound()
@@ -39,6 +40,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
       taskGroupOptions={taskGroupOptions}
       statusOptions={statusOptions}
       statuses={statuses}
+      assigneeOptions={assigneeOptions}
       currentUserId={session.user.id}
       currentUser={currentUser}
       boardHref="/tasks"

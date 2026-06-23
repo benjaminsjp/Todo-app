@@ -44,13 +44,13 @@ export type Task = {
   statusId:    number | null
   groupId:     number | null
   orgId:       number | null
-  assigneeId:  string | null
   createdBy:   string | null
   createdAt:   Date | null
   updatedAt:   Date | null
   order?:      number
   group?:      TaskGroup | null
   status?:     Status | null
+  assignees?:  User[]
   comments?:   Comment[]
   commentCount?: number
 }
@@ -104,6 +104,12 @@ export type StatusOption = {
   value: string
   label: string
   color: string
+}
+
+export type AssigneeOption = {
+  value:     string
+  label:     string
+  avatarUrl?: string | null
 }
 export type StatusSelectProps = {
   value: string

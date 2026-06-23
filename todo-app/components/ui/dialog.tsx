@@ -7,10 +7,21 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { XIcon } from "lucide-react"
 
+const DialogDismissContext = React.createContext<(() => void) | undefined>(undefined)
+
 function Dialog({
+  onOpenChange,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Root>) {
-  return <DialogPrimitive.Root data-slot="dialog" {...props} />
+  const dismiss = React.useCallback(() => {
+    onOpenChange?.(false)
+  }, [onOpenChange])
+
+  return (
+    <DialogDismissContext.Provider value={onOpenChange ? dismiss : undefined}>
+      <DialogPrimitive.Root data-slot="dialog" onOpenChange={onOpenChange} {...props} />
+    </DialogDismissContext.Provider>
+  )
 }
 
 function DialogTrigger({
@@ -51,10 +62,14 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  onPointerDownOutside,
+  onInteractOutside,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
 }) {
+  const dismiss = React.useContext(DialogDismissContext)
+
   return (
     <DialogPortal>
       <DialogOverlay />
@@ -64,6 +79,20 @@ function DialogContent({
           "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 rounded-4xl bg-popover p-6 text-sm text-popover-foreground ring-1 ring-foreground/5 duration-100 outline-none sm:max-w-md data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className
         )}
+        onPointerDownOutside={(event) => {
+          if (dismiss) {
+            event.preventDefault()
+            dismiss()
+          }
+          onPointerDownOutside?.(event)
+        }}
+        onInteractOutside={(event) => {
+          if (dismiss) {
+            event.preventDefault()
+            dismiss()
+          }
+          onInteractOutside?.(event)
+        }}
         {...props}
       >
         {children}

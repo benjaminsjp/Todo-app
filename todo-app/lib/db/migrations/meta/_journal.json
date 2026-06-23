@@ -57,6 +57,20 @@
       "when": 1776866098903,
       "tag": "0007_fixed_spacker_dave",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1776867000000,
+      "tag": "0009_task_assignees",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1776868000000,
+      "tag": "0010_user_notifications",
+      "breakpoints": true
     }
   ]
 }
