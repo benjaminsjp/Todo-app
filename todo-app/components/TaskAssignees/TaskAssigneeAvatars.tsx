@@ -243,7 +243,12 @@ export function TaskAssigneeAvatars({
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-sm" data-no-nav onClick={(e) => e.stopPropagation()}>
+        <DialogContent
+          className="max-w-sm"
+          data-no-nav
+          onClick={(e) => e.stopPropagation()}
+          onOpenAutoFocus={(event) => event.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>Ansvarlige</DialogTitle>
             <DialogDescription>

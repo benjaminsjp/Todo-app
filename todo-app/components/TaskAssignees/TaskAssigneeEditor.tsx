@@ -18,6 +18,8 @@ interface TaskAssigneeEditorProps {
   placeholder?: string
   className?: string
   listClassName?: string
+  /** Rail: søkeliste åpner mot venstre over sidepanel-skillet. */
+  variant?: 'default' | 'rail'
 }
 
 export function TaskAssigneeEditor({
@@ -30,6 +32,7 @@ export function TaskAssigneeEditor({
   placeholder = 'Søk etter medlem…',
   className,
   listClassName,
+  variant = 'default',
 }: TaskAssigneeEditorProps) {
   const [query, setQuery] = React.useState('')
   const [open, setOpen] = React.useState(false)
@@ -112,7 +115,14 @@ export function TaskAssigneeEditor({
         />
 
         {showDropdown && (
-          <div className="absolute top-[calc(100%+0.25rem)] left-0 z-[200] w-full overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-2xl ring-1 ring-foreground/5">
+          <div
+            className={cn(
+              'absolute top-[calc(100%+0.25rem)] z-[200] overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-2xl ring-1 ring-foreground/5',
+              variant === 'rail'
+                ? 'right-0 w-[min(18rem,calc(100vw-2.5rem))]'
+                : 'left-0 w-full',
+            )}
+          >
             <ul className="max-h-48 overflow-y-auto p-1">
               {filteredOptions.length === 0 ? (
                 <li className="px-3 py-2 text-sm text-muted-foreground">

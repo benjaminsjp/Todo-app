@@ -1,6 +1,6 @@
 'use client'
 
-import { CreateTaskDeadline } from '@/components/CreateTask/CreateTaskDeadline'
+import { TaskScheduleFields } from '@/components/CreateTask/TaskScheduleFields'
 import { TaskAssigneeEditor } from '@/components/TaskAssignees/TaskAssigneeEditor'
 import { Label } from '@/components/ui/label'
 import {
@@ -25,10 +25,9 @@ interface TaskQuickEditFormProps {
   disabled?: boolean
   statusDisabled?: boolean
   groupDisabled?: boolean
-  deadlineDisabled?: boolean
+  scheduleDisabled?: boolean
   assigneesDisabled?: boolean
   variant?: 'dialog' | 'sidebar'
-  deadlineName?: string
   isOrgTask?: boolean
 }
 
@@ -43,10 +42,9 @@ export function TaskQuickEditForm({
   disabled = false,
   statusDisabled,
   groupDisabled,
-  deadlineDisabled,
+  scheduleDisabled,
   assigneesDisabled = false,
   variant = 'dialog',
-  deadlineName,
   isOrgTask = false,
 }: TaskQuickEditFormProps) {
   const isSidebar = variant === 'sidebar'
@@ -54,7 +52,7 @@ export function TaskQuickEditForm({
     isOrgTask || assigneeOptions.length > 0 || values.assigneeIds.length > 0
   const statusIsDisabled = statusDisabled ?? disabled
   const groupIsDisabled = groupDisabled ?? disabled
-  const deadlineIsDisabled = deadlineDisabled ?? disabled
+  const scheduleIsDisabled = scheduleDisabled ?? disabled
 
   const statusField = (
     <Select
@@ -95,12 +93,14 @@ export function TaskQuickEditForm({
     </Select>
   )
 
-  const deadlineField = (
-    <CreateTaskDeadline
-      value={values.deadline}
-      onChange={(date) => onChange({ deadline: date })}
-      disabled={deadlineIsDisabled}
-      {...(deadlineName ? { name: deadlineName } : {})}
+  const scheduleField = (
+    <TaskScheduleFields
+      startAt={values.startAt}
+      endAt={values.endAt}
+      onStartChange={(startAt) => onChange({ startAt })}
+      onEndChange={(endAt) => onChange({ endAt })}
+      disabled={scheduleIsDisabled}
+      compact={isSidebar}
     />
   )
 
@@ -127,9 +127,9 @@ export function TaskQuickEditForm({
           </div>
         )}
 
-        <div className="flex items-center">
-          <span className="w-1/2">Frist:</span>
-          <div className="flex-1">{deadlineField}</div>
+        <div className="flex flex-col gap-2">
+          <span className="text-sm font-medium">Tidsrom</span>
+          {scheduleField}
         </div>
 
         <div className="flex items-center">
@@ -159,8 +159,8 @@ export function TaskQuickEditForm({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label>Frist</Label>
-        {deadlineField}
+        <Label>Tidsrom</Label>
+        {scheduleField}
       </div>
 
       {assigneesField && (

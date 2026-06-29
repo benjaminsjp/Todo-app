@@ -8,6 +8,7 @@ import { createTask } from '@/lib/actions/tasks'
 import { CreateTaskEditor } from './CreateTaskEditor'
 import { TaskSidebar } from '../TaskDetails/TaskSidebar'
 import { Button } from '@/components/ui/button'
+import { serializeTaskDateTime } from '@/lib/taskSchedule'
 
 interface Props {
   taskGroups: { id: number; title: string }[]
@@ -18,7 +19,8 @@ interface Props {
 
 export function CreateTaskForm({ taskGroups, assigneeOptions, orgId, orgSlug }: Props) {
   const [description, setDescription] = useState('')
-  const [deadline, setDeadline]       = useState<Date | undefined>()
+  const [startAt, setStartAt]         = useState<Date | undefined>()
+  const [endAt, setEndAt]             = useState<Date | undefined>()
   const [groupId, setGroupId]         = useState<string>('none')
   const [assigneeIds, setAssigneeIds]   = useState<string[]>([])
   const [state, action, isPending]    = useActionState(createTask, null)
@@ -41,8 +43,9 @@ export function CreateTaskForm({ taskGroups, assigneeOptions, orgId, orgSlug }: 
           {orgId   && <input type="hidden" name="orgId"   value={orgId} />}
           {orgSlug && <input type="hidden" name="orgSlug" value={orgSlug} />}
 
-          {/* Pass groupId to action */}
           <input type="hidden" name="groupId" value={groupId === 'none' ? '' : groupId} />
+          <input type="hidden" name="startAt" value={serializeTaskDateTime(startAt) ?? ''} />
+          <input type="hidden" name="endAt" value={serializeTaskDateTime(endAt) ?? ''} />
           {assigneeIds.map((id) => (
             <input key={id} type="hidden" name="assigneeIds" value={id} />
           ))}
@@ -62,8 +65,10 @@ export function CreateTaskForm({ taskGroups, assigneeOptions, orgId, orgSlug }: 
           mode="create"
           groupId={groupId}
           assigneeIds={assigneeIds}
-          deadline={deadline}
-          onDeadlineChange={setDeadline}
+          startAt={startAt}
+          endAt={endAt}
+          onStartChange={setStartAt}
+          onEndChange={setEndAt}
           onGroupChange={setGroupId}
           onAssigneesChange={setAssigneeIds}
           taskGroupOptions={taskGroups.map((g) => ({

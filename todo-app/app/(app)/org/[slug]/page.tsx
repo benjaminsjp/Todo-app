@@ -8,7 +8,7 @@ import { and, eq } from 'drizzle-orm'
 import { getTasksForOrg, getTaskGroupsForOrg, getStatusesForOrg, getOrgAssigneeOptions } from '@/lib/db/queries'
 import { KanbanBoard } from '@/components/Kanban/KanbanBoard'
 import { CreateTaskButton } from '@/components/CreateTask/CreateTaskButton'
-import { Settings } from 'lucide-react'
+import { CalendarDays, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
@@ -47,6 +47,12 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
             
             <div className='mb-6 gap-4 flex items-center'>
                     <CreateTaskButton orgId={org.id} />
+                    <Button variant="secondary" asChild>
+                        <Link href={`/calendar?org=${org.slug}`}>
+                        <CalendarDays className="size-4" />
+                        Kalender
+                        </Link>
+                    </Button>
                     <Button variant="secondary" asChild>
                         <Link href={`/org/${org.slug}/settings`}>
                         <Settings className="size-4" />

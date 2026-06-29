@@ -79,7 +79,8 @@ export async function rollbackTaskToRevision(taskId: number, revisionId: number)
       columns: {
         title: true,
         description: true,
-        deadline: true,
+        startAt: true,
+        endAt:   true,
         statusId: true,
         groupId: true,
         order: true,
@@ -102,11 +103,20 @@ export async function rollbackTaskToRevision(taskId: number, revisionId: number)
         ? [target.assigneeId]
         : []
 
+    const legacyEndAt =
+      target.endAt ??
+      (target.deadline
+        ? typeof target.deadline === 'string'
+          ? new Date(target.deadline.includes('T') ? target.deadline : `${target.deadline}T17:00:00`)
+          : null
+        : null)
+
     const [updated] = await db.update(tasks)
       .set({
         title: target.title ?? current.title,
         description: target.description ?? current.description,
-        deadline: target.deadline ?? current.deadline,
+        startAt: target.startAt ? new Date(target.startAt) : current.startAt,
+        endAt: legacyEndAt ?? current.endAt,
         statusId: target.statusId ?? current.statusId,
         groupId: target.groupId ?? current.groupId,
         order: target.order ?? current.order,
@@ -132,7 +142,8 @@ export async function rollbackTaskToRevision(taskId: number, revisionId: number)
         after: {
           title: updated.title,
           description: updated.description,
-          deadline: updated.deadline,
+          startAt: updated.startAt?.toISOString() ?? null,
+          endAt: updated.endAt?.toISOString() ?? null,
           statusId: updated.statusId,
           groupId: updated.groupId,
           assigneeIds: targetAssigneeIds,

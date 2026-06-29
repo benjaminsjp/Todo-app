@@ -93,7 +93,7 @@ export function TaskQuickEditDialog({
         <DialogHeader>
           <DialogTitle>Rediger oppgave</DialogTitle>
           <DialogDescription>
-            Oppdater status, gruppe, frist eller ansvarlige.
+            Oppdater status, gruppe, tidsrom eller ansvarlige.
           </DialogDescription>
         </DialogHeader>
 

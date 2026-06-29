@@ -94,7 +94,8 @@ async function syncTaskAssignees(taskId: number, userIds: string[]) {
 function snapshotTaskRow(task: {
   title:       string
   description: string | null
-  deadline:    string | null
+  startAt:     Date | null
+  endAt:       Date | null
   statusId:    number | null
   groupId:     number | null
   order:       number
@@ -104,7 +105,8 @@ function snapshotTaskRow(task: {
   return {
     title:       task.title,
     description: task.description,
-    deadline:    task.deadline,
+    startAt:     task.startAt?.toISOString() ?? null,
+    endAt:       task.endAt?.toISOString() ?? null,
     statusId:    task.statusId,
     groupId:     task.groupId,
     assigneeIds: [...assigneeIds].sort(),
@@ -114,7 +116,7 @@ function snapshotTaskRow(task: {
   }
 }
 
-const TRACKED_FIELDS = ['title', 'description', 'deadline', 'statusId', 'groupId', 'assigneeIds'] as const
+const TRACKED_FIELDS = ['title', 'description', 'startAt', 'endAt', 'statusId', 'groupId', 'assigneeIds'] as const
 
 function hasTrackedChanges(
   before: ReturnType<typeof snapshotTaskRow>,
@@ -244,11 +246,17 @@ export async function createTask(
 
     const resolvedAssigneeIds = await resolveAssigneeIds(session.user.id, orgId, assigneeIds)
 
+    const startAtRaw = (formData.get('startAt') as string) || null
+    const endAtRaw = (formData.get('endAt') as string) || null
+    const startAt = startAtRaw ? new Date(startAtRaw) : null
+    const endAt = endAtRaw ? new Date(endAtRaw) : null
+
     const [created] = await db.insert(tasks).values({
       title,
       description: (formData.get('description') as string) || null,
       slug,
-      deadline:    (formData.get('deadline') as string) || null,
+      startAt:     startAt && !Number.isNaN(startAt.getTime()) ? startAt : null,
+      endAt:       endAt && !Number.isNaN(endAt.getTime()) ? endAt : null,
       groupId,
       statusId:    firstStatus?.id ?? null,
       orgId,
@@ -273,7 +281,8 @@ export async function updateTask(
   data: {
     title?:       string
     description?: string
-    deadline?:    string | null
+    startAt?:     string | null
+    endAt?:       string | null
     statusId?:    number | null
     groupId?:     number | null
     assigneeIds?: string[]
@@ -286,8 +295,15 @@ export async function updateTask(
     const { orgId } = await requireCanEditTask(session.user.id, taskId)
     await requireNotLocked(session.user.id, taskId)
 
-    const { assigneeIds, ...taskFields } = data
-    const nextData = { ...taskFields }
+    const { assigneeIds, startAt, endAt, ...taskFields } = data
+    const nextData: Record<string, unknown> = { ...taskFields }
+
+    if (startAt !== undefined) {
+      nextData.startAt = startAt ? new Date(startAt) : null
+    }
+    if (endAt !== undefined) {
+      nextData.endAt = endAt ? new Date(endAt) : null
+    }
     let resolvedAssigneeIds: string[] | undefined
 
     if (assigneeIds !== undefined) {
@@ -299,7 +315,8 @@ export async function updateTask(
       columns: {
         title:       true,
         description: true,
-        deadline:    true,
+        startAt:     true,
+        endAt:       true,
         statusId:    true,
         groupId:     true,
         order:       true,
@@ -312,12 +329,13 @@ export async function updateTask(
     const beforeAssigneeIds = await getTaskAssigneeIds(taskId)
 
     const [afterRow] = await db.update(tasks)
-      .set({ ...nextData, updatedAt: new Date() })
+      .set({ ...nextData, updatedAt: new Date() } as typeof tasks.$inferInsert)
       .where(eq(tasks.id, taskId))
       .returning({
         title:       tasks.title,
         description: tasks.description,
-        deadline:    tasks.deadline,
+        startAt:     tasks.startAt,
+        endAt:       tasks.endAt,
         statusId:    tasks.statusId,
         groupId:     tasks.groupId,
         order:       tasks.order,
@@ -385,7 +403,8 @@ export async function updateTaskStatus(
       columns: {
         title:       true,
         description: true,
-        deadline:    true,
+        startAt:     true,
+        endAt:       true,
         statusId:    true,
         groupId:     true,
         order:       true,
@@ -461,7 +480,8 @@ export async function updateTaskGroup(
       columns: {
         title:       true,
         description: true,
-        deadline:    true,
+        startAt:     true,
+        endAt:       true,
         statusId:    true,
         groupId:     true,
         order:       true,

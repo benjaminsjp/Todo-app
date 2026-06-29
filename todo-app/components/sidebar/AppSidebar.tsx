@@ -37,6 +37,7 @@ import { useOrgRealtime } from "@/lib/hooks/useOrgRealtime"
 import Link from "next/link"
 import { TaskOptionsMenu } from "@/components/Kanban/TaskOptionsMenu"
 import { resolveAssigneeOptionsForTask } from '@/lib/taskAssignees'
+import { formatTaskScheduleLabel } from '@/lib/taskSchedule'
 import { Skeleton } from "@/components/ui/skeleton"
 
 function groupsWithTasks(groups: TaskGroup[], allTasks: Task[]): TaskGroup[] {
@@ -150,9 +151,9 @@ function TaskItem({
         )}
       >
         <span className="font-medium truncate">{task.title}</span>
-        {task.deadline && (
+        {(task.startAt || task.endAt) && (
           <span className="ml-auto text-xs text-muted-foreground shrink-0">
-            {task.deadline}
+            {formatTaskScheduleLabel(task.startAt, task.endAt)}
           </span>
         )}
       </Link>
@@ -394,7 +395,8 @@ function SidebarDndContent({
       statusId: prev.statusId,
       group: prev.group,
       groupId: prev.groupId,
-      deadline: prev.deadline,
+      startAt: prev.startAt,
+      endAt: prev.endAt,
       assignees: prev.assignees,
     })
   }
@@ -511,9 +513,9 @@ function SidebarDndContent({
         {activeTask && (
           <div className="rounded-xl px-4 py-3 text-sm bg-sidebar-accent shadow-lg border border-border opacity-95 flex items-center gap-2">
             <span className="font-medium truncate">{activeTask.title}</span>
-            {activeTask.deadline && (
+            {(activeTask.startAt || activeTask.endAt) && (
               <span className="ml-auto text-xs text-muted-foreground shrink-0">
-                {activeTask.deadline}
+                {formatTaskScheduleLabel(activeTask.startAt, activeTask.endAt)}
               </span>
             )}
           </div>

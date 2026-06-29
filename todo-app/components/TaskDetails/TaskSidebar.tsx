@@ -1,22 +1,31 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { TaskDeleteDialog } from '@/components/Task/TaskDeleteDialog'
-import { TaskQuickEditForm } from '@/components/Task/TaskQuickEditForm'
-import { Button } from '@/components/ui/button'
-import { AssigneeOption, formatDate, Status, TaskGroup, User } from '@/lib/types'
+import { MoreHorizontal, Trash2 } from 'lucide-react'
 import Link from 'next/link'
-import { StatusOption } from '@/lib/types'
 import React from 'react'
+
+import { TaskDeleteDialog } from '@/components/Task/TaskDeleteDialog'
+import { TaskPropertiesRail } from '@/components/TaskDetails/TaskPropertiesRail'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { quickEditValuesFromSidebar } from '@/lib/taskQuickEdit'
 import type { TaskQuickEditValues } from '@/lib/taskQuickEdit'
+import { AssigneeOption, formatDate, Status, TaskGroup, User } from '@/lib/types'
 
 interface TaskSidebarProps {
   mode: 'create' | 'edit' | 'view'
   headerSlot?: React.ReactNode
 
   status?:        string
-  deadline?:      Date | undefined
+  startAt?:       Date | undefined
+  endAt?:         Date | undefined
   groupId?:       string
   assigneeIds?:   string[]
   assignees?:     User[]
@@ -24,14 +33,17 @@ interface TaskSidebarProps {
   updatedAt?:     Date | null
 
   statuses?:         Status[]
-  statusOptions?:    StatusOption[]
-  taskGroupOptions?: StatusOption[]
+  statusOptions?:    { value: string; label: string; color: string }[]
+  taskGroupOptions?: { value: string; label: string; color: string }[]
+
   assigneeOptions?:  AssigneeOption[]
 
   onStatusChange?:    (value: string) => void
-  onDeadlineChange?:  (value: Date | undefined) => void
+  onStartChange?:     (value: Date | undefined) => void
+  onEndChange?:       (value: Date | undefined) => void
   onGroupChange?:     (value: string) => void
   onAssigneesChange?: (value: string[]) => void
+  onScheduleCommit?:  () => void
 
   taskId?: number
 
@@ -49,7 +61,8 @@ export function TaskSidebar({
   mode,
   headerSlot,
   status,
-  deadline,
+  startAt,
+  endAt,
   groupId = 'none',
   assigneeIds = [],
   assignees = [],
@@ -60,9 +73,11 @@ export function TaskSidebar({
   taskGroupOptions = [],
   assigneeOptions = [],
   onStatusChange,
-  onDeadlineChange,
+  onStartChange,
+  onEndChange,
   onGroupChange,
   onAssigneesChange,
+  onScheduleCommit,
   taskId,
   onSave,
   onCancel,
@@ -90,7 +105,8 @@ export function TaskSidebar({
   const quickEditValues = quickEditValuesFromSidebar(
     status,
     groupId,
-    deadline,
+    startAt,
+    endAt,
     assigneeIds,
     statuses,
   )
@@ -101,7 +117,8 @@ export function TaskSidebar({
       if (nextStatus) onStatusChange?.(nextStatus.label)
     }
     if (patch.groupId !== undefined) onGroupChange?.(patch.groupId)
-    if ('deadline' in patch) onDeadlineChange?.(patch.deadline)
+    if ('startAt' in patch) onStartChange?.(patch.startAt)
+    if ('endAt' in patch) onEndChange?.(patch.endAt)
     if (patch.assigneeIds !== undefined) onAssigneesChange?.(patch.assigneeIds)
   }
 
@@ -117,103 +134,102 @@ export function TaskSidebar({
     setDeleteOpen(false)
   }
 
-  return (
-    <div className="flex shrink-0 flex-col gap-4 min-h-0 min-w-sm max-w-lg overflow-y-auto border-l px-8 py-12">
+  const scheduleDisabled =
+    mode === 'create' ? false : !onStartChange && !onEndChange
 
-      <div className="flex gap-3 items-center">
-        {headerSlot}
+  return (
+    <aside className="flex w-72 shrink-0 flex-col gap-5 min-h-0 overflow-x-visible overflow-y-auto border-l px-5 py-8 xl:w-80 xl:px-6">
+
+      <div className="flex items-center gap-2">
         {mode === 'create' && (
-          <>
+          <div className="flex flex-1 flex-wrap gap-2">
             <Button variant="brand" type="submit" disabled={isPending}>
-              {isPending ? 'Oppretter...' : 'Opprett oppgave'}
+              {isPending ? 'Oppretter...' : 'Opprett'}
             </Button>
             {cancelHref && (
-              <Button variant="ghost" type="button" asChild>
-                <Link href={cancelHref}>Tilbake til tavle</Link>
+              <Button variant="ghost" type="button" size="sm" asChild>
+                <Link href={cancelHref}>Avbryt</Link>
               </Button>
             )}
-          </>
+          </div>
         )}
+
         {mode === 'edit' && (
-          <>
-            <Button variant="brand" onClick={onSave} disabled={isSaving}>
-              {isSaving ? 'Lagrer...' : 'Lagre endringer'}
+          <div className="flex flex-1 flex-wrap gap-2">
+            <Button variant="brand" size="sm" onClick={onSave} disabled={isSaving}>
+              {isSaving ? 'Lagrer...' : 'Lagre'}
             </Button>
-            <Button variant="ghost" onClick={onCancel} disabled={isSaving}>
+            <Button variant="ghost" size="sm" onClick={onCancel} disabled={isSaving}>
               Avbryt
             </Button>
-          </>
+          </div>
         )}
+
         {mode === 'view' && (
-          <>
-            <Button variant="secondary" onClick={onSave}>
-              Rediger
-            </Button>
-            <span className="text-sm font-medium text-muted-foreground">
-              Sist redigert: {formatDate(updatedAt)}
-            </span>
-          </>
+          <Button variant="secondary" size="sm" className="mr-auto" onClick={onSave}>
+            Rediger
+          </Button>
         )}
+
+        <div className="ml-auto flex shrink-0 items-center gap-0.5">
+          {headerSlot}
+          {mode !== 'create' && onDeleteTask && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon-sm" title="Flere handlinger">
+                  <MoreHorizontal className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem
+                  variant="destructive"
+                  onSelect={(event) => {
+                    event.preventDefault()
+                    setDeleteOpen(true)
+                  }}
+                >
+                  <Trash2 className="size-4" />
+                  Slett oppgave
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
       </div>
 
-      {mode !== 'create' && createdAt && (
-        <div className="flex items-center">
-          <span className="w-1/2">Opprettet:</span>
-          <p>{formatDate(createdAt)}</p>
-        </div>
+      {mode === 'view' && updatedAt && (
+        <p className="text-xs text-muted-foreground -mt-2">
+          Sist redigert {formatDate(updatedAt)}
+        </p>
       )}
 
-      {mode === 'create' ? (
-        <TaskQuickEditForm
-          variant="sidebar"
-          values={quickEditValues}
-          onChange={handleQuickEditChange}
-          statuses={statuses}
-          taskGroups={taskGroups}
-          assigneeOptions={assigneeOptions}
-          assignees={assignees}
-          taskId={taskId}
-          deadlineName="deadline"
-        />
-      ) : (
-        <TaskQuickEditForm
-          variant="sidebar"
-          values={quickEditValues}
-          onChange={handleQuickEditChange}
-          statuses={statuses}
-          taskGroups={taskGroups}
-          assigneeOptions={assigneeOptions}
-          assignees={assignees}
-          taskId={taskId}
-          statusDisabled={!onStatusChange}
-          deadlineDisabled={!onDeadlineChange}
-          groupDisabled={!onGroupChange}
-          assigneesDisabled={
-            mode === 'edit'
+      <TaskPropertiesRail
+        mode={mode}
+        values={quickEditValues}
+        onChange={handleQuickEditChange}
+        statuses={statuses}
+        taskGroups={taskGroups}
+        assigneeOptions={assigneeOptions}
+        assignees={assignees}
+        taskId={taskId}
+        statusDisabled={mode !== 'create' && !onStatusChange}
+        scheduleDisabled={scheduleDisabled}
+        groupDisabled={mode !== 'create' && !onGroupChange}
+        assigneesDisabled={
+          mode === 'create'
+            ? false
+            : mode === 'edit'
               ? assigneesSaving
               : !onAssigneesChange || assigneesSaving
-          }
-        />
-      )}
+        }
+        isOrgTask={assigneeOptions.length > 1}
+        onScheduleCommit={onScheduleCommit}
+      />
 
-      {mode !== 'create' && onDeleteTask && (
-        <section className="mt-auto flex flex-col gap-3 border-t border-destructive/20 pt-4">
-          <div>
-            <h2 className="text-sm font-medium text-destructive">Faresone</h2>
-            <p className="text-xs text-muted-foreground mt-1">
-              Slett oppgaven permanent. Dette kan ikke angres.
-            </p>
-          </div>
-          <Button
-            type="button"
-            variant="destructive"
-            className="w-full"
-            onClick={() => setDeleteOpen(true)}
-            disabled={isDeleting}
-          >
-            Slett oppgave
-          </Button>
-        </section>
+      {mode !== 'create' && createdAt && (
+        <p className="mt-auto text-xs text-muted-foreground border-t pt-4">
+          Opprettet {formatDate(createdAt)}
+        </p>
       )}
 
       <TaskDeleteDialog
@@ -222,6 +238,6 @@ export function TaskSidebar({
         onConfirm={handleConfirmDelete}
         isDeleting={isDeleting}
       />
-    </div>
+    </aside>
   )
 }

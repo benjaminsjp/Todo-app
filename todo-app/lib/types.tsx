@@ -40,7 +40,8 @@ export type Task = {
   title:       string
   description: string | null
   slug:        string
-  deadline:    string | null
+  startAt:     Date | null
+  endAt:       Date | null
   statusId:    number | null
   groupId:     number | null
   orgId:       number | null

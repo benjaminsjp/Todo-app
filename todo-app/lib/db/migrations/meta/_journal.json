@@ -71,6 +71,13 @@
       "when": 1776868000000,
       "tag": "0010_user_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1776870000000,
+      "tag": "0011_task_schedule",
+      "breakpoints": true
     }
   ]
 }

@@ -7,7 +7,7 @@ export type Task = {
     status: string
     title: string
     description: string
-    deadline: string
+    endAt: string
     createdAt: string
     updatedAt: string
     slug: string
@@ -42,7 +42,7 @@ export const data = {
     {
       id: 1,
       title: "Todo app design",
-      deadline: "10.04.2026",
+      endAt: "2026-04-10T17:00:00.000Z",
       status: "In Progress",
       createdAt: "01.04.2026",
       updatedAt: "05.04.2026",
@@ -70,7 +70,7 @@ export const data = {
     {
       id: 2,
       title: "Todo app functionality",
-      deadline: "20.04.2026",
+      endAt: "2026-04-20T17:00:00.000Z",
       status: "Todo",
       createdAt: "02.04.2026",
       updatedAt: "02.04.2026",
@@ -83,7 +83,7 @@ export const data = {
     {
       id: 3,
       title: "Feriehjemmet Solviken",
-      deadline: "10.04.2026",
+      endAt: "2026-04-10T17:00:00.000Z",
       status: "In Progress",
       createdAt: "01.04.2026",
       updatedAt: "05.04.2026",
@@ -109,7 +109,7 @@ export const data = {
         {
           id: 1,
           title: "Todo app design",
-          deadline: "10.04.2026",
+          endAt: "2026-04-10T17:00:00.000Z",
           status: "In Progress",
           createdAt: "01.04.2026",
           updatedAt: "05.04.2026",
@@ -120,7 +120,7 @@ export const data = {
         {
           id: 2,
           title: "Todo app functionality",
-          deadline: "20.04.2026",
+          endAt: "2026-04-20T17:00:00.000Z",
           status: "Todo",
           createdAt: "02.04.2026",
           updatedAt: "02.04.2026",
@@ -138,7 +138,7 @@ export const data = {
         {
           id: 3,
           title: "Feriehjemmet Solviken",
-          deadline: "10.04.2026",
+          endAt: "2026-04-10T17:00:00.000Z",
           status: "In Progress",
           createdAt: "01.04.2026",
           updatedAt: "05.04.2026",

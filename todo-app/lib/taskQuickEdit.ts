@@ -1,10 +1,12 @@
 import type { AssigneeOption, Status, Task, TaskGroup } from '@/lib/types'
 import { usersFromAssigneeIds } from '@/lib/taskAssignees'
+import { parseTaskDateTime, serializeTaskDateTime } from '@/lib/taskSchedule'
 
 export type TaskQuickEditValues = {
   statusId: string
   groupId: string
-  deadline: Date | undefined
+  startAt: Date | undefined
+  endAt: Date | undefined
   assigneeIds: string[]
 }
 
@@ -19,7 +21,8 @@ export function taskToQuickEditValues(
         ? String(statuses[0].id)
         : 'none',
     groupId: task.groupId ? String(task.groupId) : 'none',
-    deadline: task.deadline ? new Date(task.deadline) : undefined,
+    startAt: parseTaskDateTime(task.startAt),
+    endAt: parseTaskDateTime(task.endAt),
     assigneeIds: (task.assignees ?? []).map((user) => user.id),
   }
 }
@@ -35,7 +38,8 @@ export function quickEditValuesToTaskPatch(
   payload: {
     statusId: number | null
     groupId: number | null
-    deadline: string | null
+    startAt: string | null
+    endAt: string | null
     assigneeIds: string[]
   }
 } {
@@ -51,23 +55,24 @@ export function quickEditValuesToTaskPatch(
       ? null
       : groupById.get(Number(values.groupId)) ?? null
 
+  const startAt = serializeTaskDateTime(values.startAt)
+  const endAt = serializeTaskDateTime(values.endAt)
+
   return {
     patch: {
       status: nextStatus,
       statusId: nextStatus?.id ?? null,
       group: nextGroup,
       groupId: nextGroup?.id ?? null,
-      deadline: values.deadline
-        ? values.deadline.toISOString().split('T')[0]
-        : null,
+      startAt: values.startAt ?? null,
+      endAt: values.endAt ?? null,
       assignees: usersFromAssigneeIds(values.assigneeIds, task.assignees, assigneeOptions),
     },
     payload: {
       statusId: nextStatus?.id ?? null,
       groupId: nextGroup?.id ?? null,
-      deadline: values.deadline
-        ? values.deadline.toISOString().split('T')[0]
-        : null,
+      startAt,
+      endAt,
       assigneeIds: values.assigneeIds,
     },
   }
@@ -76,7 +81,8 @@ export function quickEditValuesToTaskPatch(
 export function quickEditValuesFromSidebar(
   statusLabel: string | undefined,
   groupId: string,
-  deadline: Date | undefined,
+  startAt: Date | undefined,
+  endAt: Date | undefined,
   assigneeIds: string[],
   statuses: Status[],
 ): TaskQuickEditValues {
@@ -88,7 +94,8 @@ export function quickEditValuesFromSidebar(
         ? String(statuses[0].id)
         : 'none',
     groupId,
-    deadline,
+    startAt,
+    endAt,
     assigneeIds,
   }
 }

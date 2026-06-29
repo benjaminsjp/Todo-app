@@ -1,5 +1,6 @@
 'use client'
 
+import { formatTaskScheduleLabel } from '@/lib/taskSchedule'
 import { CalendarClock, MessageCircle } from 'lucide-react'
 import { TaskAssigneeAvatars } from '@/components/TaskAssignees/TaskAssigneeAvatars'
 import { useKanbanOverlayLocked } from '@/components/Kanban/KanbanOverlayLock'
@@ -138,7 +139,7 @@ export function TaskCard({
       <div className="relative z-10 flex items-center justify-between mt-auto cursor-pointer">
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <CalendarClock className="size-3" />
-          {task.deadline ?? 'Ingen frist'}
+          {formatTaskScheduleLabel(task.startAt, task.endAt)}
         </div>
 
         <div className="flex items-center gap-1 text-xs text-muted-foreground ml-auto">

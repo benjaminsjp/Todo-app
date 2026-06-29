@@ -11,6 +11,7 @@ import { getTaskRevisions, rollbackTaskToRevision } from '@/lib/actions/revision
 import { toast } from 'sonner'
 import { History, RotateCcw, ChevronRight } from 'lucide-react'
 import { type Status } from '@/lib/types'
+import { formatTaskDateTime } from '@/lib/taskSchedule'
 
 import { useRouter } from 'next/navigation'
 
@@ -28,6 +29,8 @@ type Revision = {
 const FIELD_LABELS: Record<string, string> = {
   title:       'Tittel',
   description: 'Beskrivelse',
+  startAt:     'Start',
+  endAt:       'Frist',
   deadline:    'Frist',
   statusId:    'Status',
   groupId:     'Gruppe',
@@ -48,6 +51,9 @@ function stripHtml(html: string): string {
 function formatValue(key: string, value: any, statuses: Status[]): string {
   if (value === null || value === undefined) return '–'
   if (key === 'description') return stripHtml(String(value))
+  if (key === 'startAt' || key === 'endAt' || key === 'deadline') {
+    return formatTaskDateTime(value)
+  }
   if (key === 'statusId') {
     const match = statuses.find((s) => s.id === Number(value))
     return match?.label ?? `Status #${value}`

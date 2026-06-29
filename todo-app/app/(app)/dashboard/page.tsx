@@ -55,6 +55,7 @@ export default async function DashboardPage() {
             icon={Calendar}
             description="Få oversikt over kommende frister og hendelser."
             className="md:col-span-2 xl:col-span-1"
+            href="/calendar"
           />
         </div>
       </div>

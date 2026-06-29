@@ -15,6 +15,7 @@ import { TaskSidebar } from "./TaskSidebar"
 import { useOrgRealtime } from "@/lib/hooks/useOrgRealtime"
 import { useTaskPresence } from "@/lib/hooks/useTaskPresence"
 import { TaskRevisionHistory } from "./TaskRevisionHistory"
+import { parseTaskDateTime, serializeTaskDateTime } from '@/lib/taskSchedule'
 import { DEFAULT_STATUS_LABELS } from '@/lib/statusDefaults'
 import { usersFromAssigneeIds } from '@/lib/taskAssignees'
 import { toast } from 'sonner'
@@ -68,6 +69,7 @@ export default function TaskDetails({
   boardHref:        string
 }) {
   const router = useRouter()
+  const contentBoundaryRef = useRef<HTMLDivElement>(null)
   const [isEditing,       setIsEditing]   = useState(false)
   const [isSaving,        setIsSaving]    = useState(false)
   const [error,           setError]       = useState<string | null>(null)
@@ -79,8 +81,11 @@ export default function TaskDetails({
   const [assigneeIds,     setAssigneeIds] = useState((task.assignees ?? []).map((user) => user.id))
   const [liveAssignees,   setLiveAssignees] = useState<User[]>(task.assignees ?? [])
   const [assigneesSaving, setAssigneesSaving] = useState(false)
-  const [deadline,        setDeadline]    = useState<Date | undefined>(
-    task.deadline ? new Date(task.deadline) : undefined
+  const [startAt,         setStartAt]      = useState<Date | undefined>(
+    parseTaskDateTime(task.startAt),
+  )
+  const [endAt,           setEndAt]        = useState<Date | undefined>(
+    parseTaskDateTime(task.endAt),
   )
 
   const descriptionRef = useRef(task.description ?? '')
@@ -187,8 +192,14 @@ export default function TaskDetails({
       if (prev.length === next.length && prev.every((user, index) => user.id === next[index]?.id)) return prev
       return next
     })
-    setDeadline((prev) => {
-      const next = updated.deadline ? new Date(updated.deadline) : undefined
+    setStartAt((prev) => {
+      const next = parseTaskDateTime(updated.startAt)
+      const prevTime = prev?.getTime()
+      const nextTime = next?.getTime()
+      return prevTime === nextTime ? prev : next
+    })
+    setEndAt((prev) => {
+      const next = parseTaskDateTime(updated.endAt)
       const prevTime = prev?.getTime()
       const nextTime = next?.getTime()
       return prevTime === nextTime ? prev : next
@@ -252,7 +263,8 @@ export default function TaskDetails({
       statusId: statusMatch?.id ?? null,
       groupId: assignedGroupId === 'none' ? null : Number(assignedGroupId),
       assigneeIds,
-      deadline: deadline ? deadline.toISOString().split('T')[0] : null,
+      startAt: serializeTaskDateTime(startAt),
+      endAt: serializeTaskDateTime(endAt),
     })
     setIsSaving(false)
     if ('error' in result) { setError(result.error); return }
@@ -279,7 +291,8 @@ export default function TaskDetails({
     setGroupId(task.groupId ? String(task.groupId) : 'none')
     setAssigneeIds((task.assignees ?? []).map((user) => user.id))
     setLiveAssignees(task.assignees ?? [])
-    setDeadline(task.deadline ? new Date(task.deadline) : undefined)
+    setStartAt(parseTaskDateTime(task.startAt))
+    setEndAt(parseTaskDateTime(task.endAt))
     setIsEditing(false)
     setError(null)
     void releaseTaskLock(task.id)
@@ -312,8 +325,12 @@ export default function TaskDetails({
     setGroupId(newGroupId)
   }
 
-  const handleDeadlineChange = (date: Date | undefined) => {
-    setDeadline(date)
+  const handleStartChange = (date: Date | undefined) => {
+    setStartAt(date)
+  }
+
+  const handleEndChange = (date: Date | undefined) => {
+    setEndAt(date)
   }
 
   const handleAssigneesChangeLocal = useCallback((nextAssigneeIds: string[]) => {
@@ -342,6 +359,65 @@ export default function TaskDetails({
     }
 
     router.refresh()
+  }
+
+  const saveMetadataPatch = async (
+    patch: Parameters<typeof updateTask>[1],
+    rollback: () => void,
+  ) => {
+    const result = await updateTask(task.id, patch)
+    if ('error' in result) {
+      toast.error(result.error)
+      rollback()
+      return false
+    }
+    router.refresh()
+    return true
+  }
+
+  const handleStatusChangeView = async (newStatus: string) => {
+    const prev = status
+    setStatus(newStatus)
+    const statusMatch = statuses.find((s) => s.label === newStatus)
+    await saveMetadataPatch(
+      { statusId: statusMatch?.id ?? null },
+      () => setStatus(prev),
+    )
+  }
+
+  const handleGroupChangeView = async (newGroupId: string) => {
+    const prev = assignedGroupId
+    setGroupId(newGroupId)
+    await saveMetadataPatch(
+      { groupId: newGroupId === 'none' ? null : Number(newGroupId) },
+      () => setGroupId(prev),
+    )
+  }
+
+  const handleScheduleCommitView = async () => {
+    const snapshot = {
+      start: parseTaskDateTime(task.startAt),
+      end: parseTaskDateTime(task.endAt),
+    }
+    const prevStart = startAt
+    const prevEnd = endAt
+
+    const startTime = startAt?.getTime()
+    const endTime = endAt?.getTime()
+    const savedStart = snapshot.start?.getTime()
+    const savedEnd = snapshot.end?.getTime()
+    if (startTime === savedStart && endTime === savedEnd) return
+
+    await saveMetadataPatch(
+      {
+        startAt: serializeTaskDateTime(startAt),
+        endAt: serializeTaskDateTime(endAt),
+      },
+      () => {
+        setStartAt(prevStart)
+        setEndAt(prevEnd)
+      },
+    )
   }
 
   const handleDeleteTask = async () => {
@@ -380,7 +456,7 @@ export default function TaskDetails({
       <div className="@container/main container mx-auto flex-1 min-h-0 flex flex-row overflow-hidden">
 
         {/* Hovedinnhold */}
-        <div className="flex flex-1 min-h-0 overflow-y-auto py-12">
+        <div ref={contentBoundaryRef} className="flex flex-1 min-h-0 overflow-y-auto py-12">
           <div className="flex flex-1 flex-col gap-4 max-w-prose px-8 mx-auto">
           {isEditing ? (
             <Badge variant="secondary" className="w-fit">
@@ -402,7 +478,11 @@ export default function TaskDetails({
                 onChange={(e) => setTitle(e.target.value)}
                 className="text-5xl font-medium text-center sm:text-left font-heading bg-transparent border-none outline-none placeholder:text-muted-foreground text-heading-strong mb-6 w-full"
               />
-              <CreateTaskEditor content={description} onChange={setDescription} />
+              <CreateTaskEditor
+                content={description}
+                onChange={setDescription}
+                boundaryRef={contentBoundaryRef}
+              />
             </>
           ) : (
             <>
@@ -445,7 +525,8 @@ export default function TaskDetails({
         <TaskSidebar
           mode={isEditing ? 'edit' : 'view'}
           status={status}
-          deadline={deadline}
+          startAt={startAt}
+          endAt={endAt}
           groupId={assignedGroupId}
           assigneeIds={assigneeIds}
           assignees={liveAssignees}
@@ -455,9 +536,11 @@ export default function TaskDetails({
           statuses={statuses}
           taskGroupOptions={taskGroupOptions}
           assigneeOptions={assigneeOptions}
-          onStatusChange={isEditing ? handleStatusChange : undefined}
-          onDeadlineChange={isEditing ? handleDeadlineChange : undefined}
-          onGroupChange={isEditing ? handleGroupChange : undefined}
+          onStatusChange={isEditing ? handleStatusChange : handleStatusChangeView}
+          onStartChange={isEditing ? handleStartChange : handleStartChange}
+          onEndChange={isEditing ? handleEndChange : handleEndChange}
+          onGroupChange={isEditing ? handleGroupChange : handleGroupChangeView}
+          onScheduleCommit={isEditing ? undefined : handleScheduleCommitView}
           onAssigneesChange={
             isEditing
               ? handleAssigneesChangeLocal

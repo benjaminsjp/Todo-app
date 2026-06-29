@@ -8,24 +8,55 @@ import { TaskList, TaskItem } from '@tiptap/extension-list'
 
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Bold, Italic, Strikethrough, List, ListOrdered, SquareCheck  } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '../ui/skeleton'
 interface CreateTaskEditorProps {
   content?: string
   onChange?: (html: string) => void
+  /** Keeps the selection toolbar inside the main content column. */
+  boundaryRef?: React.RefObject<HTMLElement | null>
 }
 
-interface CreateTaskEditorProps {
-  content?: string
-  onChange?: (html: string) => void
-}
-
-export function CreateTaskEditor({ content = '', onChange }: CreateTaskEditorProps) {
+export function CreateTaskEditor({
+  content = '',
+  onChange,
+  boundaryRef,
+}: CreateTaskEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const toolbarRef   = useRef<HTMLDivElement>(null)
   const [toolbarPos, setToolbarPos] = useState<{ top: number; left: number } | null>(null)
   const [isVisible,  setIsVisible]  = useState(false)
+
+  const updateToolbarPosition = useCallback(() => {
+    const selection = window.getSelection()
+    if (!selection || selection.rangeCount === 0) return
+
+    const range = selection.getRangeAt(0)
+    const rect = range.getBoundingClientRect()
+    const boundary = boundaryRef?.current ?? containerRef.current
+    if (!boundary || rect.width === 0) return
+
+    const boundaryRect = boundary.getBoundingClientRect()
+    const toolbarWidth = toolbarRef.current?.offsetWidth ?? 320
+    const toolbarHeight = toolbarRef.current?.offsetHeight ?? 44
+    const padding = 8
+
+    let left = rect.left + rect.width / 2
+    const half = toolbarWidth / 2
+    left = Math.max(
+      boundaryRect.left + half + padding,
+      Math.min(boundaryRect.right - half - padding, left),
+    )
+
+    let top = rect.top - toolbarHeight - padding
+    if (top < boundaryRect.top + padding) {
+      top = rect.bottom + padding
+    }
+
+    setToolbarPos({ top, left })
+    setIsVisible(true)
+  }, [boundaryRef])
 
   const editor = useEditor({
     extensions: [
@@ -41,26 +72,31 @@ export function CreateTaskEditor({ content = '', onChange }: CreateTaskEditorPro
       },
     },
     onUpdate: ({ editor }) => onChange?.(editor.getHTML()),
-    onSelectionUpdate: ({ editor }) => {
-      const { from, to } = editor.state.selection
-      if (from === to) { setIsVisible(false); return }
-
-      const selection = window.getSelection()
-      if (!selection || selection.rangeCount === 0) return
-
-      const range        = selection.getRangeAt(0)
-      const rect         = range.getBoundingClientRect()
-      const containerRect = containerRef.current?.getBoundingClientRect()
-      if (!containerRect) return
-
-      setToolbarPos({
-        top:  rect.top  - containerRect.top  - 48,
-        left: rect.left - containerRect.left + rect.width / 2,
+    onSelectionUpdate: ({ editor: ed }) => {
+      const { from, to } = ed.state.selection
+      if (from === to) {
+        setIsVisible(false)
+        return
+      }
+      requestAnimationFrame(() => {
+        updateToolbarPosition()
+        requestAnimationFrame(updateToolbarPosition)
       })
-      setIsVisible(true)
     },
     immediatelyRender: false,
   })
+
+  useEffect(() => {
+    if (!isVisible) return
+
+    const handleReposition = () => updateToolbarPosition()
+    window.addEventListener('scroll', handleReposition, true)
+    window.addEventListener('resize', handleReposition)
+    return () => {
+      window.removeEventListener('scroll', handleReposition, true)
+      window.removeEventListener('resize', handleReposition)
+    }
+  }, [isVisible, updateToolbarPosition])
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -111,11 +147,11 @@ export function CreateTaskEditor({ content = '', onChange }: CreateTaskEditorPro
         <div
           ref={toolbarRef}
           style={{
-            position:  'absolute',
+            position:  'fixed',
             top:       toolbarPos.top,
             left:      toolbarPos.left,
             transform: 'translateX(-50%)',
-            zIndex:    50,
+            zIndex:    60,
           }}
           className="flex items-center gap-0.5 rounded-xl border border-border bg-popover px-1 py-1 shadow-lg"
           onMouseDown={(e) => e.preventDefault()}
