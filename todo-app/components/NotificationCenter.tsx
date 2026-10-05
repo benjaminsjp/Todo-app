@@ -302,7 +302,7 @@ export function NotificationCenter() {
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent align="end" className="w-80 p-0">
+      <PopoverContent align="end" className="w-80 overflow-hidden p-0">
         <div className="border-b px-4 py-3 flex items-start justify-between gap-3">
           <div>
             <p className="font-medium">Varsler</p>
@@ -322,7 +322,7 @@ export function NotificationCenter() {
           )}
         </div>
 
-        <div className="max-h-80 overflow-y-auto">
+        <div className="max-h-80 overflow-x-hidden overflow-y-auto">
           {loading && items.length === 0 ? (
             <p className="px-4 py-6 text-sm text-muted-foreground text-center">Laster…</p>
           ) : items.length === 0 ? (
@@ -330,7 +330,7 @@ export function NotificationCenter() {
               Du er helt oppdatert.
             </p>
           ) : (
-            <ul className="divide-y">
+            <ul className="divide-y overflow-hidden">
               {items.map((notification) => (
                 <li
                   key={notification.id}
