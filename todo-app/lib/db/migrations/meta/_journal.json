@@ -78,6 +78,13 @@
       "when": 1776870000000,
       "tag": "0011_task_schedule",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1776880000000,
+      "tag": "0012_deadline_priority",
+      "breakpoints": true
     }
   ]
 }

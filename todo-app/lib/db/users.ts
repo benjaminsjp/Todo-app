@@ -17,8 +17,9 @@ export async function syncUser(authUser: {
     target: users.id,
     set: {
       email:       authUser.email,
-      displayName: authUser.name  ?? null,
-      avatarUrl:   authUser.image ?? null,
+      displayName: authUser.name ?? null,
+      // Keep custom blob avatars; auth profile image is often null and would wipe uploads.
+      ...(authUser.image ? { avatarUrl: authUser.image } : {}),
     },
   })
 }

@@ -63,6 +63,7 @@ export const tasks = pgTable('tasks', {
   slug:        text('slug').notNull(),
   startAt:     timestamp('start_at'),
   endAt:       timestamp('end_at'),
+  deadlinePriority: boolean('deadline_priority').notNull().default(false),
   statusId:    integer('status_id').references(() => statuses.id),
   groupId:     integer('group_id').references(() => taskGroups.id),
   orgId:       integer('org_id').references(() => organizations.id),

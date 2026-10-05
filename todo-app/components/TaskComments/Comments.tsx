@@ -89,41 +89,42 @@ export default function Comments({
             key={comment.id}
             comment={comment}
             currentUserId={currentUserId}
-            canEdit={canEdit}
           />
         ))}
       </div>
 
-      <div className="mt-auto pt-12 pb-12">
-        <form onSubmit={handleSubmit}>
-          <InputGroup className="bg-surface-2 border-border">
-            <div className="px-4 py-3 w-full">
-              <CreateTaskEditor
-                key={editorKey.current}
-                content={content}
-                onChange={setContent}
-                placeholder="Skriv en kommentar..."
-                editorClassName="min-h-24 prose-sm"
-              />
-            </div>
-            <InputGroupAddon align="block-end" className="border-t">
-              {error && (
-                <p className="text-xs text-destructive px-2">{error}</p>
-              )}
-              <Button asChild className="ml-auto">
-                <InputGroupButton
-                  type="submit"
-                  size="sm"
-                  variant="default"
-                  disabled={isPending || !hasCommentEditorContent(content)}
-                >
-                  <MessageCircle /> {isPending ? 'Sender...' : 'Legg til kommentar'}
-                </InputGroupButton>
-              </Button>
-            </InputGroupAddon>
-          </InputGroup>
-        </form>
-      </div>
+      {canEdit && (
+        <div className="mt-auto pt-12 pb-12">
+          <form onSubmit={handleSubmit}>
+            <InputGroup className="bg-surface-2 border-border">
+              <div className="px-4 py-3 w-full">
+                <CreateTaskEditor
+                  key={editorKey.current}
+                  content={content}
+                  onChange={setContent}
+                  placeholder="Skriv en kommentar..."
+                  editorClassName="min-h-24 prose-sm"
+                />
+              </div>
+              <InputGroupAddon align="block-end" className="border-t">
+                {error && (
+                  <p className="text-xs text-destructive px-2">{error}</p>
+                )}
+                <Button asChild className="ml-auto">
+                  <InputGroupButton
+                    type="submit"
+                    size="sm"
+                    variant="default"
+                    disabled={isPending || !hasCommentEditorContent(content)}
+                  >
+                    <MessageCircle /> {isPending ? 'Sender...' : 'Legg til kommentar'}
+                  </InputGroupButton>
+                </Button>
+              </InputGroupAddon>
+            </InputGroup>
+          </form>
+        </div>
+      )}
     </div>
   )
 }

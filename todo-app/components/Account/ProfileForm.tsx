@@ -22,6 +22,10 @@ export function ProfileForm({ displayName, email, avatarUrl, createdAt }: Props)
   const toastId = useRef<string | number | undefined>(undefined)
 
   useEffect(() => {
+    setCurrentAvatarUrl(avatarUrl)
+  }, [avatarUrl])
+
+  useEffect(() => {
     if (isPending) {
       toastId.current = toast.loading('Lagrer endringer...')
     }

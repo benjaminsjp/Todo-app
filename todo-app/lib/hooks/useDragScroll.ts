@@ -41,6 +41,11 @@ export function useDragScroll(
     let isPanning = false
     let didPan = false
 
+    const clearTextSelection = () => {
+      const selection = window.getSelection()
+      if (selection && selection.rangeCount > 0) selection.removeAllRanges()
+    }
+
     const stopPan = (event: PointerEvent) => {
       if (pointerId === null || event.pointerId !== pointerId) return
 
@@ -48,6 +53,7 @@ export function useDragScroll(
         viewport.releasePointerCapture(event.pointerId)
         viewport.classList.remove('cursor-grabbing')
         viewport.classList.add('cursor-grab')
+        clearTextSelection()
       }
 
       pointerId = null
@@ -86,27 +92,39 @@ export function useDragScroll(
         if (Math.abs(deltaX) < PAN_THRESHOLD_PX) return
         isPanning = true
         didPan = true
+        clearTextSelection()
         viewport.setPointerCapture(event.pointerId)
         viewport.classList.add('cursor-grabbing')
         viewport.classList.remove('cursor-grab')
       }
 
       event.preventDefault()
+      clearTextSelection()
       viewport.scrollLeft = startScrollLeft - deltaX
     }
 
-    viewport.classList.add('cursor-grab')
+    const onSelectStart = (event: Event) => {
+      // Block native text selection while a pan gesture is in progress.
+      if (pointerId !== null) {
+        event.preventDefault()
+        clearTextSelection()
+      }
+    }
+
+    viewport.classList.add('cursor-grab', 'select-none')
     viewport.addEventListener('pointerdown', onPointerDown)
     viewport.addEventListener('pointermove', onPointerMove)
     viewport.addEventListener('pointerup', stopPan)
     viewport.addEventListener('pointercancel', stopPan)
+    viewport.addEventListener('selectstart', onSelectStart)
 
     return () => {
-      viewport.classList.remove('cursor-grab', 'cursor-grabbing')
+      viewport.classList.remove('cursor-grab', 'cursor-grabbing', 'select-none')
       viewport.removeEventListener('pointerdown', onPointerDown)
       viewport.removeEventListener('pointermove', onPointerMove)
       viewport.removeEventListener('pointerup', stopPan)
       viewport.removeEventListener('pointercancel', stopPan)
+      viewport.removeEventListener('selectstart', onSelectStart)
     }
   }, [rootRef, enabled])
 }

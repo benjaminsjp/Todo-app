@@ -143,7 +143,9 @@ export function TaskPropertiesRail({
   }, [taskGroups, values.groupId])
 
   const scheduleDisplay = formatTaskScheduleRange(values.startAt, values.endAt)
-  const scheduleHint = formatTaskScheduleLabel(values.startAt, values.endAt)
+  const scheduleHint = values.deadlinePriority
+    ? `${formatTaskScheduleLabel(values.startAt, values.endAt)} · Prioritet`
+    : formatTaskScheduleLabel(values.startAt, values.endAt)
 
   const isView = mode === 'view'
   const isSection = !isView
@@ -214,8 +216,17 @@ export function TaskPropertiesRail({
     <TaskScheduleFields
       startAt={values.startAt}
       endAt={values.endAt}
+      deadlinePriority={values.deadlinePriority}
       onStartChange={(startAt) => onChange({ startAt })}
-      onEndChange={(endAt) => onChange({ endAt })}
+      onEndChange={(endAt) => onChange({
+        endAt,
+        ...(endAt ? {} : { deadlinePriority: false }),
+      })}
+      onDeadlinePriorityChange={
+        scheduleDisabled
+          ? undefined
+          : (deadlinePriority) => onChange({ deadlinePriority })
+      }
       disabled={scheduleDisabled}
       compact
     />

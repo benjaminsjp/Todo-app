@@ -42,6 +42,7 @@ export type Task = {
   slug:        string
   startAt:     Date | null
   endAt:       Date | null
+  deadlinePriority?: boolean
   statusId:    number | null
   groupId:     number | null
   orgId:       number | null

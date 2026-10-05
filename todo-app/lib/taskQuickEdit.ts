@@ -7,6 +7,7 @@ export type TaskQuickEditValues = {
   groupId: string
   startAt: Date | undefined
   endAt: Date | undefined
+  deadlinePriority: boolean
   assigneeIds: string[]
 }
 
@@ -23,6 +24,7 @@ export function taskToQuickEditValues(
     groupId: task.groupId ? String(task.groupId) : 'none',
     startAt: parseTaskDateTime(task.startAt),
     endAt: parseTaskDateTime(task.endAt),
+    deadlinePriority: Boolean(task.deadlinePriority),
     assigneeIds: (task.assignees ?? []).map((user) => user.id),
   }
 }
@@ -40,6 +42,7 @@ export function quickEditValuesToTaskPatch(
     groupId: number | null
     startAt: string | null
     endAt: string | null
+    deadlinePriority: boolean
     assigneeIds: string[]
   }
 } {
@@ -57,6 +60,7 @@ export function quickEditValuesToTaskPatch(
 
   const startAt = serializeTaskDateTime(values.startAt)
   const endAt = serializeTaskDateTime(values.endAt)
+  const deadlinePriority = Boolean(endAt) && values.deadlinePriority
 
   return {
     patch: {
@@ -66,6 +70,7 @@ export function quickEditValuesToTaskPatch(
       groupId: nextGroup?.id ?? null,
       startAt: values.startAt ?? null,
       endAt: values.endAt ?? null,
+      deadlinePriority,
       assignees: usersFromAssigneeIds(values.assigneeIds, task.assignees, assigneeOptions),
     },
     payload: {
@@ -73,6 +78,7 @@ export function quickEditValuesToTaskPatch(
       groupId: nextGroup?.id ?? null,
       startAt,
       endAt,
+      deadlinePriority,
       assigneeIds: values.assigneeIds,
     },
   }
@@ -83,6 +89,7 @@ export function quickEditValuesFromSidebar(
   groupId: string,
   startAt: Date | undefined,
   endAt: Date | undefined,
+  deadlinePriority: boolean,
   assigneeIds: string[],
   statuses: Status[],
 ): TaskQuickEditValues {
@@ -96,6 +103,7 @@ export function quickEditValuesFromSidebar(
     groupId,
     startAt,
     endAt,
+    deadlinePriority: Boolean(endAt) && deadlinePriority,
     assigneeIds,
   }
 }

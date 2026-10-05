@@ -38,8 +38,8 @@ export default async function InvitePage({
       <div className="flex flex-col items-center justify-center min-h-screen gap-4 max-w-sm mx-auto text-center px-4">
         <h1 className="text-2xl font-medium">Feil konto</h1>
         <p className="text-muted-foreground text-sm">
-          Denne invitasjonen ble sendt til <strong>{invite.email}</strong>, men du er innlogget som{' '}
-          <strong>{session.user.email}</strong>.
+          Denne invitasjonen ble sendt til en annen bruker. Logg inn med kontoen
+          som mottok invitasjonen for å fortsette.
         </p>
       </div>
     )

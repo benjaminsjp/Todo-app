@@ -1,5 +1,9 @@
 import { put } from '@vercel/blob'
 import { auth } from '@/lib/auth/server'
+import { db } from '@/lib/db'
+import { users } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
+import { revalidatePath } from 'next/cache'
 import { NextResponse } from 'next/server'
 
 export async function POST(req: Request) {
@@ -28,6 +32,12 @@ export async function POST(req: Request) {
     file,
     { access: 'public' }
   )
+
+  await db.update(users)
+    .set({ avatarUrl: blob.url })
+    .where(eq(users.id, session.user.id))
+
+  revalidatePath('/account')
 
   return NextResponse.json({ url: blob.url })
 }

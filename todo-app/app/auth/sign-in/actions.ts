@@ -1,28 +1,13 @@
 'use server'
 
 import { auth } from '@/lib/auth/server'
-import { db } from '@/lib/db'
-import { statuses } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
-import { seedUserStatuses } from '@/lib/db/userStatuses'
-import { syncUser } from '@/lib/db/users'
+import { ensureUserReady } from '@/lib/auth/ensureUserReady'
 
+/** @deprecated Prefer ensureUserReady in app layout; kept for legacy callers. */
 export async function seedStatusesForCurrentUser() {
   const { data: session } = await auth.getSession()
   if (!session?.user) return { error: 'Ikke innlogget' }
 
-  await syncUser({
-    id:    session.user.id,
-    email: session.user.email,
-    name:  session.user.name,
-    image: session.user.image,
-  })
-
-  const existing = await db.query.statuses.findFirst({
-    where: eq(statuses.userId, session.user.id),
-  })
-  if (existing) return { success: true }
-
-  await seedUserStatuses(session.user.id)
+  await ensureUserReady(session.user)
   return { success: true }
 }

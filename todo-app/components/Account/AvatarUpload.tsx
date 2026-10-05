@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Camera, Loader2 } from 'lucide-react'
@@ -16,13 +16,31 @@ export function AvatarUpload({ currentUrl, displayName, onUpload }: AvatarUpload
   const [preview,   setPreview]   = useState(currentUrl)
   const [isLoading, setIsLoading] = useState(false)
   const [error,     setError]     = useState<string | null>(null)
+  const objectUrlRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    setPreview(currentUrl)
+  }, [currentUrl])
+
+  useEffect(() => {
+    return () => {
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current)
+        objectUrlRef.current = null
+      }
+    }
+  }, [])
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Lokal preview umiddelbart
-    setPreview(URL.createObjectURL(file))
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current)
+    }
+    const localUrl = URL.createObjectURL(file)
+    objectUrlRef.current = localUrl
+    setPreview(localUrl)
     setIsLoading(true)
     setError(null)
 
@@ -39,6 +57,11 @@ export function AvatarUpload({ currentUrl, displayName, onUpload }: AvatarUpload
         return
       }
 
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current)
+        objectUrlRef.current = null
+      }
+      setPreview(data.url)
       onUpload(data.url)
     } catch {
       setError('Noe gikk galt')

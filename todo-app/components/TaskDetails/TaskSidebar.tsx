@@ -26,6 +26,7 @@ interface TaskSidebarProps {
   status?:        string
   startAt?:       Date | undefined
   endAt?:         Date | undefined
+  deadlinePriority?: boolean
   groupId?:       string
   assigneeIds?:   string[]
   assignees?:     User[]
@@ -41,6 +42,7 @@ interface TaskSidebarProps {
   onStatusChange?:    (value: string) => void
   onStartChange?:     (value: Date | undefined) => void
   onEndChange?:       (value: Date | undefined) => void
+  onDeadlinePriorityChange?: (value: boolean) => void
   onGroupChange?:     (value: string) => void
   onAssigneesChange?: (value: string[]) => void
   onScheduleCommit?:  () => void
@@ -63,6 +65,7 @@ export function TaskSidebar({
   status,
   startAt,
   endAt,
+  deadlinePriority = false,
   groupId = 'none',
   assigneeIds = [],
   assignees = [],
@@ -75,6 +78,7 @@ export function TaskSidebar({
   onStatusChange,
   onStartChange,
   onEndChange,
+  onDeadlinePriorityChange,
   onGroupChange,
   onAssigneesChange,
   onScheduleCommit,
@@ -107,6 +111,7 @@ export function TaskSidebar({
     groupId,
     startAt,
     endAt,
+    deadlinePriority,
     assigneeIds,
     statuses,
   )
@@ -119,6 +124,9 @@ export function TaskSidebar({
     if (patch.groupId !== undefined) onGroupChange?.(patch.groupId)
     if ('startAt' in patch) onStartChange?.(patch.startAt)
     if ('endAt' in patch) onEndChange?.(patch.endAt)
+    if ('deadlinePriority' in patch && patch.deadlinePriority !== undefined) {
+      onDeadlinePriorityChange?.(patch.deadlinePriority)
+    }
     if (patch.assigneeIds !== undefined) onAssigneesChange?.(patch.assigneeIds)
   }
 
@@ -135,7 +143,9 @@ export function TaskSidebar({
   }
 
   const scheduleDisabled =
-    mode === 'create' ? false : !onStartChange && !onEndChange
+    mode === 'create'
+      ? false
+      : !onStartChange && !onEndChange && !onDeadlinePriorityChange
 
   return (
     <aside className="flex w-72 shrink-0 flex-col gap-5 min-h-0 overflow-x-visible overflow-y-auto border-l px-5 py-8 xl:w-80 xl:px-6">

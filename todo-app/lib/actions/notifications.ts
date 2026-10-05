@@ -161,3 +161,22 @@ export async function markNotificationRead(notificationId: number) {
     return { error: e instanceof Error ? e.message : 'Noe gikk galt' as const }
   }
 }
+
+export async function markAllNotificationsRead() {
+  try {
+    const { data: session } = await auth.getSession()
+    if (!session?.user) return { error: 'Ikke innlogget' as const }
+
+    await db.update(userNotifications)
+      .set({ readAt: new Date() })
+      .where(and(
+        eq(userNotifications.userId, session.user.id),
+        isNull(userNotifications.readAt),
+      ))
+
+    revalidatePath('/api/notifications')
+    return { success: true as const }
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Noe gikk galt' as const }
+  }
+}

@@ -1,8 +1,9 @@
 import 'server-only'
 import { db } from '@/lib/db'
 import { tasks, taskGroups, statuses, organizationMembers, invitations, comments, users, userNotifications } from '@/lib/db/schema'
-import { eq, isNull, and, gt, inArray, count } from 'drizzle-orm'
+import { eq, isNull, and, gt, inArray, count, isNotNull } from 'drizzle-orm'
 import { normalizeTaskAssignees, TASK_WITH_ASSIGNEES } from '@/lib/taskAssignees'
+import { canEditOrgContent } from '@/lib/orgPermissions'
 
 async function attachCommentCounts<T extends { id: number }>(
   rows: T[],
@@ -31,6 +32,86 @@ export async function getTasksForUser(userId: string) {
     orderBy: (tasks, { asc }) => [asc(tasks.order)],
   })
   return attachCommentCounts(rows.map(normalizeTaskAssignees))
+}
+
+/** Up to `limit` open tasks with a deadline, soonest first (overdue included). */
+export async function getUpcomingDeadlineTasksForUser(userId: string, limit = 5) {
+  const memberships = await db.query.organizationMembers.findMany({
+    where: eq(organizationMembers.userId, userId),
+    columns: { orgId: true, role: true },
+  })
+  const orgIds = memberships.map((m) => m.orgId)
+  const roleByOrgId = new Map(memberships.map((m) => [m.orgId, m.role]))
+
+  const [personalRows, orgRows] = await Promise.all([
+    db.query.tasks.findMany({
+      where: and(
+        eq(tasks.createdBy, userId),
+        isNull(tasks.orgId),
+        isNotNull(tasks.endAt),
+      ),
+      with: {
+        ...TASK_WITH_ASSIGNEES,
+        org: { columns: { slug: true, name: true } },
+      },
+    }),
+    orgIds.length === 0
+      ? Promise.resolve([])
+      : db.query.tasks.findMany({
+          where: and(inArray(tasks.orgId, orgIds), isNotNull(tasks.endAt)),
+          with: {
+            ...TASK_WITH_ASSIGNEES,
+            org: { columns: { slug: true, name: true } },
+          },
+        }),
+  ])
+
+  const relevantOrgRows = orgRows
+    .map(normalizeTaskAssignees)
+    .filter((task) => (task.assignees ?? []).some((user) => user.id === userId))
+
+  const combined = [
+    ...personalRows.map(normalizeTaskAssignees),
+    ...relevantOrgRows,
+  ].filter((task) => {
+    if (!task.endAt) return false
+    // Hide completed columns (default done order is 2).
+    if (task.status?.order === 2) return false
+    return true
+  })
+
+  combined.sort((a, b) => {
+    const aPriority = a.deadlinePriority ? 1 : 0
+    const bPriority = b.deadlinePriority ? 1 : 0
+    if (aPriority !== bPriority) return bPriority - aPriority
+    const aTime = new Date(a.endAt!).getTime()
+    const bTime = new Date(b.endAt!).getTime()
+    return aTime - bTime
+  })
+
+  // Return extra candidates so the client can still fill the widget after personal hides.
+  const candidateLimit = Math.max(limit * 5, 25)
+
+  return combined.slice(0, candidateLimit).map((task) => {
+    const orgId = task.orgId ?? null
+    const canEdit = orgId == null
+      ? true
+      : canEditOrgContent(roleByOrgId.get(orgId))
+
+    return {
+      id:      task.id,
+      title:   task.title,
+      slug:    task.slug,
+      endAt:   task.endAt!,
+      orgSlug: task.org?.slug ?? null,
+      orgName: task.org?.name ?? null,
+      canEdit,
+      deadlinePriority: Boolean(task.deadlinePriority),
+      status:  task.status
+        ? { label: task.status.label, color: task.status.color, icon: task.status.icon }
+        : null,
+    }
+  })
 }
 
 async function attachTaskCounts<T extends { id: number }>(

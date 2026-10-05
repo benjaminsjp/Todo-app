@@ -31,6 +31,7 @@ const FIELD_LABELS: Record<string, string> = {
   description: 'Beskrivelse',
   startAt:     'Start',
   endAt:       'Frist',
+  deadlinePriority: 'Frist-prioritet',
   deadline:    'Frist',
   statusId:    'Status',
   groupId:     'Gruppe',
@@ -53,6 +54,9 @@ function formatValue(key: string, value: any, statuses: Status[]): string {
   if (key === 'description') return stripHtml(String(value))
   if (key === 'startAt' || key === 'endAt' || key === 'deadline') {
     return formatTaskDateTime(value)
+  }
+  if (key === 'deadlinePriority') {
+    return value ? 'På' : 'Av'
   }
   if (key === 'statusId') {
     const match = statuses.find((s) => s.id === Number(value))

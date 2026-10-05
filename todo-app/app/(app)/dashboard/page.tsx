@@ -3,13 +3,13 @@ import { auth } from '@/lib/auth/server'
 import { redirect } from 'next/navigation'
 import { TasksWidget } from '@/components/Dashboard/TasksWidget'
 import { OrgsWidget } from '@/components/Dashboard/OrgsWidget'
-import { PlaceholderWidget } from '@/components/Dashboard/PlaceholderWidget'
-import { NotebookPen, Calendar } from 'lucide-react'
+import { CalendarWidget } from '@/components/Dashboard/CalendarWidget'
 import {
   getTasksForUser,
   getTaskGroupsForUser,
   getStatusesForUser,
   getOrgPreviewsForUser,
+  getUpcomingDeadlineTasksForUser,
 } from '@/lib/db/queries'
 
 export const metadata: Metadata = {
@@ -25,12 +25,15 @@ export default async function DashboardPage() {
 
   const userId = session.user.id
 
-  const [tasks, taskGroups, statuses, orgs] = await Promise.all([
+  const [tasks, taskGroups, statuses, orgs, upcoming] = await Promise.all([
     getTasksForUser(userId),
     getTaskGroupsForUser(userId),
     getStatusesForUser(userId),
     getOrgPreviewsForUser(userId),
+    getUpcomingDeadlineTasksForUser(userId, 5),
   ])
+
+  const calendarHref = orgs[0] ? `/org/${orgs[0].slug}/calendar` : undefined
 
   return (
     <div className="flex flex-1 flex-col">
@@ -45,18 +48,7 @@ export default async function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 auto-rows-fr">
           <TasksWidget tasks={tasks} taskGroups={taskGroups} statuses={statuses} />
           <OrgsWidget orgs={orgs} />
-          <PlaceholderWidget
-            title="Notater"
-            icon={NotebookPen}
-            description="Skriv og organiser notater, ideer og tanker på ett sted."
-          />
-          <PlaceholderWidget
-            title="Kalender"
-            icon={Calendar}
-            description="Få oversikt over kommende frister og hendelser."
-            className="md:col-span-2 xl:col-span-1"
-            href={orgs[0] ? `/org/${orgs[0].slug}/calendar` : undefined}
-          />
+          <CalendarWidget tasks={upcoming} calendarHref={calendarHref} userId={userId} />
         </div>
       </div>
     </div>

@@ -96,6 +96,7 @@ function snapshotTaskRow(task: {
   description: string | null
   startAt:     Date | null
   endAt:       Date | null
+  deadlinePriority?: boolean | null
   statusId:    number | null
   groupId:     number | null
   order:       number
@@ -107,6 +108,7 @@ function snapshotTaskRow(task: {
     description: task.description,
     startAt:     task.startAt?.toISOString() ?? null,
     endAt:       task.endAt?.toISOString() ?? null,
+    deadlinePriority: Boolean(task.deadlinePriority),
     statusId:    task.statusId,
     groupId:     task.groupId,
     assigneeIds: [...assigneeIds].sort(),
@@ -116,7 +118,7 @@ function snapshotTaskRow(task: {
   }
 }
 
-const TRACKED_FIELDS = ['title', 'description', 'startAt', 'endAt', 'statusId', 'groupId', 'assigneeIds'] as const
+const TRACKED_FIELDS = ['title', 'description', 'startAt', 'endAt', 'deadlinePriority', 'statusId', 'groupId', 'assigneeIds'] as const
 
 function hasTrackedChanges(
   before: ReturnType<typeof snapshotTaskRow>,
@@ -260,13 +262,17 @@ export async function createTask(
     const endAtRaw = (formData.get('endAt') as string) || null
     const startAt = startAtRaw ? new Date(startAtRaw) : null
     const endAt = endAtRaw ? new Date(endAtRaw) : null
+    const hasEndAt = Boolean(endAt && !Number.isNaN(endAt.getTime()))
+    const deadlinePriority =
+      hasEndAt && formData.get('deadlinePriority') === 'true'
 
     const [created] = await db.insert(tasks).values({
       title,
       description: (formData.get('description') as string) || null,
       slug,
       startAt:     startAt && !Number.isNaN(startAt.getTime()) ? startAt : null,
-      endAt:       endAt && !Number.isNaN(endAt.getTime()) ? endAt : null,
+      endAt:       hasEndAt ? endAt : null,
+      deadlinePriority,
       groupId,
       statusId:    firstStatus?.id ?? null,
       orgId,
@@ -293,6 +299,7 @@ export async function updateTask(
     description?: string
     startAt?:     string | null
     endAt?:       string | null
+    deadlinePriority?: boolean
     statusId?:    number | null
     groupId?:     number | null
     assigneeIds?: string[]
@@ -305,7 +312,7 @@ export async function updateTask(
     const { orgId } = await requireCanEditTask(session.user.id, taskId)
     await requireNotLocked(session.user.id, taskId)
 
-    const { assigneeIds, startAt, endAt, ...taskFields } = data
+    const { assigneeIds, startAt, endAt, deadlinePriority, ...taskFields } = data
     const nextData: Record<string, unknown> = { ...taskFields }
 
     if (startAt !== undefined) {
@@ -313,7 +320,12 @@ export async function updateTask(
     }
     if (endAt !== undefined) {
       nextData.endAt = endAt ? new Date(endAt) : null
+      if (!endAt) nextData.deadlinePriority = false
     }
+    if (deadlinePriority !== undefined) {
+      nextData.deadlinePriority = deadlinePriority
+    }
+
     let resolvedAssigneeIds: string[] | undefined
 
     if (assigneeIds !== undefined) {
@@ -327,6 +339,7 @@ export async function updateTask(
         description: true,
         startAt:     true,
         endAt:       true,
+        deadlinePriority: true,
         statusId:    true,
         groupId:     true,
         order:       true,
@@ -335,6 +348,15 @@ export async function updateTask(
       },
     })
     if (!beforeRow) return { error: 'Oppgave ikke funnet' }
+
+    // Priority only makes sense with a deadline.
+    if (nextData.deadlinePriority === true) {
+      const effectiveEnd =
+        endAt !== undefined
+          ? (endAt ? new Date(endAt) : null)
+          : beforeRow.endAt
+      if (!effectiveEnd) nextData.deadlinePriority = false
+    }
 
     const beforeAssigneeIds = await getTaskAssigneeIds(taskId)
 
@@ -346,6 +368,7 @@ export async function updateTask(
         description: tasks.description,
         startAt:     tasks.startAt,
         endAt:       tasks.endAt,
+        deadlinePriority: tasks.deadlinePriority,
         statusId:    tasks.statusId,
         groupId:     tasks.groupId,
         order:       tasks.order,

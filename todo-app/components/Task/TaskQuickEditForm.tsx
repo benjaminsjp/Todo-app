@@ -97,8 +97,17 @@ export function TaskQuickEditForm({
     <TaskScheduleFields
       startAt={values.startAt}
       endAt={values.endAt}
+      deadlinePriority={values.deadlinePriority}
       onStartChange={(startAt) => onChange({ startAt })}
-      onEndChange={(endAt) => onChange({ endAt })}
+      onEndChange={(endAt) => onChange({
+        endAt,
+        ...(endAt ? {} : { deadlinePriority: false }),
+      })}
+      onDeadlinePriorityChange={
+        scheduleIsDisabled
+          ? undefined
+          : (deadlinePriority) => onChange({ deadlinePriority })
+      }
       disabled={scheduleIsDisabled}
       compact={isSidebar}
     />

@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { format } from 'date-fns'
 import { nb } from 'date-fns/locale'
-import { Calendar as CalendarIcon, ChevronDownIcon, X } from 'lucide-react'
+import { Calendar as CalendarIcon, ChevronDownIcon, Pin, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -155,8 +155,10 @@ function TaskDateTimeField({
 interface TaskScheduleFieldsProps {
   startAt?: Date
   endAt?: Date
+  deadlinePriority?: boolean
   onStartChange?: (value: Date | undefined) => void
   onEndChange?: (value: Date | undefined) => void
+  onDeadlinePriorityChange?: (value: boolean) => void
   disabled?: boolean
   className?: string
   compact?: boolean
@@ -165,12 +167,22 @@ interface TaskScheduleFieldsProps {
 export function TaskScheduleFields({
   startAt,
   endAt,
+  deadlinePriority = false,
   onStartChange,
   onEndChange,
+  onDeadlinePriorityChange,
   disabled = false,
   className,
   compact = false,
 }: TaskScheduleFieldsProps) {
+  const handleEndChange = (value: Date | undefined) => {
+    onEndChange?.(value)
+    if (!value) onDeadlinePriorityChange?.(false)
+  }
+
+  const priorityDisabled =
+    disabled || !onDeadlinePriorityChange || !endAt
+
   return (
     <div className={cn('flex flex-col', compact ? 'gap-4' : 'gap-3', className)}>
       <TaskDateTimeField
@@ -184,11 +196,34 @@ export function TaskScheduleFields({
       <TaskDateTimeField
         label="Frist"
         value={endAt}
-        onChange={onEndChange ?? (() => {})}
+        onChange={handleEndChange}
         disabled={disabled || !onEndChange}
         defaultTime="17:00"
         compact={compact}
       />
+      {(onDeadlinePriorityChange || deadlinePriority) && (
+        <div className="flex flex-col gap-1.5">
+          <Button
+            type="button"
+            variant={deadlinePriority ? 'default' : 'outline'}
+            size="sm"
+            className={cn(
+              'justify-start gap-2',
+              compact ? 'w-full' : 'w-fit',
+              !endAt && 'opacity-60',
+            )}
+            disabled={priorityDisabled}
+            aria-pressed={deadlinePriority}
+            onClick={() => onDeadlinePriorityChange?.(!deadlinePriority)}
+          >
+            <Pin className={cn('size-3.5', deadlinePriority && 'fill-current')} />
+            {deadlinePriority ? 'Prioritet på' : 'Prioritet'}
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            Prioriterte frister vises øverst på forsiden.
+          </p>
+        </div>
+      )}
     </div>
   )
 }

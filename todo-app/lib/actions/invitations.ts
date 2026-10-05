@@ -171,7 +171,9 @@ export async function acceptInvitation(
 
   if (!invite)                        return { error: 'Ugyldig invitasjon' }
   if (invite.expiresAt < new Date())  return { error: 'Invitasjonen har utløpt' }
-  if (invite.email !== session.user.email) return { error: 'Denne invitasjonen er for en annen e-postadresse' }
+  if (invite.email !== session.user.email) {
+    return { error: 'Denne invitasjonen ble sendt til en annen bruker' }
+  }
 
   await db.insert(organizationMembers).values({
     orgId:  invite.orgId,

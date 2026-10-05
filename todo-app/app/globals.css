@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 @plugin "@tailwindcss/typography";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -37,13 +37,13 @@
   --color-primary-foreground: var(--primary-foreground);
 
   /* =========================
-   ACCENT (UI ONLY — IMPORTANT)
+   ACCENT (UI ONLY â€” IMPORTANT)
    ========================= */
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
 
   /* =========================
-   BRAND (NEW — use manually)
+   BRAND (NEW â€” use manually)
    ========================= */
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
@@ -219,7 +219,7 @@
 
 .dark {
   /* =========================
-   BASE — quiet, near-neutral (Claude-like)
+   BASE â€” quiet, near-neutral (Claude-like)
    ========================= */
   --background: oklch(0.16 0.005 70);
   --foreground: oklch(0.93 0.005 80);
@@ -244,7 +244,7 @@
   --popover-foreground: var(--foreground);
 
   /* =========================
-   PRIMARY (quiet light fill — no warm accent)
+   PRIMARY (quiet light fill â€” no warm accent)
    ========================= */
   --primary: oklch(0.90 0.005 80);
   --primary-hover: oklch(0.94 0.005 80);
@@ -264,7 +264,7 @@
   --accent-foreground: var(--foreground);
 
   /* =========================
-   BRAND (aligned with primary — quiet, no gold)
+   BRAND (aligned with primary â€” quiet, no gold)
    ========================= */
   --brand: oklch(0.90 0.005 80);
   --brand-hover: oklch(0.94 0.005 80);
@@ -492,7 +492,7 @@ ul[data-type="taskList"] li > div > p{
   }
 }
 
-/* Initial state only — avoid snapping visible styles during animation handoff */
+/* Initial state only â€” avoid snapping visible styles during animation handoff */
 [data-task-card]:not([data-animated]) .landing-pill-row-before {
   opacity: 1;
   transform: translateX(0) scale(1);
@@ -612,7 +612,7 @@ ul[data-type="taskList"] li > div > p{
   animation: landing-fade-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Hover lift — keep separate from entrance animations so transform transitions stay smooth */
+/* Hover lift â€” keep separate from entrance animations so transform transitions stay smooth */
 .landing-card-lift {
   transform: translate3d(0, 0, 0);
   transition:
@@ -697,5 +697,54 @@ ul[data-type="taskList"] li > div > p{
     opacity: 0 !important;
     transform: none !important;
     pointer-events: none !important;
+  }
+}
+
+/* Shared list slide animations (calendar + notifications) */
+@keyframes slide-list-enter {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+    max-height: 12rem;
+  }
+}
+
+@keyframes slide-list-exit {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+    max-height: 12rem;
+  }
+  to {
+    opacity: 0;
+    transform: translateX(18px);
+    max-height: 0;
+  }
+}
+
+.slide-list-enter,
+.calendar-deadline-enter {
+  overflow: hidden;
+  animation: slide-list-enter 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.slide-list-exit,
+.calendar-deadline-exit {
+  overflow: hidden;
+  pointer-events: none;
+  animation: slide-list-exit 240ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slide-list-enter,
+  .slide-list-exit,
+  .calendar-deadline-enter,
+  .calendar-deadline-exit {
+    animation: none !important;
   }
 }

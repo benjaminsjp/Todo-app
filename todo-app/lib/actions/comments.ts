@@ -5,6 +5,7 @@ import { comments } from '@/lib/db/schema'
 import { auth } from '@/lib/auth/server'
 import { revalidatePath } from 'next/cache'
 import { eq, and } from 'drizzle-orm'
+import { assertCanMutateTaskContent } from '@/lib/actions/taskAccess'
 
 export async function createComment(
   _prev: { error: string } | { success: true; comment: Awaited<ReturnType<typeof insertComment>> } | null,
@@ -25,6 +26,12 @@ export async function createCommentForTask(
 
     if (!content?.trim()) return { error: 'Kommentar kan ikke være tom' }
     if (!taskId)          return { error: 'Task ID mangler' }
+
+    try {
+      await assertCanMutateTaskContent(session.user.id, taskId)
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : 'Ingen tilgang' }
+    }
 
     const comment = await insertComment(taskId, content.trim(), session.user.id)
     if (!comment) return { error: 'Kunne ikke opprette kommentar' }

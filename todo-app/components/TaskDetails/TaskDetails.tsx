@@ -74,6 +74,7 @@ export default function TaskDetails({
   const [endAt,           setEndAt]        = useState<Date | undefined>(
     parseTaskDateTime(task.endAt),
   )
+  const [deadlinePriority, setDeadlinePriority] = useState(Boolean(task.deadlinePriority))
 
   const descriptionRef = useRef(task.description ?? '')
   const lastSavedDescriptionRef = useRef(task.description ?? '')
@@ -201,6 +202,7 @@ export default function TaskDetails({
       const nextTime = next?.getTime()
       return prevTime === nextTime ? prev : next
     })
+    setDeadlinePriority(Boolean(updated.deadlinePriority))
   }, [task.id, task.orgId, isEditing, orgRealtime.tasks])
 
   useEffect(() => {
@@ -262,6 +264,7 @@ export default function TaskDetails({
       assigneeIds,
       startAt: serializeTaskDateTime(startAt),
       endAt: serializeTaskDateTime(endAt),
+      deadlinePriority: Boolean(endAt) && deadlinePriority,
     })
     setIsSaving(false)
     if ('error' in result) { setError(result.error); return }
@@ -290,6 +293,7 @@ export default function TaskDetails({
     setLiveAssignees(task.assignees ?? [])
     setStartAt(parseTaskDateTime(task.startAt))
     setEndAt(parseTaskDateTime(task.endAt))
+    setDeadlinePriority(Boolean(task.deadlinePriority))
     setIsEditing(false)
     setError(null)
     void releaseTaskLock(task.id)
@@ -329,6 +333,11 @@ export default function TaskDetails({
 
   const handleEndChange = (date: Date | undefined) => {
     setEndAt(date)
+    if (!date) setDeadlinePriority(false)
+  }
+
+  const handleDeadlinePriorityChange = (value: boolean) => {
+    setDeadlinePriority(value)
   }
 
   const handleAssigneesChangeLocal = useCallback((nextAssigneeIds: string[]) => {
@@ -396,24 +405,34 @@ export default function TaskDetails({
     const snapshot = {
       start: parseTaskDateTime(task.startAt),
       end: parseTaskDateTime(task.endAt),
+      priority: Boolean(task.deadlinePriority),
     }
     const prevStart = startAt
     const prevEnd = endAt
+    const prevPriority = deadlinePriority
 
     const startTime = startAt?.getTime()
     const endTime = endAt?.getTime()
     const savedStart = snapshot.start?.getTime()
     const savedEnd = snapshot.end?.getTime()
-    if (startTime === savedStart && endTime === savedEnd) return
+    if (
+      startTime === savedStart &&
+      endTime === savedEnd &&
+      deadlinePriority === snapshot.priority
+    ) {
+      return
+    }
 
     await saveMetadataPatch(
       {
         startAt: serializeTaskDateTime(startAt),
         endAt: serializeTaskDateTime(endAt),
+        deadlinePriority: Boolean(endAt) && deadlinePriority,
       },
       () => {
         setStartAt(prevStart)
         setEndAt(prevEnd)
+        setDeadlinePriority(prevPriority)
       },
     )
   }
@@ -523,6 +542,7 @@ export default function TaskDetails({
           status={status}
           startAt={startAt}
           endAt={endAt}
+          deadlinePriority={deadlinePriority}
           groupId={assignedGroupId}
           assigneeIds={assigneeIds}
           assignees={liveAssignees}
@@ -541,6 +561,13 @@ export default function TaskDetails({
           }
           onStartChange={canEdit ? (isEditing ? handleStartChange : handleStartChange) : undefined}
           onEndChange={canEdit ? (isEditing ? handleEndChange : handleEndChange) : undefined}
+          onDeadlinePriorityChange={
+            canEdit
+              ? isEditing
+                ? handleDeadlinePriorityChange
+                : handleDeadlinePriorityChange
+              : undefined
+          }
           onGroupChange={
             !canEdit
               ? undefined

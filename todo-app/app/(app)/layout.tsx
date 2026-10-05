@@ -8,6 +8,7 @@ import { DemoBannerShell } from "@/components/DemoBannerShell";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { BreadcrumbProvider } from "@/components/Breadcrumbs/BreadcrumbsContext";
 import { auth } from '@/lib/auth/server'
+import { ensureUserReady } from '@/lib/auth/ensureUserReady'
 import { isDemoUser } from '@/lib/demo/config'
 import { redirect } from 'next/navigation'
 
@@ -22,6 +23,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   const { data: session } = await auth.getSession()
   if (!session?.user) redirect('/auth/sign-in')
+
+  await ensureUserReady(session.user)
 
   const showDemoBanner = isDemoUser(session.user)
 

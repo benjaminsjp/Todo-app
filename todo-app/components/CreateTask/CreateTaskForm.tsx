@@ -22,6 +22,7 @@ export function CreateTaskForm({ taskGroups, assigneeOptions, orgId, orgSlug }: 
   const [description, setDescription] = useState('')
   const [startAt, setStartAt]         = useState<Date | undefined>()
   const [endAt, setEndAt]             = useState<Date | undefined>()
+  const [deadlinePriority, setDeadlinePriority] = useState(false)
   const [groupId, setGroupId]         = useState<string>('none')
   const [assigneeIds, setAssigneeIds]   = useState<string[]>([])
   const [state, action, isPending]    = useActionState(createTask, null)
@@ -47,6 +48,7 @@ export function CreateTaskForm({ taskGroups, assigneeOptions, orgId, orgSlug }: 
           <input type="hidden" name="groupId" value={groupId === 'none' ? '' : groupId} />
           <input type="hidden" name="startAt" value={serializeTaskDateTime(startAt) ?? ''} />
           <input type="hidden" name="endAt" value={serializeTaskDateTime(endAt) ?? ''} />
+          <input type="hidden" name="deadlinePriority" value={deadlinePriority ? 'true' : ''} />
           {assigneeIds.map((id) => (
             <input key={id} type="hidden" name="assigneeIds" value={id} />
           ))}
@@ -62,8 +64,13 @@ export function CreateTaskForm({ taskGroups, assigneeOptions, orgId, orgSlug }: 
           assigneeIds={assigneeIds}
           startAt={startAt}
           endAt={endAt}
+          deadlinePriority={deadlinePriority}
           onStartChange={setStartAt}
-          onEndChange={setEndAt}
+          onEndChange={(value) => {
+            setEndAt(value)
+            if (!value) setDeadlinePriority(false)
+          }}
+          onDeadlinePriorityChange={setDeadlinePriority}
           onGroupChange={setGroupId}
           onAssigneesChange={setAssigneeIds}
           taskGroupOptions={taskGroups.map((g) => ({
