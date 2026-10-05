@@ -20,6 +20,8 @@ interface TaskAssigneeSelectedListProps {
   onRemove: (id: string) => void
   taskId?: number
   disabled?: boolean
+  canNotify?: boolean
+  canRemove?: boolean
   className?: string
 }
 
@@ -28,6 +30,8 @@ export function TaskAssigneeSelectedList({
   onRemove,
   taskId,
   disabled = false,
+  canNotify = true,
+  canRemove = true,
   className,
 }: TaskAssigneeSelectedListProps) {
   const [notifyingId, setNotifyingId] = useState<string | null>(null)
@@ -66,28 +70,32 @@ export function TaskAssigneeSelectedList({
             <AvatarFallback>{assigneeInitials(member.label)}</AvatarFallback>
           </Avatar>
           <span className="min-w-0 flex-1 truncate text-sm">{member.label}</span>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            className="shrink-0 text-muted-foreground hover:text-foreground"
-            disabled={disabled || notifyingId === member.id}
-            aria-label={`Varsle ${member.label}`}
-            onClick={() => void handleNotify(member)}
-          >
-            <Bell className="size-3.5" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            className="shrink-0 text-muted-foreground hover:text-destructive"
-            disabled={disabled}
-            aria-label={`Fjern ${member.label}`}
-            onClick={() => onRemove(member.id)}
-          >
-            <X className="size-3.5" />
-          </Button>
+          {canNotify && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              className="shrink-0 text-muted-foreground hover:text-foreground"
+              disabled={disabled || notifyingId === member.id}
+              aria-label={`Varsle ${member.label}`}
+              onClick={() => void handleNotify(member)}
+            >
+              <Bell className="size-3.5" />
+            </Button>
+          )}
+          {canRemove && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              className="shrink-0 text-muted-foreground hover:text-destructive"
+              disabled={disabled}
+              aria-label={`Fjern ${member.label}`}
+              onClick={() => onRemove(member.id)}
+            >
+              <X className="size-3.5" />
+            </Button>
+          )}
         </li>
       ))}
     </ul>

@@ -5,6 +5,7 @@ import { db } from '@/lib/db'
 import { users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import TaskDetails from '@/components/TaskDetails/TaskDetails'
+import { SetBreadcrumbLabel } from '@/components/Breadcrumbs/SetBreadcrumbLabel'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,16 +35,19 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   }))
 
   return (
-    <TaskDetails
-      task={task}
-      taskGroup={task.group?.title}
-      taskGroupOptions={taskGroupOptions}
-      statusOptions={statusOptions}
-      statuses={statuses}
-      assigneeOptions={assigneeOptions}
-      currentUserId={session.user.id}
-      currentUser={currentUser}
-      boardHref="/tasks"
-    />
+    <>
+      <SetBreadcrumbLabel segment={slug} label={task.title} />
+      <TaskDetails
+        task={task}
+        taskGroup={task.group?.title}
+        taskGroupOptions={taskGroupOptions}
+        statusOptions={statusOptions}
+        statuses={statuses}
+        assigneeOptions={assigneeOptions}
+        currentUserId={session.user.id}
+        currentUser={currentUser}
+        boardHref="/tasks"
+      />
+    </>
   )
 }

@@ -234,6 +234,16 @@ export async function createTask(
       .map((value) => String(value))
       .filter(Boolean)
 
+    if (orgId) {
+      const membership = await db.query.organizationMembers.findFirst({
+        where: and(eq(organizationMembers.orgId, orgId), eq(organizationMembers.userId, session.user.id)),
+        columns: { role: true },
+      })
+      if (!membership || membership.role === 'viewer') {
+        return { error: 'Ingen tilgang' }
+      }
+    }
+
     slug    = await generateUniqueSlug(baseSlug, orgId)
     orgSlug = (formData.get('orgSlug') as string) ?? ''
 

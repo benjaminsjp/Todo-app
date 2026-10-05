@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { createTask } from '@/lib/actions/tasks'
 import { CreateTaskEditor } from './CreateTaskEditor'
+import { TaskTitleField } from '@/components/Task/TaskTitleField'
 import { TaskSidebar } from '../TaskDetails/TaskSidebar'
 import { Button } from '@/components/ui/button'
 import { serializeTaskDateTime } from '@/lib/taskSchedule'
@@ -51,13 +52,7 @@ export function CreateTaskForm({ taskGroups, assigneeOptions, orgId, orgSlug }: 
           ))}
           <input type="hidden" name="description" value={description} />
 
-          <input
-            name="title"
-            required
-            autoFocus
-            placeholder="Oppgavetittel..."
-            className="text-5xl font-medium text-center sm:text-left font-heading bg-transparent border-none outline-none placeholder:text-muted-foreground text-heading-strong mb-6 w-full"
-          />
+          <TaskTitleField name="title" required autoFocus />
           <CreateTaskEditor content={description} onChange={setDescription} />
         </div>
 

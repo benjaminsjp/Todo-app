@@ -58,6 +58,7 @@ export type Task = {
 
 export type Org = {
   id: number; name: string; slug: string
+  role?: string
   tasks?: Task[]; groups?: TaskGroup[]
   statuses?: Status[]
 }
@@ -75,6 +76,7 @@ export function formatDate(date: Date | null | undefined): string {
 export function mapComments(comments: Comment[] = []) {
   return comments.map((c) => ({
     id:                   c.id,
+    userId:               c.userId,
     content:              c.content,
     createdAt:            formatDate(c.createdAt),
     author:               c.user?.displayName ?? c.user?.email ?? 'Ukjent',

@@ -22,6 +22,7 @@ interface TaskWeekCalendarProps {
   days: Date[]
   tasks: Task[]
   orgSlug: string
+  canEdit?: boolean
 }
 
 const LANE_HEIGHT = 28
@@ -33,12 +34,14 @@ const HOURS = getCalendarHours()
 function SpanBar({
   task,
   orgSlug,
+  canEdit = true,
   startCol,
   span,
   lane,
 }: {
   task: Task
   orgSlug: string
+  canEdit?: boolean
   startCol: number
   span: number
   lane: number
@@ -49,6 +52,7 @@ function SpanBar({
     <CalendarTaskHoverCard
       task={task}
       orgSlug={orgSlug}
+      canEdit={canEdit}
       style={{
         gridColumn: `${startCol + 1} / span ${span}`,
         gridRow: lane + 1,
@@ -71,9 +75,11 @@ function SpanBar({
 function TimedBlock({
   block,
   orgSlug,
+  canEdit = true,
 }: {
   block: TimedTaskBlock
   orgSlug: string
+  canEdit?: boolean
 }) {
   const timeLabel = formatCalendarTaskTime(block.task)
   const widthPercent = 100 / block.laneCount
@@ -83,6 +89,7 @@ function TimedBlock({
     <CalendarTaskHoverCard
       task={block.task}
       orgSlug={orgSlug}
+      canEdit={canEdit}
       style={{
         top: block.top,
         height: block.height,
@@ -108,6 +115,7 @@ export function TaskWeekCalendar({
   days,
   tasks,
   orgSlug,
+  canEdit = true,
 }: TaskWeekCalendarProps) {
   const { multiDayLanes, timedBlocks } = splitWeekTasksForTimeGrid(tasks, days)
   const laneCount = multiDayLanes.reduce((max, entry) => Math.max(max, entry.lane + 1), 0)
@@ -187,7 +195,7 @@ export function TaskWeekCalendar({
                 <SpanBar
                   key={entry.task.id}
                   task={entry.task}
-                  orgSlug={orgSlug}
+                  orgSlug={orgSlug} canEdit={canEdit}
                   startCol={entry.startCol}
                   span={entry.span}
                   lane={entry.lane}
@@ -239,7 +247,7 @@ export function TaskWeekCalendar({
               <TimedBlock
                 key={`${block.task.id}-${block.col}`}
                 block={block}
-                orgSlug={orgSlug}
+                orgSlug={orgSlug} canEdit={canEdit}
               />
             ))}
           </div>

@@ -8,6 +8,7 @@ import { Pencil, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { AssigneeOption, StatusOption } from "@/lib/types"
 import Comments from "@/components/TaskComments/Comments"
+import { TaskTitleField } from "@/components/Task/TaskTitleField"
 import { CreateTaskEditor } from "@/components/CreateTask/CreateTaskEditor"
 import { acquireTaskLock, releaseTaskLock, updateTask, deleteTask } from "@/lib/actions/tasks"
 import { type Task, mapComments, Status, type Comment, type User } from "@/lib/types"
@@ -19,25 +20,9 @@ import { parseTaskDateTime, serializeTaskDateTime } from '@/lib/taskSchedule'
 import { DEFAULT_STATUS_LABELS } from '@/lib/statusDefaults'
 import { usersFromAssigneeIds } from '@/lib/taskAssignees'
 import { toast } from 'sonner'
+import { toggleTaskListCheckbox } from '@/lib/tiptapTaskListHtml'
 
 const CHECKBOX_SAVE_DEBOUNCE_MS = 450
-
-function toggleTaskListCheckbox(html: string, checkboxIndex: number): string | null {
-  const parser = new DOMParser()
-  const doc = parser.parseFromString(html, 'text/html')
-  const docBoxes = Array.from(doc.querySelectorAll('ul[data-type="taskList"] input[type="checkbox"]'))
-  const docInput = docBoxes[checkboxIndex] as HTMLInputElement | undefined
-  if (!docInput) return null
-
-  const docLi = docInput.closest('li')
-  const nextChecked = docLi?.getAttribute('data-checked') !== 'true'
-  if (docLi) docLi.setAttribute('data-checked', nextChecked ? 'true' : 'false')
-  docInput.checked = nextChecked
-  if (nextChecked) docInput.setAttribute('checked', '')
-  else docInput.removeAttribute('checked')
-
-  return doc.body.innerHTML
-}
 
 function commentsEqual(a: Comment[], b: Comment[]): boolean {
   if (a.length !== b.length) return false
@@ -57,6 +42,7 @@ export default function TaskDetails({
   currentUserId,
   currentUser,
   boardHref,
+  canEdit = true,
 }: {
   task:             Task
   taskGroup:        string | undefined
@@ -67,6 +53,7 @@ export default function TaskDetails({
   currentUserId?:   string
   currentUser?:     User | null
   boardHref:        string
+  canEdit?:         boolean
 }) {
   const router = useRouter()
   const contentBoundaryRef = useRef<HTMLDivElement>(null)
@@ -101,6 +88,14 @@ export default function TaskDetails({
   useEffect(() => {
     setLiveAssignees(task.assignees ?? [])
   }, [task.assignees])
+
+  useEffect(() => {
+    if (task.comments === undefined) return
+    setLiveComments((prev) => {
+      const next = task.comments ?? []
+      return commentsEqual(prev, next) ? prev : next
+    })
+  }, [task.comments])
 
   useTaskPresence({
     orgId: task.orgId,
@@ -174,7 +169,9 @@ export default function TaskDetails({
       }
     }
     setLiveComments((prev) => {
-      const next = updated.comments ?? []
+      // Org realtime tasks omit comments (only commentCount) — do not wipe the list.
+      if (updated.comments === undefined) return prev
+      const next = updated.comments
       return commentsEqual(prev, next) ? prev : next
     })
     setStatus((prev) => (prev === (updated.status?.label ?? DEFAULT_STATUS_LABELS.todo) ? prev : updated.status?.label ?? DEFAULT_STATUS_LABELS.todo))
@@ -218,7 +215,7 @@ export default function TaskDetails({
 
   const handleDescriptionClick = (e: React.MouseEvent<HTMLDivElement>) => {
     // Allow checking/unchecking task list items without entering "edit" mode.
-    if (isEditing) return
+    if (!canEdit || isEditing) return
     const target = e.target as HTMLElement | null
     if (!target) return
 
@@ -299,6 +296,7 @@ export default function TaskDetails({
   }
 
   const handleStartEditing = async () => {
+    if (!canEdit) return
     setError(null)
     if (checkboxSaveTimerRef.current) {
       clearTimeout(checkboxSaveTimerRef.current)
@@ -473,11 +471,7 @@ export default function TaskDetails({
           )}
           {isEditing ? (
             <>
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="text-5xl font-medium text-center sm:text-left font-heading bg-transparent border-none outline-none placeholder:text-muted-foreground text-heading-strong mb-6 w-full"
-              />
+              <TaskTitleField value={title} onChange={setTitle} />
               <CreateTaskEditor
                 content={description}
                 onChange={setDescription}
@@ -491,7 +485,7 @@ export default function TaskDetails({
                   Denne oppgaven redigeres av {editingUsers.map((u) => u.user?.displayName ?? u.user?.email ?? 'Noen').join(', ')}.
                 </div>
               )}
-              <h1 className="text-5xl font-medium text-center sm:text-left font-heading text-heading-strong mb-6">
+              <h1 className="text-5xl font-medium text-center sm:text-left font-heading text-heading-strong mb-6 leading-snug whitespace-pre-wrap wrap-break-word">
                 {title}
               </h1>
               {description ? (
@@ -506,6 +500,8 @@ export default function TaskDetails({
               <Comments
                 taskId={task.id}
                 comments={mapComments(liveComments)}
+                currentUserId={currentUserId}
+                canEdit={canEdit}
                 onOptimisticAdd={handleOptimisticCommentAdd}
                 onOptimisticRemove={handleOptimisticCommentRemove}
                 onCommentSaved={handleCommentSaved}
@@ -523,7 +519,7 @@ export default function TaskDetails({
 
         {/* Sidebar */}
         <TaskSidebar
-          mode={isEditing ? 'edit' : 'view'}
+          mode={isEditing && canEdit ? 'edit' : 'view'}
           status={status}
           startAt={startAt}
           endAt={endAt}
@@ -536,25 +532,47 @@ export default function TaskDetails({
           statuses={statuses}
           taskGroupOptions={taskGroupOptions}
           assigneeOptions={assigneeOptions}
-          onStatusChange={isEditing ? handleStatusChange : handleStatusChangeView}
-          onStartChange={isEditing ? handleStartChange : handleStartChange}
-          onEndChange={isEditing ? handleEndChange : handleEndChange}
-          onGroupChange={isEditing ? handleGroupChange : handleGroupChangeView}
-          onScheduleCommit={isEditing ? undefined : handleScheduleCommitView}
+          onStatusChange={
+            !canEdit
+              ? undefined
+              : isEditing
+                ? handleStatusChange
+                : handleStatusChangeView
+          }
+          onStartChange={canEdit ? (isEditing ? handleStartChange : handleStartChange) : undefined}
+          onEndChange={canEdit ? (isEditing ? handleEndChange : handleEndChange) : undefined}
+          onGroupChange={
+            !canEdit
+              ? undefined
+              : isEditing
+                ? handleGroupChange
+                : handleGroupChangeView
+          }
+          onScheduleCommit={
+            !canEdit || isEditing ? undefined : handleScheduleCommitView
+          }
           onAssigneesChange={
-            isEditing
-              ? handleAssigneesChangeLocal
-              : assigneeOptions.length > 0
-                ? handleAssigneesChange
-                : undefined
+            !canEdit
+              ? undefined
+              : isEditing
+                ? handleAssigneesChangeLocal
+                : assigneeOptions.length > 0
+                  ? handleAssigneesChange
+                  : undefined
           }
           assigneesSaving={assigneesSaving}
           taskId={task.id}
-          onSave={isEditing ? handleSave : handleStartEditing}
+          onSave={canEdit ? (isEditing ? handleSave : handleStartEditing) : undefined}
           onCancel={handleCancel}
-          onDeleteTask={handleDeleteTask}
+          onDeleteTask={canEdit ? handleDeleteTask : undefined}
           isSaving={isSaving}
-          headerSlot={<TaskRevisionHistory taskId={task.id} statuses={statuses} />}
+          headerSlot={
+            <TaskRevisionHistory
+              taskId={task.id}
+              statuses={statuses}
+              canEdit={canEdit}
+            />
+          }
         />
       </div>
     </div>

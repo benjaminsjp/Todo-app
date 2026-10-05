@@ -6,6 +6,8 @@ import { getOrgAssigneeOptions, getStatusesForOrg } from '@/lib/db/queries'
 import { normalizeTaskAssignees, TASK_WITH_ASSIGNEES } from '@/lib/taskAssignees'
 import { and, eq } from 'drizzle-orm'
 import TaskDetails from '@/components/TaskDetails/TaskDetails'
+import { SetBreadcrumbLabel } from '@/components/Breadcrumbs/SetBreadcrumbLabel'
+import { canEditOrgContent } from '@/lib/orgPermissions'
 export const dynamic = 'force-dynamic'
 
 export default async function OrgTaskPage({
@@ -30,6 +32,8 @@ export default async function OrgTaskPage({
     ),
   })
   if (!membership) redirect('/tasks')
+
+  const canEdit = canEditOrgContent(membership.role)
 
   const taskRow = await db.query.tasks.findFirst({
     where: and(eq(tasks.slug, taskSlug), eq(tasks.orgId, org.id)),
@@ -70,16 +74,21 @@ export default async function OrgTaskPage({
 
 
   return (
-    <TaskDetails
-      task={task}
-      taskGroup={taskGroup}
-      taskGroupOptions={taskGroupOptions}
-      statusOptions={statusOptions}
-      statuses={statuses}
-      assigneeOptions={assigneeOptions}
-      currentUserId={session.user.id}
-      currentUser={currentUser}
-      boardHref={`/org/${slug}`}
-    />
+    <>
+      <SetBreadcrumbLabel segment={slug} label={org.name} />
+      <SetBreadcrumbLabel segment={taskSlug} label={task.title} />
+      <TaskDetails
+        task={task}
+        taskGroup={taskGroup}
+        taskGroupOptions={taskGroupOptions}
+        statusOptions={statusOptions}
+        statuses={statuses}
+        assigneeOptions={assigneeOptions}
+        currentUserId={session.user.id}
+        currentUser={currentUser}
+        boardHref={`/org/${slug}`}
+        canEdit={canEdit}
+      />
+    </>
   )
 }

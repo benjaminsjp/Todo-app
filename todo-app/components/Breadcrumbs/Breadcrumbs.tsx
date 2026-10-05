@@ -13,10 +13,31 @@ import { usePathname } from 'next/navigation';
 import React from 'react';
 import { useBreadcrumbLabels } from './BreadcrumbsContext';
 
+const NORWEGIAN_SEGMENT_LABELS: Record<string, string> = {
+  org: 'Organisasjoner',
+  tasks: 'Oppgaver',
+  calendar: 'Kalender',
+  settings: 'Innstillinger',
+  account: 'Konto',
+  'create-task': 'Ny oppgave',
+  dashboard: 'Oversikt',
+};
+
 function formatSegment(segment: string): string {
   return segment
     .replace(/-/g, ' ')
     .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function labelForSegment(
+  segment: string,
+  labels: Record<string, string>,
+): string {
+  return (
+    labels[segment] ??
+    NORWEGIAN_SEGMENT_LABELS[segment] ??
+    formatSegment(decodeURIComponent(segment))
+  );
 }
 
 export function AppBreadcrumbs() {
@@ -33,8 +54,10 @@ export function AppBreadcrumbs() {
       const href = '/' + segments.slice(0, index + 1).join('/');
       if (href === rootHref) return;
 
-      const label = labels[segment] ?? formatSegment(decodeURIComponent(segment));
-      crumbs.push({ href, label });
+      crumbs.push({
+        href,
+        label: labelForSegment(segment, labels),
+      });
     });
 
     return crumbs;

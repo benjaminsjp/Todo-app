@@ -166,6 +166,7 @@ export async function getOrgListForUser(userId: string) {
     id:   m.org.id,
     name: m.org.name,
     slug: m.org.slug,
+    role: m.role,
   }))
 }
 

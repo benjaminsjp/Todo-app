@@ -8,6 +8,8 @@ import { and, eq } from 'drizzle-orm'
 import { getTasksForOrg, getTaskGroupsForOrg, getStatusesForOrg, getOrgAssigneeOptions } from '@/lib/db/queries'
 import { KanbanBoard } from '@/components/Kanban/KanbanBoard'
 import { CreateTaskButton } from '@/components/CreateTask/CreateTaskButton'
+import { SetBreadcrumbLabel } from '@/components/Breadcrumbs/SetBreadcrumbLabel'
+import { canEditOrgContent } from '@/lib/orgPermissions'
 import { CalendarDays, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -34,6 +36,8 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
     })
     if (!membership) redirect('/tasks')
 
+    const canEdit = canEditOrgContent(membership.role)
+
     const [tasks, taskGroups, statuses, assigneeOptions] = await Promise.all([
     getTasksForOrg(org.id),
     getTaskGroupsForOrg(org.id),
@@ -43,12 +47,13 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
 
     return (
         <div className="flex flex-1 flex-col">
+        <SetBreadcrumbLabel segment={slug} label={org.name} />
         <div className="container mx-auto flex-1 flex flex-col px-8 py-12">
             
             <div className='mb-6 gap-4 flex items-center'>
-                    <CreateTaskButton orgId={org.id} />
+                    {canEdit && <CreateTaskButton orgId={org.id} />}
                     <Button variant="secondary" asChild>
-                        <Link href={`/calendar?org=${org.slug}`}>
+                        <Link href={`/org/${org.slug}/calendar`}>
                         <CalendarDays className="size-4" />
                         Kalender
                         </Link>
@@ -76,6 +81,7 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
               orgSlug={org.slug}
               orgId={org.id}
               userId={session.user.id}
+              canEdit={canEdit}
             />
         </div>
         </div>

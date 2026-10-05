@@ -19,6 +19,7 @@ interface TaskCardProps {
   statuses?: Status[]
   taskGroups?: TaskGroup[]
   assigneeOptions?: AssigneeOption[]
+  canEdit?: boolean
   onOptimisticPatch?: (taskId: number, patch: Partial<Task>) => void
   onOptimisticRollback?: (taskId: number, prev: Task) => void
 }
@@ -75,6 +76,7 @@ export function TaskCard({
   statuses = [],
   taskGroups = [],
   assigneeOptions = [],
+  canEdit = true,
   onOptimisticPatch,
   onOptimisticRollback,
 }: TaskCardProps) {
@@ -99,13 +101,14 @@ export function TaskCard({
           <TaskAssigneeAvatars
             task={task}
             assigneeOptions={assigneeOptions}
+            canEdit={canEdit}
             onOptimisticPatch={onOptimisticPatch}
             onOptimisticRollback={onOptimisticRollback}
             className="min-w-0 flex-1"
           />
           <div className="ml-auto flex items-center gap-2 shrink-0">
             {others.length > 0 && <PresenceDot others={others} />}
-            {statuses.length > 0 && (
+            {canEdit && statuses.length > 0 && (
               <TaskOptionsMenu
                 task={task}
                 statuses={statuses}

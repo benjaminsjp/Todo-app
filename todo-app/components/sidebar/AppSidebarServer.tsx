@@ -51,11 +51,12 @@ export async function AppSidebarServer() {
             id:       org.id,
             name:     org.name,
             slug:     org.slug,
+            role:     org.role,
             tasks:    activeOrgNav.tasks,
             groups:   activeOrgNav.groups,
             statuses: activeOrgNav.statuses,
           }
-        : { id: org.id, name: org.name, slug: org.slug },
+        : { id: org.id, name: org.name, slug: org.slug, role: org.role },
     )
 
     return (

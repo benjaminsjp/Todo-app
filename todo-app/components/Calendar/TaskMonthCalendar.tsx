@@ -20,6 +20,7 @@ interface TaskMonthCalendarProps {
   weeks: MonthCalendarWeek[]
   tasks: Task[]
   orgSlug: string
+  canEdit?: boolean
 }
 
 const WEEKDAY_LABELS = ['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn']
@@ -62,12 +63,14 @@ function MonthSpanLaneRow({
   monthAnchor,
   entries,
   orgSlug,
+  canEdit = true,
   gridRow,
 }: {
   week: MonthCalendarWeek
   monthAnchor: Date
   entries: WeekTaskLane[]
   orgSlug: string
+  canEdit?: boolean
   gridRow: number
 }) {
   return (
@@ -91,6 +94,7 @@ function MonthSpanLaneRow({
           key={`${entry.task.id}-${week.weekIndex}`}
           task={entry.task}
           orgSlug={orgSlug}
+          canEdit={canEdit}
           style={{
             gridColumn: `${entry.startCol + 1} / span ${entry.span}`,
             gridRow: 1,
@@ -125,9 +129,11 @@ function MonthSpanLaneRow({
 function MonthSingleDayTasks({
   tasks,
   orgSlug,
+  canEdit = true,
 }: {
   tasks: Task[]
   orgSlug: string
+  canEdit?: boolean
 }) {
   const visible = tasks.slice(0, MAX_VISIBLE_TASKS)
   const overflow = tasks.length - visible.length
@@ -141,6 +147,7 @@ function MonthSingleDayTasks({
             key={task.id}
             task={task}
             orgSlug={orgSlug}
+            canEdit={canEdit}
             className={cn(
               'block truncate rounded px-1.5 py-0.5 text-[11px] leading-tight transition-colors',
               getCalendarTaskBlockClassName(task),
@@ -165,11 +172,13 @@ function MonthWeekRow({
   monthAnchor,
   tasks,
   orgSlug,
+  canEdit = true,
 }: {
   week: MonthCalendarWeek
   monthAnchor: Date
   tasks: Task[]
   orgSlug: string
+  canEdit?: boolean
 }) {
   const { multiDayLanes, singleDayByCol } = splitWeekTasksByLayout(tasks, week.days)
   const laneCount = multiDayLanes.reduce((max, entry) => Math.max(max, entry.lane + 1), 0)
@@ -210,7 +219,7 @@ function MonthWeekRow({
             week={week}
             monthAnchor={monthAnchor}
             entries={multiDayLanes.filter((entry) => entry.lane === lane)}
-            orgSlug={orgSlug}
+            orgSlug={orgSlug} canEdit={canEdit}
             gridRow={lane + 2}
           />
         ))}
@@ -227,7 +236,7 @@ function MonthWeekRow({
             )}
             style={{ gridColumn: col + 1, gridRow: singleDayRow }}
           >
-            <MonthSingleDayTasks tasks={dayTasks} orgSlug={orgSlug} />
+            <MonthSingleDayTasks tasks={dayTasks} orgSlug={orgSlug} canEdit={canEdit} />
           </div>
         )
       })}
@@ -240,6 +249,7 @@ export function TaskMonthCalendar({
   weeks,
   tasks,
   orgSlug,
+  canEdit = true,
 }: TaskMonthCalendarProps) {
   return (
     <CalendarScrollArea
@@ -264,7 +274,7 @@ export function TaskMonthCalendar({
           week={week}
           monthAnchor={monthAnchor}
           tasks={tasks}
-          orgSlug={orgSlug}
+          orgSlug={orgSlug} canEdit={canEdit}
         />
       ))}
     </CalendarScrollArea>

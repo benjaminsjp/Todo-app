@@ -38,6 +38,7 @@ import { useCallback, useEffect, useState, useRef } from 'react'
 import { useSearchParams, usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { useOrgRealtime, type TaskPresence } from '@/lib/hooks/useOrgRealtime'
+import { useDragScroll } from '@/lib/hooks/useDragScroll'
 
 interface KanbanBoardProps {
   tasks:           Task[]
@@ -47,6 +48,8 @@ interface KanbanBoardProps {
   orgSlug?:        string
   orgId?:          number
   userId?:         string
+  /** When false, board is read-only (e.g. org viewer role). Defaults to true. */
+  canEdit?:        boolean
 }
 
 export function getStatusStyle(color: string, icon?: string | null) {
@@ -62,6 +65,7 @@ function SortableTaskCard({
   statuses,
   taskGroups,
   assigneeOptions,
+  canEdit,
   onOptimisticPatch,
   onOptimisticRollback,
 }: {
@@ -72,13 +76,15 @@ function SortableTaskCard({
   statuses: Status[]
   taskGroups: TaskGroup[]
   assigneeOptions: AssigneeOption[]
+  canEdit: boolean
   onOptimisticPatch: (taskId: number, patch: Partial<Task>) => void
   onOptimisticRollback: (taskId: number, prev: Task) => void
 }) {
   const overlayLocked = useKanbanOverlayLocked()
+  const dragDisabled = overlayLocked || !canEdit
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
-    disabled: overlayLocked,
+    disabled: dragDisabled,
   })
 
   return (
@@ -86,7 +92,7 @@ function SortableTaskCard({
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       {...attributes}
-      {...(overlayLocked ? {} : listeners)}
+      {...(dragDisabled ? {} : listeners)}
       className={isDragging ? 'opacity-40' : ''}
     >
       <TaskCard
@@ -97,6 +103,7 @@ function SortableTaskCard({
         statuses={statuses}
         taskGroups={taskGroups}
         assigneeOptions={assigneeOptions}
+        canEdit={canEdit}
         onOptimisticPatch={onOptimisticPatch}
         onOptimisticRollback={onOptimisticRollback}
       />
@@ -115,6 +122,7 @@ function KanbanColumn({
   statuses,
   taskGroups,
   assigneeOptions,
+  canEdit,
   onOptimisticPatch,
   onOptimisticRollback,
   onMoveStatus,
@@ -129,6 +137,7 @@ function KanbanColumn({
   statuses: Status[]
   taskGroups: TaskGroup[]
   assigneeOptions: AssigneeOption[]
+  canEdit: boolean
   onOptimisticPatch: (taskId: number, patch: Partial<Task>) => void
   onOptimisticRollback: (taskId: number, prev: Task) => void
   onMoveStatus: (statusId: number, direction: 'left' | 'right') => void
@@ -144,29 +153,31 @@ function KanbanColumn({
         <Badge variant="secondary" className=" rounded-full px-1.5 py-0 text-xs">
           {tasks.length}
         </Badge>
-        <div className='ml-auto flex items-center gap-0.5'>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            disabled={statusIndex === 0}
-            onClick={() => onMoveStatus(status.id, 'left')}
-            aria-label="Flytt status til venstre"
-          >
-            <ChevronLeft className="size-3.5" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            disabled={statusIndex >= statusCount - 1}
-            onClick={() => onMoveStatus(status.id, 'right')}
-            aria-label="Flytt status til høyre"
-          >
-            <ChevronRight className="size-3.5" />
-          </Button>
-          <EditStatusMenu status={status} />
-        </div>
+        {canEdit && (
+          <div className='ml-auto flex items-center gap-0.5'>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              disabled={statusIndex === 0}
+              onClick={() => onMoveStatus(status.id, 'left')}
+              aria-label="Flytt status til venstre"
+            >
+              <ChevronLeft className="size-3.5" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              disabled={statusIndex >= statusCount - 1}
+              onClick={() => onMoveStatus(status.id, 'right')}
+              aria-label="Flytt status til høyre"
+            >
+              <ChevronRight className="size-3.5" />
+            </Button>
+            <EditStatusMenu status={status} />
+          </div>
+        )}
       </div>
 
       <SortableContext id={status.label} items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
@@ -175,7 +186,7 @@ function KanbanColumn({
           id={status.label}
           className={cn(
             'rounded-xl bg-muted/40 border border-dashed p-3 flex flex-col gap-2 min-h-32 transition-colors',
-            isOver && 'bg-muted/80 border-solid border-brand'
+            isOver && canEdit && 'bg-muted/80 border-solid border-brand'
           )}
         >
           {tasks.length === 0 ? (
@@ -191,6 +202,7 @@ function KanbanColumn({
                 statuses={statuses}
                 taskGroups={taskGroups}
                 assigneeOptions={assigneeOptions}
+                canEdit={canEdit}
                 onOptimisticPatch={onOptimisticPatch}
                 onOptimisticRollback={onOptimisticRollback}
               />
@@ -218,6 +230,7 @@ function KanbanBoardContent({
   orgSlug,
   orgId,
   userId,
+  canEdit = true,
 }: KanbanBoardProps) {
   const [tasks, setTasks]           = useState<Task[]>(initialTasks)
   const [activeTask, setActiveTask] = useState<Task | null>(null)
@@ -229,6 +242,9 @@ function KanbanBoardContent({
   // Sporer antall pågående optimistiske oppdateringer
   const pendingCount = useRef(0)
   const movePendingRef = useRef(false)
+  const boardScrollRef = useRef<HTMLDivElement>(null)
+
+  useDragScroll(boardScrollRef, isMounted)
 
   const orgRealtime = useOrgRealtime(orgId)
   const pathname    = usePathname()
@@ -317,12 +333,13 @@ function KanbanBoardContent({
   }, [])
 
   const handleDragStart = ({ active }: DragStartEvent) => {
+    if (!canEdit) return
     setActiveTask(filteredTasks.find((t) => t.id === active.id) ?? null)
   }
 
   const handleDragEnd = async ({ active, over }: DragEndEvent) => {
     setActiveTask(null)
-    if (!over) return
+    if (!canEdit || !over) return
 
     let newStatusKey = liveStatuses.find((s) => s.label === over.id)?.label
     if (!newStatusKey) {
@@ -425,14 +442,16 @@ function KanbanBoardContent({
                   group={group}
                   isActive={getGroupFilter === group.id.toString()}
                   filterHref={`${pathname}?${createTaskGroupQuery('group', group.id.toString())}`}
+                  canEdit={canEdit}
                 />
               ))}
             </div>
           )}
-          <CreateTaskGroupButton orgId={orgId} />
+          {canEdit && <CreateTaskGroupButton orgId={orgId} />}
         </div>
 
         <ScrollArea
+          ref={boardScrollRef}
           className="h-full bg-card border border-border rounded-2xl animate-fade animate-once animate-duration-200 animate-ease-in-out"
         >
           <div className="flex flex-row gap-6 items-start h-full p-6">
@@ -449,6 +468,7 @@ function KanbanBoardContent({
                   statuses={sortedStatuses}
                   taskGroups={liveTaskGroups}
                   assigneeOptions={assigneeOptions}
+                  canEdit={canEdit}
                   onOptimisticPatch={patchTaskOptimistic}
                   onOptimisticRollback={rollbackTaskOptimistic}
                   onMoveStatus={handleMoveStatus}
@@ -456,15 +476,17 @@ function KanbanBoardContent({
               </div>
             ))}
 
-            <div className="min-w-72 flex flex-col gap-3">
-              <div className="h-8" />
-              <button
-                onClick={() => setStatusModalOpen(true)}
-                className="rounded-xl border border-dashed p-3 min-h-32 flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
-              >
-                <Plus className="size-4" /> Legg til status
-              </button>
-            </div>
+            {canEdit && (
+              <div className="min-w-72 flex flex-col gap-3">
+                <div className="h-8" />
+                <button
+                  onClick={() => setStatusModalOpen(true)}
+                  className="rounded-xl border border-dashed p-3 min-h-32 flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+                >
+                  <Plus className="size-4" /> Legg til status
+                </button>
+              </div>
+            )}
           </div>
           <ScrollBar orientation="horizontal" className="mx-2 mb-2" />
         </ScrollArea>
@@ -485,6 +507,7 @@ function KanbanBoardContent({
               statuses={liveStatuses}
               taskGroups={liveTaskGroups}
               assigneeOptions={assigneeOptions}
+              canEdit={canEdit}
               onOptimisticPatch={patchTaskOptimistic}
               onOptimisticRollback={rollbackTaskOptimistic}
             />

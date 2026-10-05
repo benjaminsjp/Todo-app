@@ -161,9 +161,11 @@ function formatWhen(d: Date | null) {
 export function TaskRevisionHistory({
   taskId,
   statuses = [],
+  canEdit = true,
 }: {
   taskId:   number
   statuses?: Status[]
+  canEdit?: boolean
 }) {
   const [open,      setOpen]      = useState(false)
   const [loading,   setLoading]   = useState(false)
@@ -233,6 +235,7 @@ export function TaskRevisionHistory({
                               </Button>
                             </CollapsibleTrigger>
                           )}
+                          {canEdit && (
                           <Button
                             size="icon-sm"
                             variant="default"
@@ -247,6 +250,7 @@ export function TaskRevisionHistory({
                           >
                             <RotateCcw className="size-4" />
                           </Button>
+                          )}
                         </div>
                       </div>
 

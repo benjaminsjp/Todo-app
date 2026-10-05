@@ -5,12 +5,14 @@ import { createCommentForTask } from '@/lib/actions/comments'
 import { Button } from '@/components/ui/button'
 import { InputGroup, InputGroupAddon, InputGroupButton } from '@/components/ui/input-group'
 import { MessageCircle } from 'lucide-react'
-import Editor from '@/components/TextEditor/TextEditor'
+import { CreateTaskEditor } from '@/components/CreateTask/CreateTaskEditor'
 import { Comment } from './Comment'
+import { hasCommentEditorContent } from './commentEditorUtils'
 import type { Comment as CommentType } from '@/lib/types'
 
 type MappedComment = {
   id:                   number
+  userId:               string
   content:              string
   createdAt:            string
   author:               string
@@ -20,6 +22,8 @@ type MappedComment = {
 interface CommentsProps {
   taskId:              number
   comments?:           MappedComment[]
+  currentUserId?:      string
+  canEdit?:            boolean
   onOptimisticAdd?:    (comment: CommentType) => void
   onOptimisticRemove?: (tempId: number) => void
   onCommentSaved?:     (tempId: number, comment: CommentType) => void
@@ -28,6 +32,8 @@ interface CommentsProps {
 export default function Comments({
   taskId,
   comments = [],
+  currentUserId,
+  canEdit = true,
   onOptimisticAdd,
   onOptimisticRemove,
   onCommentSaved,
@@ -39,8 +45,7 @@ export default function Comments({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const trimmed = content.trim()
-    if (!trimmed || isPending) return
+    if (!hasCommentEditorContent(content) || isPending) return
 
     setError(null)
     setIsPending(true)
@@ -48,7 +53,7 @@ export default function Comments({
     const tempId = -Date.now()
     const optimistic: CommentType = {
       id:        tempId,
-      content:   trimmed,
+      content,
       createdAt: new Date(),
       updatedAt: null,
       taskId,
@@ -57,7 +62,7 @@ export default function Comments({
     }
     onOptimisticAdd?.(optimistic)
 
-    const result = await createCommentForTask(taskId, trimmed)
+    const result = await createCommentForTask(taskId, content)
     setIsPending(false)
 
     if ('error' in result) {
@@ -80,18 +85,27 @@ export default function Comments({
           <p className="text-sm text-muted-foreground">Ingen kommentarer ennå.</p>
         )}
         {comments.map((comment) => (
-          <Comment key={comment.id} comment={comment} />
+          <Comment
+            key={comment.id}
+            comment={comment}
+            currentUserId={currentUserId}
+            canEdit={canEdit}
+          />
         ))}
       </div>
 
       <div className="mt-auto pt-12 pb-12">
         <form onSubmit={handleSubmit}>
           <InputGroup className="bg-surface-2 border-border">
-            <Editor
-              key={editorKey.current}
-              content={content}
-              onChange={setContent}
-            />
+            <div className="px-4 py-3 w-full">
+              <CreateTaskEditor
+                key={editorKey.current}
+                content={content}
+                onChange={setContent}
+                placeholder="Skriv en kommentar..."
+                editorClassName="min-h-24 prose-sm"
+              />
+            </div>
             <InputGroupAddon align="block-end" className="border-t">
               {error && (
                 <p className="text-xs text-destructive px-2">{error}</p>
@@ -101,7 +115,7 @@ export default function Comments({
                   type="submit"
                   size="sm"
                   variant="default"
-                  disabled={isPending || !content.trim()}
+                  disabled={isPending || !hasCommentEditorContent(content)}
                 >
                   <MessageCircle /> {isPending ? 'Sender...' : 'Legg til kommentar'}
                 </InputGroupButton>

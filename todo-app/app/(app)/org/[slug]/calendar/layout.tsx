@@ -1,4 +1,4 @@
-export default function CalendarLayout({
+export default function OrgCalendarLayout({
   children,
 }: {
   children: React.ReactNode

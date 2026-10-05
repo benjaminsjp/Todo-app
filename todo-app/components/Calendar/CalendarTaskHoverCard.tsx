@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils'
 interface CalendarTaskHoverCardProps {
   task: Task
   orgSlug: string
+  canEdit?: boolean
   className?: string
   style?: React.CSSProperties
   children: React.ReactNode
@@ -27,6 +28,7 @@ interface CalendarTaskHoverCardProps {
 export function CalendarTaskHoverCard({
   task,
   orgSlug,
+  canEdit = true,
   className,
   style,
   children,
@@ -97,17 +99,19 @@ export function CalendarTaskHoverCard({
                 <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Ansvarlige
                 </span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="xs"
-                  className="h-7 shrink-0 gap-1.5 text-muted-foreground hover:text-foreground"
-                  disabled={notifyingAll}
-                  onClick={(event) => void handleNotifyAll(event)}
-                >
-                  <Bell className="size-3.5" />
-                  {notifyingAll ? 'Sender…' : 'Varsle alle'}
-                </Button>
+                {canEdit && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="xs"
+                    className="h-7 shrink-0 gap-1.5 text-muted-foreground hover:text-foreground"
+                    disabled={notifyingAll}
+                    onClick={(event) => void handleNotifyAll(event)}
+                  >
+                    <Bell className="size-3.5" />
+                    {notifyingAll ? 'Sender…' : 'Varsle alle'}
+                  </Button>
+                )}
               </div>
               <ul className="flex max-h-32 flex-col gap-1 overflow-y-auto">
                 {assignees.map((user) => {

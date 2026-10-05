@@ -45,12 +45,27 @@ export function CalendarControls({
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const updateParams = (patch: Record<string, string>) => {
+  const calendarPath = (orgSlug: string, patch: Record<string, string> = {}) => {
     const params = new URLSearchParams(searchParams.toString())
+    params.delete('org')
     for (const [key, value] of Object.entries(patch)) {
       params.set(key, value)
     }
-    router.push(`/calendar?${params.toString()}`)
+    const query = params.toString()
+    return `/org/${orgSlug}/calendar${query ? `?${query}` : ''}`
+  }
+
+  const updateParams = (patch: Record<string, string>) => {
+    router.push(calendarPath(selectedOrgSlug, patch))
+  }
+
+  const handleOrgChange = (nextOrgSlug: string) => {
+    if (nextOrgSlug === selectedOrgSlug) return
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete('org')
+    params.delete('group')
+    const query = params.toString()
+    router.push(`/org/${nextOrgSlug}/calendar${query ? `?${query}` : ''}`)
   }
 
   const handleViewChange = (nextView: CalendarViewMode) => {
@@ -75,14 +90,11 @@ export function CalendarControls({
               <Building2 className="size-4" />
               Organisasjon
             </div>
-            <Select
-              value={selectedOrgSlug}
-              onValueChange={(value) => updateParams({ org: value })}
-            >
+            <Select value={selectedOrgSlug} onValueChange={handleOrgChange}>
               <SelectTrigger className="min-w-60">
                 <SelectValue placeholder="Velg organisasjon" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper" className="p-1">
                 {orgs.map((org) => (
                   <SelectItem key={org.id} value={org.slug}>
                     {org.name}
@@ -104,7 +116,7 @@ export function CalendarControls({
               <SelectTrigger className="min-w-52">
                 <SelectValue placeholder="Alle grupper" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper" className="p-1">
                 <SelectItem value="all">Alle grupper</SelectItem>
                 <SelectItem value="none">Uten gruppe</SelectItem>
                 {taskGroups.map((group) => (

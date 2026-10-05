@@ -6,6 +6,7 @@ import { organizations, organizationMembers, invitations } from '@/lib/db/schema
 import { and, eq } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import { OrgSettingsPage } from '@/components/OrgSettings/OrgSettingsPage'
+import { SetBreadcrumbLabel } from '@/components/Breadcrumbs/SetBreadcrumbLabel'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,12 +47,15 @@ export default async function SettingsPage({
     : [[], []]
 
   return (
-    <OrgSettingsPage
-      org={org}
-      currentUserId={session.user.id}
-      currentRole={membership.role}
-      members={members}
-      pendingInvites={pendingInvites}
-    />
+    <>
+      <SetBreadcrumbLabel segment={slug} label={org.name} />
+      <OrgSettingsPage
+        org={org}
+        currentUserId={session.user.id}
+        currentRole={membership.role}
+        members={members}
+        pendingInvites={pendingInvites}
+      />
+    </>
   )
 }

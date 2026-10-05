@@ -10,18 +10,23 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Bold, Italic, Strikethrough, List, ListOrdered, SquareCheck  } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { cn } from '@/lib/utils'
 import { Skeleton } from '../ui/skeleton'
 interface CreateTaskEditorProps {
   content?: string
   onChange?: (html: string) => void
   /** Keeps the selection toolbar inside the main content column. */
   boundaryRef?: React.RefObject<HTMLElement | null>
+  placeholder?: string
+  editorClassName?: string
 }
 
 export function CreateTaskEditor({
   content = '',
   onChange,
   boundaryRef,
+  placeholder = 'Legg til en beskrivelse...',
+  editorClassName,
 }: CreateTaskEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const toolbarRef   = useRef<HTMLDivElement>(null)
@@ -61,14 +66,17 @@ export function CreateTaskEditor({
   const editor = useEditor({
     extensions: [
       StarterKit,
-      Placeholder.configure({ placeholder: 'Legg til en beskrivelse...' }),
+      Placeholder.configure({ placeholder }),
       TaskList,
       TaskItem.configure({ nested: true }),
     ],
     content,
     editorProps: {
       attributes: {
-        class: 'min-h-32 focus:outline-none prose prose-headings:font-normal prose-headings:font-heading max-w-none dark:prose-invert',
+        class: cn(
+          'min-h-32 focus:outline-none prose prose-headings:font-normal prose-headings:font-heading max-w-none dark:prose-invert',
+          editorClassName,
+        ),
       },
     },
     onUpdate: ({ editor }) => onChange?.(editor.getHTML()),

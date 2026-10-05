@@ -165,7 +165,7 @@ export function TaskSidebar({
           </div>
         )}
 
-        {mode === 'view' && (
+        {mode === 'view' && onSave && (
           <Button variant="secondary" size="sm" className="mr-auto" onClick={onSave}>
             Rediger
           </Button>

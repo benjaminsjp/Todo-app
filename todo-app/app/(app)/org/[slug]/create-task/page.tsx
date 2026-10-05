@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { taskGroups, organizations } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { CreateTaskForm } from '@/components/CreateTask/CreateTaskForm'
+import { SetBreadcrumbLabel } from '@/components/Breadcrumbs/SetBreadcrumbLabel'
 import { notFound } from 'next/navigation'
 import { getOrgAssigneeOptions } from '@/lib/db/queries'
 
@@ -29,5 +30,10 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
     getOrgAssigneeOptions(org.id),
   ])
 
-  return <CreateTaskForm taskGroups={groups} assigneeOptions={assigneeOptions} orgId={org.id} orgSlug={slug} />
+  return (
+    <>
+      <SetBreadcrumbLabel segment={slug} label={org.name} />
+      <CreateTaskForm taskGroups={groups} assigneeOptions={assigneeOptions} orgId={org.id} orgSlug={slug} />
+    </>
+  )
 }

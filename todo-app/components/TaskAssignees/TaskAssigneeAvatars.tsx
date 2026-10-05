@@ -40,6 +40,7 @@ const CHIP_SIZE = 'size-8'
 interface TaskAssigneeAvatarsProps {
   task: Task
   assigneeOptions: AssigneeOption[]
+  canEdit?: boolean
   onOptimisticPatch?: (taskId: number, patch: Partial<Task>) => void
   onOptimisticRollback?: (taskId: number, prev: Task) => void
   className?: string
@@ -48,6 +49,7 @@ interface TaskAssigneeAvatarsProps {
 export function TaskAssigneeAvatars({
   task,
   assigneeOptions,
+  canEdit = true,
   onOptimisticPatch,
   onOptimisticRollback,
   className,
@@ -137,6 +139,26 @@ export function TaskAssigneeAvatars({
               const menuOpen = openMenuUserId === user.id
               const isBusy = isRemoving || isNotifying
 
+              if (!canEdit) {
+                return (
+                  <Tooltip key={user.id}>
+                    <TooltipTrigger asChild>
+                      <span className="rounded-full p-0.5">
+                        <Avatar className={CHIP_SIZE}>
+                          {user.avatarUrl ? (
+                            <AvatarImage src={user.avatarUrl} alt={label} />
+                          ) : null}
+                          <AvatarFallback className="text-[11px]">
+                            {assigneeInitials(label)}
+                          </AvatarFallback>
+                        </Avatar>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">{label}</TooltipContent>
+                  </Tooltip>
+                )
+              }
+
               return (
                 <DropdownMenu
                   key={user.id}
@@ -206,24 +228,34 @@ export function TaskAssigneeAvatars({
             {overflow > 0 && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    className="rounded-full p-0.5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    aria-label={`${overflow} flere ansvarlige`}
-                    onClick={openModal}
-                  >
-                    <Avatar className={`${CHIP_SIZE} bg-muted text-[11px] text-muted-foreground`}>
-                      <AvatarFallback>+{overflow}</AvatarFallback>
-                    </Avatar>
-                  </button>
+                  {canEdit ? (
+                    <button
+                      type="button"
+                      className="rounded-full p-0.5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      aria-label={`${overflow} flere ansvarlige`}
+                      onClick={openModal}
+                    >
+                      <Avatar className={`${CHIP_SIZE} bg-muted text-[11px] text-muted-foreground`}>
+                        <AvatarFallback>+{overflow}</AvatarFallback>
+                      </Avatar>
+                    </button>
+                  ) : (
+                    <span className="rounded-full p-0.5">
+                      <Avatar className={`${CHIP_SIZE} bg-muted text-[11px] text-muted-foreground`}>
+                        <AvatarFallback>+{overflow}</AvatarFallback>
+                      </Avatar>
+                    </span>
+                  )}
                 </TooltipTrigger>
-                <TooltipContent side="bottom">Vis alle ansvarlige</TooltipContent>
+                <TooltipContent side="bottom">
+                  {canEdit ? 'Vis alle ansvarlige' : `${overflow} flere ansvarlige`}
+                </TooltipContent>
               </Tooltip>
             )}
           </AvatarGroup>
         )}
 
-        {assigneeOptions.length > 0 && (
+        {canEdit && assigneeOptions.length > 0 && (
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -242,39 +274,41 @@ export function TaskAssigneeAvatars({
         )}
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent
-          className="max-w-sm"
-          data-no-nav
-          onClick={(e) => e.stopPropagation()}
-          onOpenAutoFocus={(event) => event.preventDefault()}
-        >
-          <DialogHeader>
-            <DialogTitle>Ansvarlige</DialogTitle>
-            <DialogDescription>
-              Søk etter medlemmer og legg dem til oppgaven.
-            </DialogDescription>
-          </DialogHeader>
+      {canEdit && (
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent
+            className="max-w-sm"
+            data-no-nav
+            onClick={(e) => e.stopPropagation()}
+            onOpenAutoFocus={(event) => event.preventDefault()}
+          >
+            <DialogHeader>
+              <DialogTitle>Ansvarlige</DialogTitle>
+              <DialogDescription>
+                Søk etter medlemmer og legg dem til oppgaven.
+              </DialogDescription>
+            </DialogHeader>
 
-          <TaskAssigneeEditor
-            options={assigneeOptions}
-            value={assigneeIds}
-            onChange={setAssigneeIds}
-            assignees={task.assignees}
-            taskId={task.id}
-            placeholder="Søk etter medlem…"
-          />
+            <TaskAssigneeEditor
+              options={assigneeOptions}
+              value={assigneeIds}
+              onChange={setAssigneeIds}
+              assignees={task.assignees}
+              taskId={task.id}
+              placeholder="Søk etter medlem…"
+            />
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)} disabled={isSaving}>
-              Avbryt
-            </Button>
-            <Button variant="brand" onClick={() => void handleSave()} disabled={isSaving}>
-              {isSaving ? 'Lagrer…' : 'Lagre'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOpen(false)} disabled={isSaving}>
+                Avbryt
+              </Button>
+              <Button variant="brand" onClick={() => void handleSave()} disabled={isSaving}>
+                {isSaving ? 'Lagrer…' : 'Lagre'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   )
 }

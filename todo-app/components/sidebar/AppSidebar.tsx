@@ -32,6 +32,7 @@ import { ChevronRight, Folder, FolderOpen, Plus, FolderPlus, GripVertical } from
 import { getColor, Task, TaskGroup, Org, Status, AssigneeOption } from "@/lib/types"
 import { updateTaskGroup } from "@/lib/actions/tasks"
 import { cn } from "@/lib/utils"
+import { canEditOrgContent } from "@/lib/orgPermissions"
 import { useDemoBanner } from "@/components/DemoBannerShell"
 import { useOrgRealtime } from "@/lib/hooks/useOrgRealtime"
 import Link from "next/link"
@@ -95,6 +96,7 @@ function TaskItem({
   taskGroups,
   orgAssigneeOptionsByOrgId,
   personalAssigneeOptions,
+  canEdit,
   onOptimisticPatch,
   onOptimisticRollback,
   onDeleted,
@@ -105,6 +107,7 @@ function TaskItem({
   taskGroups: TaskGroup[]
   orgAssigneeOptionsByOrgId: Record<number, AssigneeOption[]>
   personalAssigneeOptions: AssigneeOption[]
+  canEdit: boolean
   onOptimisticPatch: (taskId: number, patch: Partial<Task>) => void
   onOptimisticRollback: (taskId: number, prev: Task) => void
   onDeleted: (taskId: number) => void
@@ -120,6 +123,7 @@ function TaskItem({
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id:   `task-${task.id}`,
     data: { taskId: task.id, groupId: task.groupId },
+    disabled: !canEdit,
   })
 
   const style = transform ? {
@@ -133,15 +137,17 @@ function TaskItem({
       style={style}
       className={cn('flex items-center gap-0.5', isDragging && 'opacity-40')}
     >
-      <button
-        type="button"
-        className="shrink-0 cursor-grab active:cursor-grabbing rounded-md p-1 text-muted-foreground hover:text-foreground"
-        aria-label="Dra oppgave"
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical className="size-3.5" />
-      </button>
+      {canEdit && (
+        <button
+          type="button"
+          className="shrink-0 cursor-grab active:cursor-grabbing rounded-md p-1 text-muted-foreground hover:text-foreground"
+          aria-label="Dra oppgave"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="size-3.5" />
+        </button>
+      )}
       <Link
         href={href}
         className={cn(
@@ -157,7 +163,7 @@ function TaskItem({
           </span>
         )}
       </Link>
-      {statuses.length > 0 && (
+      {canEdit && statuses.length > 0 && (
         <TaskOptionsMenu
           task={task}
           statuses={statuses}
@@ -180,6 +186,7 @@ function GroupCollapsible({
   taskGroups,
   orgAssigneeOptionsByOrgId,
   personalAssigneeOptions,
+  canEdit,
   onOptimisticPatch,
   onOptimisticRollback,
   onDeleted,
@@ -191,6 +198,7 @@ function GroupCollapsible({
   taskGroups: TaskGroup[]
   orgAssigneeOptionsByOrgId: Record<number, AssigneeOption[]>
   personalAssigneeOptions: AssigneeOption[]
+  canEdit: boolean
   onOptimisticPatch: (taskId: number, patch: Partial<Task>) => void
   onOptimisticRollback: (taskId: number, prev: Task) => void
   onDeleted: (taskId: number) => void
@@ -249,6 +257,7 @@ function GroupCollapsible({
                     taskGroups={taskGroups}
                     orgAssigneeOptionsByOrgId={orgAssigneeOptionsByOrgId}
                     personalAssigneeOptions={personalAssigneeOptions}
+                    canEdit={canEdit}
                     onOptimisticPatch={onOptimisticPatch}
                     onOptimisticRollback={onOptimisticRollback}
                     onDeleted={onDeleted}
@@ -271,6 +280,7 @@ function UngroupedZone({
   taskGroups,
   orgAssigneeOptionsByOrgId,
   personalAssigneeOptions,
+  canEdit,
   onOptimisticPatch,
   onOptimisticRollback,
   onDeleted,
@@ -282,6 +292,7 @@ function UngroupedZone({
   taskGroups: TaskGroup[]
   orgAssigneeOptionsByOrgId: Record<number, AssigneeOption[]>
   personalAssigneeOptions: AssigneeOption[]
+  canEdit: boolean
   onOptimisticPatch: (taskId: number, patch: Partial<Task>) => void
   onOptimisticRollback: (taskId: number, prev: Task) => void
   onDeleted: (taskId: number) => void
@@ -308,6 +319,7 @@ function UngroupedZone({
           taskGroups={taskGroups}
           orgAssigneeOptionsByOrgId={orgAssigneeOptionsByOrgId}
           personalAssigneeOptions={personalAssigneeOptions}
+          canEdit={canEdit}
           onOptimisticPatch={onOptimisticPatch}
           onOptimisticRollback={onOptimisticRollback}
           onDeleted={onDeleted}
@@ -330,6 +342,7 @@ function SidebarDndContent({
   statuses,
   orgAssigneeOptionsByOrgId,
   personalAssigneeOptions,
+  canEdit,
 }: {
   ungroupedTasks: Task[]
   groups:         TaskGroup[]
@@ -338,6 +351,7 @@ function SidebarDndContent({
   statuses:       Status[]
   orgAssigneeOptionsByOrgId: Record<number, AssigneeOption[]>
   personalAssigneeOptions: AssigneeOption[]
+  canEdit: boolean
 }) {
   const [localTasks,  setLocalTasks]  = useState(ungroupedTasks)
   const [localGroups, setLocalGroups] = useState(groups)
@@ -413,6 +427,7 @@ function SidebarDndContent({
   )
 
   const handleDragStart = ({ active }: DragStartEvent) => {
+    if (!canEdit) return
     const taskId = active.data.current?.taskId as number
     const task =
       localTasks.find((t) => t.id === taskId) ??
@@ -422,13 +437,14 @@ function SidebarDndContent({
   }
 
   const handleDragOver = ({ over }: { over: any }) => {
+    if (!canEdit) return
     setOverId(over?.id ?? null)
   }
 
   const handleDragEnd = async ({ active, over }: DragEndEvent) => {
     setActiveTask(null)
     setOverId(null)
-    if (!over) return
+    if (!canEdit || !over) return
 
     const taskId      = active.data.current?.taskId    as number
     const fromGroupId = active.data.current?.groupId   as number | null
@@ -484,6 +500,7 @@ function SidebarDndContent({
         taskGroups={taskGroupsForMenu}
         orgAssigneeOptionsByOrgId={orgAssigneeOptionsByOrgId}
         personalAssigneeOptions={personalAssigneeOptions}
+        canEdit={canEdit}
         onOptimisticPatch={handleOptimisticPatch}
         onOptimisticRollback={handleOptimisticRollback}
         onDeleted={handleTaskDeleted}
@@ -499,6 +516,7 @@ function SidebarDndContent({
           taskGroups={taskGroupsForMenu}
           orgAssigneeOptionsByOrgId={orgAssigneeOptionsByOrgId}
           personalAssigneeOptions={personalAssigneeOptions}
+          canEdit={canEdit}
           onOptimisticPatch={handleOptimisticPatch}
           onOptimisticRollback={handleOptimisticRollback}
           onDeleted={handleTaskDeleted}
@@ -538,6 +556,7 @@ export function AppSidebar({
   const currentOrgSlug = pathname.startsWith('/org/') ? pathname.split('/')[2] : undefined
   const activeOrg      = orgs.find((o) => o.slug === currentOrgSlug) ?? null
   const orgRealtime    = useOrgRealtime(activeOrg?.id)
+  const canEdit        = activeOrg ? canEditOrgContent(activeOrg.role) : true
 
   const hasOrgNavData =
     activeOrg?.tasks !== undefined || orgRealtime.tasks !== null
@@ -568,22 +587,26 @@ export function AppSidebar({
       <Sidebar collapsible="none" className="hidden flex-1 md:flex">
         <SidebarHeader className="gap-1 p-4 border-b flex flex-row items-center">
           <OrgSwitcher orgs={orgs} />
-          <CreateTaskButton orgId={activeOrg?.id}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="default" size="sm"><Plus />Ny oppgave</Button>
-              </TooltipTrigger>
-              <TooltipContent><p>Opprett en ny oppgave</p></TooltipContent>
-            </Tooltip>
-          </CreateTaskButton>
-          <CreateTaskGroupButton orgId={activeOrg?.id}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="default" size="icon-sm"><FolderPlus /></Button>
-              </TooltipTrigger>
-              <TooltipContent><p>Opprett en ny gruppe</p></TooltipContent>
-            </Tooltip>
-          </CreateTaskGroupButton>
+          {canEdit && (
+            <>
+              <CreateTaskButton orgId={activeOrg?.id}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="default" size="sm"><Plus />Ny oppgave</Button>
+                  </TooltipTrigger>
+                  <TooltipContent><p>Opprett en ny oppgave</p></TooltipContent>
+                </Tooltip>
+              </CreateTaskButton>
+              <CreateTaskGroupButton orgId={activeOrg?.id}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="default" size="icon-sm"><FolderPlus /></Button>
+                  </TooltipTrigger>
+                  <TooltipContent><p>Opprett en ny gruppe</p></TooltipContent>
+                </Tooltip>
+              </CreateTaskGroupButton>
+            </>
+          )}
         </SidebarHeader>
 
         <SidebarContent className="pt-3 gap-0">
@@ -599,6 +622,7 @@ export function AppSidebar({
               statuses={statuses}
               orgAssigneeOptionsByOrgId={orgAssigneeOptionsByOrgId}
               personalAssigneeOptions={personalAssigneeOptions}
+              canEdit={canEdit}
             />
           )}
         </SidebarContent>

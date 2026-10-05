@@ -152,6 +152,8 @@ export function TaskAssigneeEditor({
         onRemove={handleRemove}
         taskId={taskId}
         disabled={disabled}
+        canNotify={!disabled}
+        canRemove={!disabled}
         className={listClassName}
       />
     </div>
