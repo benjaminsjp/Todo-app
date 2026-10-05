@@ -292,7 +292,7 @@ export function NotificationCenter() {
           <Bell className="size-4" />
           {count > 0 && (
             <Badge
-              variant="destructive"
+              variant="default"
               className="absolute -top-0.5 -right-0.5 size-5 rounded-full p-0 text-[10px] flex items-center justify-center"
             >
               {count > 9 ? '9+' : count}
