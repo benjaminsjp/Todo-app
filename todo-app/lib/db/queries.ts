@@ -67,11 +67,11 @@ export async function getUpcomingDeadlineTasksForUser(userId: string, limit = 5)
   ])
 
   const relevantOrgRows = orgRows
-    .map(normalizeTaskAssignees)
+    .map((row) => normalizeTaskAssignees(row))
     .filter((task) => (task.assignees ?? []).some((user) => user.id === userId))
 
   const combined = [
-    ...personalRows.map(normalizeTaskAssignees),
+    ...personalRows.map((row) => normalizeTaskAssignees(row)),
     ...relevantOrgRows,
   ].filter((task) => {
     if (!task.endAt) return false
