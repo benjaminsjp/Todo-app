@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createCommentForTask } from '@/lib/actions/comments'
 import { Button } from '@/components/ui/button'
 import { InputGroup, InputGroupAddon, InputGroupButton } from '@/components/ui/input-group'
@@ -58,6 +58,20 @@ export default function Comments({
     setComposerFocusKey((key) => key + 1)
     composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   }
+
+  const cancelReply = () => setReplyToId(null)
+
+  useEffect(() => {
+    if (replyToId == null) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      if (event.defaultPrevented) return
+      event.preventDefault()
+      setReplyToId(null)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [replyToId])
 
   const revealRepliesForThread = (rootId: number, total: number) => {
     setVisibleReplies((prev) => {
@@ -229,7 +243,7 @@ export default function Comments({
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                onClick={() => setReplyToId(null)}
+                onClick={cancelReply}
                 aria-label="Avbryt svar"
               >
                 <X className="size-4" />
@@ -252,6 +266,7 @@ export default function Comments({
                   autoFocus={Boolean(replyTarget)}
                   focusKey={composerFocusKey}
                   onModEnter={() => { void submitComment() }}
+                  onEscape={replyTarget ? cancelReply : undefined}
                 />
               </div>
               <InputGroupAddon align="block-end" className="border-t">

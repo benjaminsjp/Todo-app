@@ -98,42 +98,43 @@ export function TaskCard({
     if (isDragging) skipNavRef.current = true
   }, [isDragging])
 
+  const prefetch = () => {
+    router.prefetch(href)
+  }
+
+  const navigate = () => {
+    if (overlayLocked || skipNavRef.current) {
+      skipNavRef.current = false
+      return
+    }
+    setPending(true)
+    router.push(href)
+  }
+
   return (
-    <a
-      href={href}
+    <div
+      role="link"
+      tabIndex={0}
       className={cn(
         'group relative rounded-xl border bg-card p-4 flex flex-col gap-3',
         'hover:shadow-md hover:border-foreground/20 transition-all duration-200 cursor-pointer',
-        'no-underline text-inherit',
         pending && 'bg-primary/5',
       )}
-      onMouseEnter={() => router.prefetch(href)}
-      onFocus={() => router.prefetch(href)}
-      onClickCapture={(e) => {
-        // Nested buttons (assignees, menus) live inside this <a>.
-        // Capture + preventDefault stops native link navigation before child handlers run.
-        const target = e.target as HTMLElement | null
-        if (target?.closest?.('[data-no-nav]')) {
-          e.preventDefault()
-        }
-      }}
+      onMouseEnter={prefetch}
+      onFocus={prefetch}
       onClick={(e) => {
         const target = e.target as HTMLElement | null
-        if (target?.closest?.('[data-no-nav]')) {
-          e.preventDefault()
-          return
-        }
-        if (overlayLocked || skipNavRef.current) {
-          e.preventDefault()
-          skipNavRef.current = false
-          return
-        }
-        // Cmd/Ctrl/Shift/middle-click → native browser behavior (new tab, etc.)
-        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return
-
+        if (target?.closest?.('[data-no-nav]')) return
+        navigate()
+      }}
+      onKeyDown={(e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return
+        const target = e.target as HTMLElement | null
+        if (target !== e.currentTarget && target?.closest?.('[data-no-nav]')) return
+        // Only activate when focus is on the card itself, not nested controls.
+        if (e.target !== e.currentTarget) return
         e.preventDefault()
-        setPending(true)
-        router.push(href)
+        navigate()
       }}
     >
       <div className="relative z-10 flex flex-col gap-2">
@@ -146,7 +147,7 @@ export function TaskCard({
             onOptimisticRollback={onOptimisticRollback}
             className="min-w-0 flex-1"
           />
-          <div className="ml-auto flex items-center gap-2 shrink-0">
+          <div className="ml-auto flex items-center gap-2 shrink-0" data-no-nav>
             {others.length > 0 && <PresenceDot others={others} />}
             {canEdit && statuses.length > 0 && (
               <TaskOptionsMenu
@@ -190,6 +191,6 @@ export function TaskCard({
           {task.commentCount ?? task.comments?.length ?? 0}
         </div>
       </div>
-    </a>
+    </div>
   )
 }

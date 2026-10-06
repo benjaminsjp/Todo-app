@@ -335,6 +335,7 @@ export function Comment({
                 onModEnter={() => {
                   if (!isSaving && hasCommentEditorContent(content)) void handleSave()
                 }}
+                onEscape={handleCancel}
               />
             </div>
             <InputGroupAddon align="block-end" className="border-t">

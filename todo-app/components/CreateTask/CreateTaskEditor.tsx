@@ -25,6 +25,8 @@ interface CreateTaskEditorProps {
   focusKey?: number | string
   /** Ctrl/Cmd+Enter shortcut (save task, send comment, etc.). */
   onModEnter?: () => void
+  /** Escape shortcut (cancel edit / reply). */
+  onEscape?: () => void
 }
 
 export function CreateTaskEditor({
@@ -36,16 +38,22 @@ export function CreateTaskEditor({
   autoFocus = false,
   focusKey,
   onModEnter,
+  onEscape,
 }: CreateTaskEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const toolbarRef   = useRef<HTMLDivElement>(null)
   const onModEnterRef = useRef(onModEnter)
+  const onEscapeRef = useRef(onEscape)
   const [toolbarPos, setToolbarPos] = useState<{ top: number; left: number } | null>(null)
   const [isVisible,  setIsVisible]  = useState(false)
 
   useEffect(() => {
     onModEnterRef.current = onModEnter
   }, [onModEnter])
+
+  useEffect(() => {
+    onEscapeRef.current = onEscape
+  }, [onEscape])
 
   const updateToolbarPosition = useCallback(() => {
     const selection = window.getSelection()
@@ -94,6 +102,11 @@ export function CreateTaskEditor({
         ),
       },
       handleKeyDown: (_view, event) => {
+        if (event.key === 'Escape' && onEscapeRef.current) {
+          event.preventDefault()
+          onEscapeRef.current()
+          return true
+        }
         if (event.key !== 'Enter' || !(event.metaKey || event.ctrlKey)) return false
         if (!onModEnterRef.current) return false
         event.preventDefault()

@@ -71,9 +71,9 @@ export function TaskOptionsMenu({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-44" data-no-nav>
           <DropdownMenuItem
-            onSelect={(e) => {
-              e.preventDefault()
-              setEditOpen(true)
+            onSelect={() => {
+              // Defer so the menu can close before the dialog opens (avoids focus fight).
+              window.setTimeout(() => setEditOpen(true), 0)
             }}
           >
             <Pencil className="size-4" /> Hurtigredigering
@@ -81,9 +81,8 @@ export function TaskOptionsMenu({
           <DropdownMenuSeparator />
           <DropdownMenuItem
             variant="destructive"
-            onSelect={(e) => {
-              e.preventDefault()
-              setDeleteOpen(true)
+            onSelect={() => {
+              window.setTimeout(() => setDeleteOpen(true), 0)
             }}
           >
             <Trash2 className="size-4" /> Slett oppgave

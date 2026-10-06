@@ -32,6 +32,8 @@ type TaskTitleFieldProps = {
   required?: boolean
   /** Ctrl/Cmd+Enter shortcut (save/create task). */
   onModEnter?: () => void
+  /** Escape shortcut (cancel edit). */
+  onEscape?: () => void
 } & (
   | {
       name: string
@@ -56,6 +58,11 @@ export function TaskTitleField(props: TaskTitleFieldProps) {
   const adjust = useAutoGrowTextarea(ref, value)
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === 'Escape' && props.onEscape) {
+      event.preventDefault()
+      props.onEscape()
+      return
+    }
     if (!props.onModEnter || !isModEnter(event)) return
     event.preventDefault()
     props.onModEnter()

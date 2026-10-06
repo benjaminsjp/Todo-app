@@ -314,6 +314,24 @@ export default function TaskDetails({
     void releaseTaskLock(task.id)
   }
 
+  const handleCancelRef = useRef(handleCancel)
+  handleCancelRef.current = handleCancel
+
+  useEffect(() => {
+    if (!isEditing) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return
+      // Let open menus / dialogs consume Escape first.
+      if (document.querySelector('[data-radix-popper-content-wrapper], [role="dialog"][data-state="open"]')) {
+        return
+      }
+      event.preventDefault()
+      handleCancelRef.current()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [isEditing])
+
   const handleStartEditing = async () => {
     if (!canEdit) return
     setError(null)
@@ -526,12 +544,14 @@ export default function TaskDetails({
                 value={title}
                 onChange={setTitle}
                 onModEnter={() => { if (!isSaving) void handleSave() }}
+                onEscape={handleCancel}
               />
               <CreateTaskEditor
                 content={description}
                 onChange={setDescription}
                 boundaryRef={contentBoundaryRef}
                 onModEnter={() => { if (!isSaving) void handleSave() }}
+                onEscape={handleCancel}
               />
             </>
           ) : (
