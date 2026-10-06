@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { Pencil } from "lucide-react"
 import { BackToBoardLink } from "@/components/BackToBoardLink"
+import { TaskPresenceIndicator } from "@/components/TaskDetails/TaskPresenceIndicator"
 import { AssigneeOption, StatusOption } from "@/lib/types"
 import Comments from "@/components/TaskComments/Comments"
 import { TaskTitleField } from "@/components/Task/TaskTitleField"
@@ -97,8 +98,9 @@ export default function TaskDetails({
   const checkboxSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const orgRealtime = useOrgRealtime(task.orgId ?? undefined)
-  const editingUsers = (orgRealtime.presenceByTaskId.get(task.id) ?? [])
-  .filter((p) => p.userId !== currentUserId && p.mode === 'editing')
+  const othersHere = (orgRealtime.presenceByTaskId.get(task.id) ?? [])
+    .filter((p) => p.userId !== currentUserId)
+  const editingUsers = othersHere.filter((p) => p.mode === 'editing')
   const isLockedByOther = Boolean(task.orgId) && editingUsers.length > 0
 
   useEffect(() => {
@@ -530,14 +532,19 @@ export default function TaskDetails({
         {/* Hovedinnhold */}
         <div ref={contentBoundaryRef} className="flex flex-1 min-h-0 overflow-y-auto py-12">
           <div className="flex flex-1 flex-col gap-4 max-w-prose px-8 mx-auto">
-          {isEditing ? (
-            <Badge variant="secondary" className="w-fit">
-              <Pencil data-icon="inline-start" />
-              Redigerer oppgave
-            </Badge>
-          ) : (
-            <BackToBoardLink href={boardHref} />
-          )}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            {isEditing ? (
+              <Badge variant="secondary" className="w-fit">
+                <Pencil data-icon="inline-start" />
+                Redigerer oppgave
+              </Badge>
+            ) : (
+              <BackToBoardLink href={boardHref} />
+            )}
+            {Boolean(task.orgId) && (
+              <TaskPresenceIndicator others={othersHere} className="sm:ml-auto" />
+            )}
+          </div>
           {isEditing ? (
             <>
               <TaskTitleField
@@ -558,7 +565,7 @@ export default function TaskDetails({
             <>
               {editingUsers.length > 0 && (
                 <div className="rounded-xl border bg-amber-500/10 border-amber-500/20 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
-                  Denne oppgaven redigeres av {editingUsers.map((u) => u.user?.displayName ?? u.user?.email ?? 'Noen').join(', ')}.
+                  Denne oppgaven redigeres av {editingUsers.map((u) => u.user?.displayName ?? u.user?.email ?? 'Noen').join(', ')}. Du kan ikke redigere samtidig.
                 </div>
               )}
               <h1 className="text-5xl font-medium text-center sm:text-left font-heading text-heading-strong mb-6 leading-snug whitespace-pre-wrap wrap-break-word">
