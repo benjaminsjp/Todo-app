@@ -1,15 +1,25 @@
+import { Suspense } from 'react'
 import { Metadata } from 'next'
 import { auth } from '@/lib/auth/server'
 import { redirect } from 'next/navigation'
 import { getTasksForUser, getTaskGroupsForUser, getPersonalAssigneeOptions } from '@/lib/db/queries'
 import { KanbanBoard } from '@/components/Kanban/KanbanBoard'
+import { BoardPageSkeleton } from '@/components/Kanban/BoardPageSkeleton'
 import { CreateTaskButton } from '@/components/CreateTask/CreateTaskButton'
 import { getStatusesForUser } from '@/lib/db/queries'
 
 export const metadata: Metadata = { title: "Oppgaver | På'n" }
 export const dynamic = 'force-dynamic'
 
-export default async function Page() {
+export default function Page() {
+  return (
+    <Suspense fallback={<BoardPageSkeleton />}>
+      <TasksBoardContent />
+    </Suspense>
+  )
+}
+
+async function TasksBoardContent() {
   const { data: session } = await auth.getSession()
   if (!session?.user) redirect('/auth/sign-in')
 
@@ -35,9 +45,6 @@ export default async function Page() {
           userId={session.user.id}
         />
       </div>
-
-      
     </div>
-    
   )
 }

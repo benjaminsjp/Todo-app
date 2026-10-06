@@ -3,9 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Pencil, ArrowLeft } from "lucide-react"
-import Link from "next/link"
+import { Pencil } from "lucide-react"
+import { BackToBoardLink } from "@/components/BackToBoardLink"
 import { AssigneeOption, StatusOption } from "@/lib/types"
 import Comments from "@/components/TaskComments/Comments"
 import { TaskTitleField } from "@/components/Task/TaskTitleField"
@@ -481,12 +480,7 @@ export default function TaskDetails({
               Redigerer oppgave
             </Badge>
           ) : (
-            <Button variant="ghost" size="sm" className="-ml-2 w-fit text-muted-foreground" asChild>
-              <Link href={boardHref}>
-                <ArrowLeft className="size-4" />
-                Tilbake til tavle
-              </Link>
-            </Button>
+            <BackToBoardLink href={boardHref} />
           )}
           {isEditing ? (
             <>

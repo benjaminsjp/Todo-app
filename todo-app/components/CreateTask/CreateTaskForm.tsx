@@ -2,13 +2,11 @@
 
 import { useActionState } from 'react'
 import { useState } from 'react'
-import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
 import { createTask } from '@/lib/actions/tasks'
 import { CreateTaskEditor } from './CreateTaskEditor'
 import { TaskTitleField } from '@/components/Task/TaskTitleField'
 import { TaskSidebar } from '../TaskDetails/TaskSidebar'
-import { Button } from '@/components/ui/button'
+import { BackToBoardLink } from '@/components/BackToBoardLink'
 import { serializeTaskDateTime } from '@/lib/taskSchedule'
 
 interface Props {
@@ -31,12 +29,7 @@ export function CreateTaskForm({ taskGroups, assigneeOptions, orgId, orgSlug }: 
     <form action={action} className="flex flex-1 flex-col">
       <div className="@container/main container mx-auto flex-1 flex flex-row">
         <div className="flex flex-1 flex-col gap-4 max-w-prose py-12 px-8 mx-auto">
-          <Button variant="ghost" size="sm" className="-ml-2 w-fit text-muted-foreground" asChild>
-            <Link href={orgSlug ? `/org/${orgSlug}` : '/tasks'}>
-              <ArrowLeft className="size-4" />
-              Tilbake til tavle
-            </Link>
-          </Button>
+          <BackToBoardLink href={orgSlug ? `/org/${orgSlug}` : '/tasks'} />
           {state?.error && (
             <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-4 py-3">
               {state.error}

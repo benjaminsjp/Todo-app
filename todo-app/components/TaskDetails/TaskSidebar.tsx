@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from 'react'
 import { MoreHorizontal, Trash2 } from 'lucide-react'
-import Link from 'next/link'
 import React from 'react'
 
+import { CancelToBoardLink } from '@/components/BackToBoardLink'
 import { TaskDeleteDialog } from '@/components/Task/TaskDeleteDialog'
 import { TaskPropertiesRail } from '@/components/TaskDetails/TaskPropertiesRail'
 import { Button } from '@/components/ui/button'
@@ -156,11 +156,7 @@ export function TaskSidebar({
             <Button variant="brand" type="submit" disabled={isPending}>
               {isPending ? 'Oppretter...' : 'Opprett'}
             </Button>
-            {cancelHref && (
-              <Button variant="ghost" type="button" size="sm" asChild>
-                <Link href={cancelHref}>Avbryt</Link>
-              </Button>
-            )}
+            {cancelHref && <CancelToBoardLink href={cancelHref} />}
           </div>
         )}
 
