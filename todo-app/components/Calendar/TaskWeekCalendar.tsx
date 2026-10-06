@@ -1,3 +1,6 @@
+'use client'
+
+import { memo, useMemo } from 'react'
 import { format, isToday } from 'date-fns'
 import { nb } from 'date-fns/locale'
 
@@ -111,19 +114,23 @@ function TimedBlock({
   )
 }
 
-export function TaskWeekCalendar({
+export const TaskWeekCalendar = memo(function TaskWeekCalendar({
   days,
   tasks,
   orgSlug,
   canEdit = true,
 }: TaskWeekCalendarProps) {
-  const { multiDayLanes, timedBlocks } = splitWeekTasksForTimeGrid(tasks, days)
+  const { multiDayLanes, timedBlocks } = useMemo(
+    () => splitWeekTasksForTimeGrid(tasks, days),
+    [tasks, days],
+  )
   const laneCount = multiDayLanes.reduce((max, entry) => Math.max(max, entry.lane + 1), 0)
   const spanAreaHeight =
     laneCount > 0 ? laneCount * LANE_HEIGHT + (laneCount - 1) * LANE_GAP + 12 : 0
 
-  const blocksByCol = days.map((_, col) =>
-    timedBlocks.filter((block) => block.col === col),
+  const blocksByCol = useMemo(
+    () => days.map((_, col) => timedBlocks.filter((block) => block.col === col)),
+    [days, timedBlocks],
   )
 
   return (
@@ -195,7 +202,8 @@ export function TaskWeekCalendar({
                 <SpanBar
                   key={entry.task.id}
                   task={entry.task}
-                  orgSlug={orgSlug} canEdit={canEdit}
+                  orgSlug={orgSlug}
+                  canEdit={canEdit}
                   startCol={entry.startCol}
                   span={entry.span}
                   lane={entry.lane}
@@ -247,7 +255,8 @@ export function TaskWeekCalendar({
               <TimedBlock
                 key={`${block.task.id}-${block.col}`}
                 block={block}
-                orgSlug={orgSlug} canEdit={canEdit}
+                orgSlug={orgSlug}
+                canEdit={canEdit}
               />
             ))}
           </div>
@@ -255,4 +264,4 @@ export function TaskWeekCalendar({
       </div>
     </CalendarScrollArea>
   )
-}
+})

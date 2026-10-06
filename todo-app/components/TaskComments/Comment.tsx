@@ -238,18 +238,34 @@ export function Comment({
   }
 
   const handleTogglePin = async () => {
-    if (!canEdit || !canPin || isReply) return
+    if (!canEdit || !canPin || isReply || isPinning) return
+
+    const prevPinned = pinned
+    const nextPinned = !prevPinned
+    setPinned(nextPinned)
     setIsPinning(true)
     setError(null)
+
+    // Optimistic: update badge + list order (and clear any other pin) immediately.
+    onCommentUpdated?.({
+      id: comment.id,
+      pinnedAt: nextPinned ? new Date() : null,
+    } as CommentType)
+
     const result = await togglePinComment(comment.id)
     setIsPinning(false)
 
     if ('error' in result) {
+      setPinned(prevPinned)
+      onCommentUpdated?.({
+        id: comment.id,
+        pinnedAt: prevPinned ? new Date() : null,
+      } as CommentType)
       setError(result.error)
+      router.refresh()
       return
     }
 
-    setPinned(result.pinned)
     onCommentUpdated?.(result.comment)
     router.refresh()
   }

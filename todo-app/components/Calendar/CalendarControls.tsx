@@ -1,6 +1,5 @@
 'use client'
 
-import { useRouter, useSearchParams } from 'next/navigation'
 import { Building2, ChevronLeft, ChevronRight, Folder } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -28,8 +27,12 @@ interface CalendarControlsProps {
   filter: CalendarFilterMode
   selectedGroup: string
   view: CalendarViewMode
-  prevPeriod: string
-  nextPeriod: string
+  onOrgChange: (orgSlug: string) => void
+  onFilterChange: (filter: CalendarFilterMode) => void
+  onGroupChange: (group: string) => void
+  onViewChange: (view: CalendarViewMode) => void
+  onPrevPeriod: () => void
+  onNextPeriod: () => void
 }
 
 export function CalendarControls({
@@ -39,48 +42,13 @@ export function CalendarControls({
   filter,
   selectedGroup,
   view,
-  prevPeriod,
-  nextPeriod,
+  onOrgChange,
+  onFilterChange,
+  onGroupChange,
+  onViewChange,
+  onPrevPeriod,
+  onNextPeriod,
 }: CalendarControlsProps) {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-
-  const calendarPath = (orgSlug: string, patch: Record<string, string> = {}) => {
-    const params = new URLSearchParams(searchParams.toString())
-    params.delete('org')
-    for (const [key, value] of Object.entries(patch)) {
-      params.set(key, value)
-    }
-    const query = params.toString()
-    return `/org/${orgSlug}/calendar${query ? `?${query}` : ''}`
-  }
-
-  const updateParams = (patch: Record<string, string>) => {
-    router.push(calendarPath(selectedOrgSlug, patch))
-  }
-
-  const handleOrgChange = (nextOrgSlug: string) => {
-    if (nextOrgSlug === selectedOrgSlug) return
-    const params = new URLSearchParams(searchParams.toString())
-    params.delete('org')
-    params.delete('group')
-    const query = params.toString()
-    router.push(`/org/${nextOrgSlug}/calendar${query ? `?${query}` : ''}`)
-  }
-
-  const handleViewChange = (nextView: CalendarViewMode) => {
-    if (nextView === view) return
-
-    const patch: Record<string, string> = { view: nextView }
-    if (nextView === 'month' && !searchParams.get('month')) {
-      const week = searchParams.get('week')
-      if (week) {
-        patch.month = week.slice(0, 7)
-      }
-    }
-    updateParams(patch)
-  }
-
   return (
     <div className="flex flex-col gap-4 rounded-2xl border bg-card p-4">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -90,7 +58,7 @@ export function CalendarControls({
               <Building2 className="size-4" />
               Organisasjon
             </div>
-            <Select value={selectedOrgSlug} onValueChange={handleOrgChange}>
+            <Select value={selectedOrgSlug} onValueChange={onOrgChange}>
               <SelectTrigger className="min-w-60">
                 <SelectValue placeholder="Velg organisasjon" />
               </SelectTrigger>
@@ -109,10 +77,7 @@ export function CalendarControls({
               <Folder className="size-4" />
               Gruppe
             </div>
-            <Select
-              value={selectedGroup}
-              onValueChange={(value) => updateParams({ group: value })}
-            >
+            <Select value={selectedGroup} onValueChange={onGroupChange}>
               <SelectTrigger className="min-w-52">
                 <SelectValue placeholder="Alle grupper" />
               </SelectTrigger>
@@ -140,7 +105,7 @@ export function CalendarControls({
             value={view}
             onValueChange={(value) => {
               if (value === 'week' || value === 'month') {
-                handleViewChange(value)
+                onViewChange(value)
               }
             }}
             variant="outline"
@@ -155,7 +120,7 @@ export function CalendarControls({
             value={filter}
             onValueChange={(value) => {
               if (value === 'org' || value === 'mine') {
-                updateParams({ filter: value })
+                onFilterChange(value)
               }
             }}
             variant="outline"
@@ -166,23 +131,11 @@ export function CalendarControls({
           </ToggleGroup>
 
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                updateParams(view === 'month' ? { month: prevPeriod } : { week: prevPeriod })
-              }
-            >
+            <Button variant="outline" size="sm" onClick={onPrevPeriod}>
               <ChevronLeft className="size-4" />
               {view === 'month' ? 'Forrige måned' : 'Forrige uke'}
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                updateParams(view === 'month' ? { month: nextPeriod } : { week: nextPeriod })
-              }
-            >
+            <Button variant="outline" size="sm" onClick={onNextPeriod}>
               {view === 'month' ? 'Neste måned' : 'Neste uke'}
               <ChevronRight className="size-4" />
             </Button>

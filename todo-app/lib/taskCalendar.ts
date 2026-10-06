@@ -165,6 +165,30 @@ export function filterCalendarTasksByGroup(
   return tasks.filter((task) => task.groupId === groupId)
 }
 
+/** Keep only tasks that intersect an inclusive calendar day range. */
+export function filterTasksOverlappingRange(
+  tasks: Task[],
+  rangeStart: Date,
+  rangeEnd: Date,
+): Task[] {
+  const start = startOfDay(rangeStart)
+  const end = endOfDay(rangeEnd)
+
+  return tasks.filter((task) => {
+    if (task.startAt && task.endAt) {
+      const taskStart = startOfDay(new Date(task.startAt))
+      const taskEnd = endOfDay(new Date(task.endAt))
+      return taskStart <= end && taskEnd >= start
+    }
+
+    const anchor = task.startAt ?? task.endAt
+    if (!anchor) return false
+
+    const day = new Date(anchor)
+    return day >= start && day <= end
+  })
+}
+
 export function taskOccursOnDay(task: Task, day: Date): boolean {
   const dayStart = startOfDay(day)
   const dayEnd = endOfDay(day)

@@ -177,13 +177,18 @@ export async function getTaskGroupOptions(userId: string, orgId?: number | null)
   }))
 }
 
-export async function getTasksForOrg(orgId: number) {
+export async function getTasksForOrg(
+  orgId: number,
+  options?: { includeCommentCounts?: boolean },
+) {
   const rows = await db.query.tasks.findMany({
     where: eq(tasks.orgId, orgId),
     with: TASK_WITH_ASSIGNEES,
     orderBy: (tasks, { asc }) => [asc(tasks.order)],
   })
-  return attachCommentCounts(rows.map(normalizeTaskAssignees))
+  const normalized = rows.map(normalizeTaskAssignees)
+  if (options?.includeCommentCounts === false) return normalized
+  return attachCommentCounts(normalized)
 }
 
 

@@ -1,3 +1,6 @@
+'use client'
+
+import { memo, useMemo } from 'react'
 import { format, isToday } from 'date-fns'
 
 import { CalendarTaskHoverCard } from '@/components/Calendar/CalendarTaskHoverCard'
@@ -167,7 +170,7 @@ function MonthSingleDayTasks({
   )
 }
 
-function MonthWeekRow({
+const MonthWeekRow = memo(function MonthWeekRow({
   week,
   monthAnchor,
   tasks,
@@ -180,7 +183,10 @@ function MonthWeekRow({
   orgSlug: string
   canEdit?: boolean
 }) {
-  const { multiDayLanes, singleDayByCol } = splitWeekTasksByLayout(tasks, week.days)
+  const { multiDayLanes, singleDayByCol } = useMemo(
+    () => splitWeekTasksByLayout(tasks, week.days),
+    [tasks, week.days],
+  )
   const laneCount = multiDayLanes.reduce((max, entry) => Math.max(max, entry.lane + 1), 0)
   const singleDayRow = 2 + laneCount
 
@@ -219,7 +225,8 @@ function MonthWeekRow({
             week={week}
             monthAnchor={monthAnchor}
             entries={multiDayLanes.filter((entry) => entry.lane === lane)}
-            orgSlug={orgSlug} canEdit={canEdit}
+            orgSlug={orgSlug}
+            canEdit={canEdit}
             gridRow={lane + 2}
           />
         ))}
@@ -242,9 +249,9 @@ function MonthWeekRow({
       })}
     </div>
   )
-}
+})
 
-export function TaskMonthCalendar({
+export const TaskMonthCalendar = memo(function TaskMonthCalendar({
   monthAnchor,
   weeks,
   tasks,
@@ -274,9 +281,10 @@ export function TaskMonthCalendar({
           week={week}
           monthAnchor={monthAnchor}
           tasks={tasks}
-          orgSlug={orgSlug} canEdit={canEdit}
+          orgSlug={orgSlug}
+          canEdit={canEdit}
         />
       ))}
     </CalendarScrollArea>
   )
-}
+})

@@ -500,7 +500,7 @@ export default function TaskDetails({
       const idx = base.findIndex((c) => c.id === comment.id)
       if (idx === -1) return [...base, comment]
       const next = [...base]
-      next[idx] = comment
+      next[idx] = { ...base[idx], ...comment }
       return next
     })
   }
