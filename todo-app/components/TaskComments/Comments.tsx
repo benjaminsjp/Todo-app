@@ -48,6 +48,22 @@ export default function Comments({
   const [composerFocusKey, setComposerFocusKey] = useState(0)
   const editorKey = useRef(0)
   const composerRef = useRef<HTMLDivElement>(null)
+  // Keep list keys stable when optimistic temp ids are replaced with server ids.
+  const listKeyByIdRef = useRef(new Map<number, string>())
+
+  const listKeyFor = (id: number) => {
+    const existing = listKeyByIdRef.current.get(id)
+    if (existing) return existing
+    const key = `comment-${id}`
+    listKeyByIdRef.current.set(id, key)
+    return key
+  }
+
+  const rememberSavedKey = (tempId: number, savedId: number) => {
+    const key = listKeyByIdRef.current.get(tempId) ?? `comment-${tempId}`
+    listKeyByIdRef.current.delete(tempId)
+    listKeyByIdRef.current.set(savedId, key)
+  }
 
   const replyTarget = replyToId == null
     ? null
@@ -97,28 +113,37 @@ export default function Comments({
   const submitComment = async () => {
     if (!hasCommentEditorContent(content) || isPending) return
 
-    setError(null)
-    setIsPending(true)
+    const html = content
+    const replyId = replyToId
 
     // Match server: nest under root so one-level threads stay consistent.
-    const replyTargetNow = replyToId == null ? null : findComment(comments, replyToId)
+    const replyTargetNow = replyId == null ? null : findComment(comments, replyId)
     const parentId = replyTargetNow
       ? (replyTargetNow.parentId ?? replyTargetNow.id)
-      : replyToId
+      : replyId
     const tempId = -Date.now()
+    listKeyFor(tempId)
+
     const optimistic: CommentType = {
       id:        tempId,
-      content,
+      content:   html,
       createdAt: new Date(),
       updatedAt: null,
       taskId,
-      userId:    '',
+      userId:    currentUserId ?? '',
       parentId,
-      inReplyToId: replyToId,
+      inReplyToId: replyId,
       pinnedAt:    null,
       reactions:   [],
-      user:        null,
+      user:        currentUser ?? null,
     }
+
+    // Clear composer immediately so UI feels instant and height settles with the new comment.
+    setError(null)
+    setContent('')
+    setReplyToId(null)
+    editorKey.current += 1
+    setIsPending(true)
     onOptimisticAdd?.(optimistic)
 
     if (parentId != null) {
@@ -127,19 +152,22 @@ export default function Comments({
       ensureRepliesVisible(parentId, nextTotal)
     }
 
-    const result = await createCommentForTask(taskId, content, replyToId)
+    const result = await createCommentForTask(taskId, html, replyId)
     setIsPending(false)
 
     if ('error' in result) {
       onOptimisticRemove?.(tempId)
+      listKeyByIdRef.current.delete(tempId)
       setError(result.error)
+      // Restore draft so the user does not lose what they wrote.
+      setContent(html)
+      setReplyToId(replyId)
+      editorKey.current += 1
       return
     }
 
+    rememberSavedKey(tempId, result.comment.id)
     onCommentSaved?.(tempId, result.comment)
-    setContent('')
-    setReplyToId(null)
-    editorKey.current += 1
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -148,7 +176,7 @@ export default function Comments({
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col">
       <h2 className="text-2xl font-heading mt-8 mb-4">Kommentarer</h2>
 
       <div className="flex flex-col gap-4">
@@ -162,7 +190,7 @@ export default function Comments({
           const remaining = totalReplies - visibleCount
 
           return (
-            <div key={comment.id} className="flex flex-col gap-2">
+            <div key={listKeyFor(comment.id)} className="flex flex-col gap-2">
               <Comment
                 comment={comment}
                 currentUserId={currentUserId}
@@ -182,7 +210,7 @@ export default function Comments({
                     <div className="flex flex-col gap-2 border-l border-border/60 pl-3 sm:pl-4">
                       {visible.map((reply) => (
                         <Comment
-                          key={reply.id}
+                          key={listKeyFor(reply.id)}
                           comment={reply}
                           currentUserId={currentUserId}
                           currentUser={currentUser}
@@ -234,7 +262,7 @@ export default function Comments({
       </div>
 
       {canEdit && (
-        <div ref={composerRef} className="mt-auto pt-12 pb-12">
+        <div ref={composerRef} className="pt-8 pb-12">
           {replyTarget && (
             <div className="mb-2 flex items-start justify-between gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
               <div className="min-w-0 flex-1">
