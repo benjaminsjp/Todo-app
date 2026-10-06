@@ -1,7 +1,7 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   DndContext,
   DragEndEvent,
@@ -548,7 +548,7 @@ export function AppSidebar({
   personalGroups,
   personalStatuses,
   personalAssigneeOptions,
-  orgAssigneeOptionsByOrgId,
+  orgAssigneeOptionsByOrgId: initialOrgAssigneeOptionsByOrgId,
   orgs,
 }: AppSidebarProps) {
   const pathname       = usePathname()
@@ -557,6 +557,39 @@ export function AppSidebar({
   const activeOrg      = orgs.find((o) => o.slug === currentOrgSlug) ?? null
   const orgRealtime    = useOrgRealtime(activeOrg?.id)
   const canEdit        = activeOrg ? canEditOrgContent(activeOrg.role) : true
+  const [orgAssigneeOptionsByOrgId, setOrgAssigneeOptionsByOrgId] = useState(
+    initialOrgAssigneeOptionsByOrgId,
+  )
+
+  const fetchedAssigneeOrgs = useRef(new Set<number>())
+
+  useEffect(() => {
+    setOrgAssigneeOptionsByOrgId(initialOrgAssigneeOptionsByOrgId)
+  }, [initialOrgAssigneeOptionsByOrgId])
+
+  useEffect(() => {
+    if (!activeOrg?.id) return
+    if (fetchedAssigneeOrgs.current.has(activeOrg.id)) return
+    fetchedAssigneeOrgs.current.add(activeOrg.id)
+
+    let cancelled = false
+    fetch(`/api/org/${activeOrg.id}/assignees`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { assignees?: AssigneeOption[] } | null) => {
+        if (cancelled || !data?.assignees) return
+        setOrgAssigneeOptionsByOrgId((prev) => ({
+          ...prev,
+          [activeOrg.id]: data.assignees!,
+        }))
+      })
+      .catch(() => {
+        fetchedAssigneeOrgs.current.delete(activeOrg.id)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeOrg?.id])
 
   const hasOrgNavData =
     activeOrg?.tasks !== undefined || orgRealtime.tasks !== null

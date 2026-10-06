@@ -1,13 +1,26 @@
-// app/tasks/create-task/page.tsx
+import { Suspense } from 'react'
 import { auth } from '@/lib/auth/server'
 import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
 import { organizations, taskGroups } from '@/lib/db/schema'
 import { CreateTaskForm } from '@/components/CreateTask/CreateTaskForm'
+import { TaskPageSkeleton } from '@/components/TaskDetails/TaskPageSkeleton'
 import { eq } from 'drizzle-orm'
 import { getOrgAssigneeOptions, getPersonalAssigneeOptions } from '@/lib/db/queries'
 
-export default async function CreateTaskPage({
+export default function CreateTaskPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ orgId?: string }>
+}) {
+  return (
+    <Suspense fallback={<TaskPageSkeleton />}>
+      <CreateTaskContent searchParams={searchParams} />
+    </Suspense>
+  )
+}
+
+async function CreateTaskContent({
   searchParams,
 }: {
   searchParams: Promise<{ orgId?: string }>
@@ -30,6 +43,7 @@ export default async function CreateTaskPage({
     orgId
       ? db.query.organizations.findFirst({
           where: eq(organizations.id, orgId),
+          columns: { slug: true },
         })
       : null,
     orgId ? getOrgAssigneeOptions(orgId) : getPersonalAssigneeOptions(session.user.id),

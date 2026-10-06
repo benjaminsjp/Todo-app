@@ -210,9 +210,9 @@ export async function getPersonalTasksForSidebar(userId: string) {
 }
 
 export async function getPersonalGroupsForSidebar(userId: string) {
+  // Tasks are attached client-side from getPersonalTasksForSidebar — skip nested fetch.
   return db.query.taskGroups.findMany({
     where: and(eq(taskGroups.createdBy, userId), isNull(taskGroups.orgId)),
-    with: { tasks: { with: { status: true } } },
   })
 }
 

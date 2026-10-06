@@ -1,6 +1,7 @@
 'use client'
 
-import { usePathname, useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 
@@ -9,29 +10,30 @@ interface Props {
   children?: React.ReactNode
 }
 
-export function CreateTaskButton({ orgId, children }: Props) {
-  const router   = useRouter()
+function createTaskHref(pathname: string) {
+  const orgSlug = pathname.startsWith('/org/')
+    ? pathname.split('/')[2]
+    : null
+  return orgSlug ? `/org/${orgSlug}/create-task` : '/tasks/create-task'
+}
+
+export function CreateTaskButton({ children }: Props) {
   const pathname = usePathname()
-
-  const handleClick = () => {
-    const orgSlug = pathname.startsWith('/org/')
-      ? pathname.split('/')[2]
-      : null
-
-    if (orgSlug) {
-      router.push(`/org/${orgSlug}/create-task`)
-    } else {
-      router.push('/tasks/create-task')
-    }
-  }
+  const href = createTaskHref(pathname)
 
   if (children) {
-    return <span onClick={handleClick}>{children}</span>
+    return (
+      <Link href={href} prefetch className="contents">
+        {children}
+      </Link>
+    )
   }
 
   return (
-    <Button onClick={handleClick}>
-      <Plus className="size-4" /> Ny oppgave
+    <Button asChild>
+      <Link href={href} prefetch>
+        <Plus className="size-4" /> Ny oppgave
+      </Link>
     </Button>
   )
 }

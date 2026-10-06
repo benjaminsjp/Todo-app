@@ -2,7 +2,8 @@
 "use client"
 
 import * as React from "react"
-import { usePathname, useRouter } from "next/navigation"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { ChevronDown, Plus, Building2 } from "lucide-react"
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -16,7 +17,6 @@ import { CreateOrgModal } from "@/components/CreateOrg/CreateOrgModal"
 type Org = { id: number; name: string; slug: string }
 
 export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
-  const router   = useRouter()
   const pathname = usePathname()
   const [open, setOpen] = React.useState(false)
 
@@ -44,34 +44,31 @@ export function OrgSwitcher({ orgs }: { orgs: Org[] }) {
                 Organisasjoner
               </DropdownMenuLabel>
 
-              <DropdownMenuItem
-                className="gap-2 p-2"
-                onClick={() => router.push('/tasks')}
-              >
-                <div className="flex size-7 items-center justify-center rounded-sm border">
-                  <Building2 className="size-4 shrink-0" />
-                </div>
-                Personlig
-                {!activeOrg && (
-                  <span className="ml-auto text-xs text-muted-foreground pr-2">Aktiv</span>
-                )}
+              <DropdownMenuItem className="gap-2 p-2" asChild>
+                <Link href="/tasks" prefetch>
+                  <div className="flex size-7 items-center justify-center rounded-sm border">
+                    <Building2 className="size-4 shrink-0" />
+                  </div>
+                  Personlig
+                  {!activeOrg && (
+                    <span className="ml-auto text-xs text-muted-foreground pr-2">Aktiv</span>
+                  )}
+                </Link>
               </DropdownMenuItem>
 
               {orgs.length > 0 && <DropdownMenuSeparator />}
 
               {orgs.map((org) => (
-                <DropdownMenuItem
-                  key={org.id}
-                  className="gap-2 p-2"
-                  onClick={() => router.push(`/org/${org.slug}`)}
-                >
-                  <div className="flex size-7 items-center justify-center rounded-sm border">
-                    <Building2 className="size-4 shrink-0" />
-                  </div>
-                  {org.name}
-                  {org.slug === currentSlug && (
-                    <span className="ml-auto text-xs text-muted-foreground pr-2">Aktiv</span>
-                  )}
+                <DropdownMenuItem key={org.id} className="gap-2 p-2" asChild>
+                  <Link href={`/org/${org.slug}`} prefetch>
+                    <div className="flex size-7 items-center justify-center rounded-sm border">
+                      <Building2 className="size-4 shrink-0" />
+                    </div>
+                    {org.name}
+                    {org.slug === currentSlug && (
+                      <span className="ml-auto text-xs text-muted-foreground pr-2">Aktiv</span>
+                    )}
+                  </Link>
                 </DropdownMenuItem>
               ))}
 

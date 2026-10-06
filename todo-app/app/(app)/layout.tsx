@@ -5,10 +5,11 @@ import { AppSidebarServer } from "@/components/sidebar/AppSidebarServer";
 import { AppSidebarPlaceholder } from "@/components/sidebar/AppSidebarPlaceholder";
 import { AppMenubarServer } from "@/components/AppMenubarServer";
 import { DemoBannerShell } from "@/components/DemoBannerShell";
+import { NavigationProgress } from "@/components/NavigationProgress";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { BreadcrumbProvider } from "@/components/Breadcrumbs/BreadcrumbsContext";
 import { auth } from '@/lib/auth/server'
-import { ensureUserReady } from '@/lib/auth/ensureUserReady'
+import { UserReadyGate } from '@/lib/auth/UserReadyGate'
 import { isDemoUser } from '@/lib/demo/config'
 import { redirect } from 'next/navigation'
 
@@ -24,12 +25,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const { data: session } = await auth.getSession()
   if (!session?.user) redirect('/auth/sign-in')
 
-  await ensureUserReady(session.user)
-
   const showDemoBanner = isDemoUser(session.user)
 
   return (
     <BreadcrumbProvider rootLabel="Hjem">
+      <Suspense fallback={null}>
+        <UserReadyGate user={session.user} />
+      </Suspense>
+      <Suspense fallback={null}>
+        <NavigationProgress />
+      </Suspense>
       <DemoBannerShell enabled={showDemoBanner}>
         <SidebarProvider
           className="h-full min-h-0 flex-1 overflow-hidden"
@@ -40,7 +45,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <AppSidebarServer />
             </Suspense>
             <main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-              <AppMenubarServer />
+              <Suspense fallback={<div className="h-[73px] shrink-0 border-b" />}>
+                <AppMenubarServer />
+              </Suspense>
               <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
                 {children}
               </div>

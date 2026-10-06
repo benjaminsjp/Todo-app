@@ -1,14 +1,23 @@
+import { Suspense } from 'react'
 import { auth } from '@/lib/auth/server'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { db } from '@/lib/db'
 import { taskGroups, organizations } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { CreateTaskForm } from '@/components/CreateTask/CreateTaskForm'
 import { SetBreadcrumbLabel } from '@/components/Breadcrumbs/SetBreadcrumbLabel'
-import { notFound } from 'next/navigation'
+import { TaskPageSkeleton } from '@/components/TaskDetails/TaskPageSkeleton'
 import { getOrgAssigneeOptions } from '@/lib/db/queries'
 
-export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
+export default function Page({ params }: { params: Promise<{ slug: string }> }) {
+  return (
+    <Suspense fallback={<TaskPageSkeleton />}>
+      <CreateOrgTaskContent params={params} />
+    </Suspense>
+  )
+}
+
+async function CreateOrgTaskContent({ params }: { params: Promise<{ slug: string }> }) {
   const { data: session } = await auth.getSession()
   if (!session?.user) redirect('/auth/sign-in')
 
@@ -16,6 +25,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
 
   const org = await db.query.organizations.findFirst({
     where: eq(organizations.slug, slug),
+    columns: { id: true, name: true, slug: true },
   })
 
   if (!org) notFound()

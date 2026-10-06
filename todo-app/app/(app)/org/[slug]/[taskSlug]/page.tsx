@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { auth } from '@/lib/auth/server'
 import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
@@ -7,10 +8,24 @@ import { normalizeTaskAssignees, TASK_WITH_ASSIGNEES } from '@/lib/taskAssignees
 import { and, eq } from 'drizzle-orm'
 import TaskDetails from '@/components/TaskDetails/TaskDetails'
 import { SetBreadcrumbLabel } from '@/components/Breadcrumbs/SetBreadcrumbLabel'
+import { TaskPageSkeleton } from '@/components/TaskDetails/TaskPageSkeleton'
 import { canEditOrgContent } from '@/lib/orgPermissions'
+
 export const dynamic = 'force-dynamic'
 
-export default async function OrgTaskPage({
+export default function OrgTaskPage({
+  params,
+}: {
+  params: Promise<{ slug: string; taskSlug: string }>
+}) {
+  return (
+    <Suspense fallback={<TaskPageSkeleton />}>
+      <OrgTaskContent params={params} />
+    </Suspense>
+  )
+}
+
+async function OrgTaskContent({
   params,
 }: {
   params: Promise<{ slug: string; taskSlug: string }>
@@ -22,43 +37,29 @@ export default async function OrgTaskPage({
 
   const org = await db.query.organizations.findFirst({
     where: eq(organizations.slug, slug),
+    columns: { id: true, name: true, slug: true },
   })
   if (!org) redirect('/tasks')
 
-  const membership = await db.query.organizationMembers.findFirst({
-    where: and(
-      eq(organizationMembers.orgId, org.id),
-      eq(organizationMembers.userId, session.user.id)
-    ),
-  })
-  if (!membership) redirect('/tasks')
-
-  const canEdit = canEditOrgContent(membership.role)
-
-  const taskRow = await db.query.tasks.findFirst({
-    where: and(eq(tasks.slug, taskSlug), eq(tasks.orgId, org.id)),
-    with: {
-      ...TASK_WITH_ASSIGNEES,
-      comments: { with: { user: true } },
-    },
-  })
-  if (!taskRow) redirect(`/org/${slug}`)
-  const task = normalizeTaskAssignees(taskRow)
-
-  const groups = await db.query.taskGroups.findMany({
-    where: eq(taskGroups.orgId, org.id),
-    with: { tasks: true },
-  })
-
-  const taskGroupOptions = groups.map((g) => ({
-    value: String(g.id),
-    label: g.title,
-    color: g.color,
-  }))
-
-  const taskGroup = task.group?.title
-
-  const [statuses, currentUser, assigneeOptions] = await Promise.all([
+  const [membership, taskRow, groups, statuses, currentUser, assigneeOptions] = await Promise.all([
+    db.query.organizationMembers.findFirst({
+      where: and(
+        eq(organizationMembers.orgId, org.id),
+        eq(organizationMembers.userId, session.user.id),
+      ),
+      columns: { role: true },
+    }),
+    db.query.tasks.findFirst({
+      where: and(eq(tasks.slug, taskSlug), eq(tasks.orgId, org.id)),
+      with: {
+        ...TASK_WITH_ASSIGNEES,
+        comments: { with: { user: true } },
+      },
+    }),
+    db.query.taskGroups.findMany({
+      where: eq(taskGroups.orgId, org.id),
+      columns: { id: true, title: true, color: true },
+    }),
     getStatusesForOrg(org.id),
     db.query.users.findFirst({
       where: eq(users.id, session.user.id),
@@ -66,12 +67,23 @@ export default async function OrgTaskPage({
     getOrgAssigneeOptions(org.id),
   ])
 
+  if (!membership) redirect('/tasks')
+  if (!taskRow) redirect(`/org/${slug}`)
+
+  const canEdit = canEditOrgContent(membership.role)
+  const task = normalizeTaskAssignees(taskRow)
+
+  const taskGroupOptions = groups.map((g) => ({
+    value: String(g.id),
+    label: g.title,
+    color: g.color,
+  }))
+
   const statusOptions = statuses.map((s) => ({
     value: String(s.id),
     label: s.label,
     color: s.color,
   }))
-
 
   return (
     <>
@@ -79,7 +91,7 @@ export default async function OrgTaskPage({
       <SetBreadcrumbLabel segment={taskSlug} label={task.title} />
       <TaskDetails
         task={task}
-        taskGroup={taskGroup}
+        taskGroup={task.group?.title}
         taskGroupOptions={taskGroupOptions}
         statusOptions={statusOptions}
         statuses={statuses}

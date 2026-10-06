@@ -9,7 +9,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 
 import { type TaskPresence } from '@/lib/hooks/useOrgRealtime'
 import { TaskOptionsMenu } from './TaskOptionsMenu'
-import { useRouter } from 'next/navigation'
+import Link, { useLinkStatus } from 'next/link'
+import { cn } from '@/lib/utils'
 
 interface TaskCardProps {
   task: Task
@@ -68,6 +69,19 @@ function PresenceDot({ others }: { others: TaskPresence[] }) {
     </Tooltip>
   )
 }
+function TaskCardLinkPending() {
+  const { pending } = useLinkStatus()
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        'pointer-events-none absolute inset-0 rounded-xl bg-primary/5 transition-opacity duration-150',
+        pending ? 'opacity-100' : 'opacity-0',
+      )}
+    />
+  )
+}
+
 export function TaskCard({
   task,
   orgSlug,
@@ -80,21 +94,25 @@ export function TaskCard({
   onOptimisticPatch,
   onOptimisticRollback,
 }: TaskCardProps) {
-  const router = useRouter()
   const overlayLocked = useKanbanOverlayLocked()
   const groupColor = task.group?.color ?? null
   const href = orgSlug ? `/org/${orgSlug}/${task.slug}` : `/tasks/${task.slug}`
   const others = presenceUsers.filter((u) => u.userId !== currentUserId)
   return (
-    <div
+    <Link
+      href={href}
+      prefetch
       className="group relative rounded-xl border bg-card p-4 flex flex-col gap-3 hover:shadow-md hover:border-foreground/20 transition-all duration-200 cursor-pointer"
       onClick={(e) => {
-        if (overlayLocked) return
+        if (overlayLocked) {
+          e.preventDefault()
+          return
+        }
         const target = e.target as HTMLElement | null
-        if (target?.closest?.('[data-no-nav]')) return
-        router.push(href)
+        if (target?.closest?.('[data-no-nav]')) e.preventDefault()
       }}
     >
+      <TaskCardLinkPending />
 
       <div className="relative z-10 flex flex-col gap-2">
         <div className="flex items-center gap-2">
@@ -150,6 +168,6 @@ export function TaskCard({
           {task.commentCount ?? task.comments?.length ?? 0}
         </div>
       </div>
-    </div>
+    </Link>
   )
 }
