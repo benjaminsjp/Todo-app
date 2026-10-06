@@ -334,24 +334,44 @@ export default function TaskDetails({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [isEditing])
 
-  const handleStartEditing = async () => {
-    if (!canEdit) return
-    setError(null)
-    if (checkboxSaveTimerRef.current) {
-      clearTimeout(checkboxSaveTimerRef.current)
-      checkboxSaveTimerRef.current = null
-      await flushCheckboxSave()
-    }
-    if (!task.orgId) { setIsEditing(true); return }
+  const handleStartEditing = () => {
+    if (!canEdit || isEditing) return
 
-    const res = await acquireTaskLock(task.id)
-    if ('error' in res) { setError(res.error ?? null); return }
-    if (res.success === false) {
-      const who = res.lockedBy?.displayName ?? res.lockedBy?.email ?? 'en annen bruker'
+    // Presence already says someone else is editing — fail fast without a round-trip.
+    if (isLockedByOther) {
+      const who =
+        editingUsers[0]?.user?.displayName
+        ?? editingUsers[0]?.user?.email
+        ?? 'en annen bruker'
       setError(`Oppgaven er låst (redigeres av ${who}).`)
       return
     }
+
+    setError(null)
+
+    if (checkboxSaveTimerRef.current) {
+      clearTimeout(checkboxSaveTimerRef.current)
+      checkboxSaveTimerRef.current = null
+      void flushCheckboxSave()
+    }
+
+    // Enter edit mode immediately; confirm the lock in the background for org tasks.
     setIsEditing(true)
+    if (!task.orgId) return
+
+    void (async () => {
+      const res = await acquireTaskLock(task.id)
+      if ('error' in res) {
+        setIsEditing(false)
+        setError(res.error ?? null)
+        return
+      }
+      if (res.success === false) {
+        setIsEditing(false)
+        const who = res.lockedBy?.displayName ?? res.lockedBy?.email ?? 'en annen bruker'
+        setError(`Oppgaven er låst (redigeres av ${who}).`)
+      }
+    })()
   }
 
   const handleStatusChange = (newStatus: string) => {
