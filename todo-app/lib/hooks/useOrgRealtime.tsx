@@ -13,8 +13,11 @@ export type TaskPresence = {
 
 function presenceEqual(a: TaskPresence[], b: TaskPresence[]): boolean {
   if (a.length !== b.length) return false
-  return a.every((p, i) => {
-    const q = b[i]
+  const sortKey = (p: TaskPresence) => `${p.taskId}:${p.userId}`
+  const as = [...a].sort((x, y) => sortKey(x).localeCompare(sortKey(y)))
+  const bs = [...b].sort((x, y) => sortKey(x).localeCompare(sortKey(y)))
+  return as.every((p, i) => {
+    const q = bs[i]
     return (
       p.taskId === q.taskId &&
       p.userId === q.userId &&
@@ -95,6 +98,17 @@ export function useOrgRealtime(orgId?: number) {
       const existing = map.get(p.taskId)
       if (existing) existing.push(p)
       else map.set(p.taskId, [p])
+    }
+    // Stable order so labels/avatars don't reshuffle on each heartbeat.
+    for (const [taskId, list] of map) {
+      map.set(
+        taskId,
+        [...list].sort((a, b) => {
+          const modeRank = Number(b.mode === 'editing') - Number(a.mode === 'editing')
+          if (modeRank !== 0) return modeRank
+          return a.userId.localeCompare(b.userId)
+        }),
+      )
     }
     return map
   }, [presence])

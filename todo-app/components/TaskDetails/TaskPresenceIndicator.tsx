@@ -23,6 +23,14 @@ function presenceInitials(p: TaskPresence) {
   return `${parts[0]![0] ?? ''}${parts[1]![0] ?? ''}`.toUpperCase()
 }
 
+function sortPresence(others: TaskPresence[]) {
+  return [...others].sort((a, b) => {
+    const modeRank = Number(b.mode === 'editing') - Number(a.mode === 'editing')
+    if (modeRank !== 0) return modeRank
+    return a.userId.localeCompare(b.userId)
+  })
+}
+
 function presenceLabel(others: TaskPresence[]) {
   const editing = others.filter((p) => p.mode === 'editing')
   const viewing = others.filter((p) => p.mode !== 'editing')
@@ -70,10 +78,11 @@ export function TaskPresenceIndicator({
 }) {
   if (others.length === 0) return null
 
-  const editing = others.filter((p) => p.mode === 'editing')
-  const visible = others.slice(0, VISIBLE_AVATARS)
-  const overflow = others.length - visible.length
-  const label = presenceLabel(others)
+  const sorted = sortPresence(others)
+  const editing = sorted.filter((p) => p.mode === 'editing')
+  const visible = sorted.slice(0, VISIBLE_AVATARS)
+  const overflow = sorted.length - visible.length
+  const label = presenceLabel(sorted)
 
   return (
     <div
