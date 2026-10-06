@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Bell, Building2, ClipboardList, X } from 'lucide-react'
+import { Bell, Building2, ClipboardList, Heart, MessageCircle, X } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -31,9 +31,9 @@ type OrgInvitationNotification = {
   expiresAt: string
 }
 
-type TaskAssignedNotification = {
+type TaskRelatedNotification = {
   id:               string
-  type:             'task_assigned'
+  type:             'task_assigned' | 'comment_reply' | 'comment_reaction'
   notificationId:   number
   taskId:           number | null
   taskTitle:        string
@@ -43,7 +43,7 @@ type TaskAssignedNotification = {
   createdAt:        string
 }
 
-type AppNotification = OrgInvitationNotification | TaskAssignedNotification
+type AppNotification = OrgInvitationNotification | TaskRelatedNotification
 
 type AnimatedNotification = AppNotification & {
   phase: 'enter' | 'idle' | 'exit'
@@ -58,12 +58,39 @@ const ROLE_LABELS: Record<string, string> = {
 
 const EXIT_MS = 280
 
-function taskHref(notification: TaskAssignedNotification) {
+function taskHref(notification: TaskRelatedNotification) {
   if (notification.orgSlug && notification.taskSlug) {
     return `/org/${notification.orgSlug}/${notification.taskSlug}`
   }
   if (notification.taskSlug) return `/tasks/${notification.taskSlug}`
   return null
+}
+
+function isTaskRelated(
+  notification: AppNotification,
+): notification is TaskRelatedNotification {
+  return (
+    notification.type === 'task_assigned'
+    || notification.type === 'comment_reply'
+    || notification.type === 'comment_reaction'
+  )
+}
+
+function taskNotificationCopy(notification: TaskRelatedNotification) {
+  switch (notification.type) {
+    case 'comment_reply':
+      return `${notification.fromUserName} svarte på kommentaren din`
+    case 'comment_reaction':
+      return `${notification.fromUserName} reagerte på kommentaren din`
+    default:
+      return `${notification.fromUserName} vil at du skal se på oppgaven`
+  }
+}
+
+function TaskNotificationIcon({ type }: { type: TaskRelatedNotification['type'] }) {
+  if (type === 'comment_reply') return <MessageCircle className="size-4" />
+  if (type === 'comment_reaction') return <Heart className="size-4" />
+  return <ClipboardList className="size-4" />
 }
 
 function prefersReducedMotion() {
@@ -224,7 +251,7 @@ export function NotificationCenter() {
     animateOut(notification.id)
   }
 
-  const handleDismissTask = async (notification: TaskAssignedNotification) => {
+  const handleDismissTask = async (notification: TaskRelatedNotification) => {
     setActingOn(notification.id)
     // Optimistically start exit so UI never feels stuck on a slow server action.
     animateOut(notification.id)
@@ -238,7 +265,7 @@ export function NotificationCenter() {
     }
   }
 
-  const handleOpenTask = async (notification: TaskAssignedNotification) => {
+  const handleOpenTask = async (notification: TaskRelatedNotification) => {
     const href = taskHref(notification)
     if (!href) {
       toast.error('Kunne ikke åpne oppgaven')
@@ -264,8 +291,8 @@ export function NotificationCenter() {
 
   const handleDismissAll = async () => {
     const taskNotes = items.filter(
-      (n): n is AnimatedNotification & TaskAssignedNotification =>
-        n.type === 'task_assigned' && n.phase !== 'exit',
+      (n): n is AnimatedNotification & TaskRelatedNotification =>
+        isTaskRelated(n) && n.phase !== 'exit',
     )
     if (taskNotes.length === 0) return
 
@@ -283,7 +310,7 @@ export function NotificationCenter() {
 
   const activeItems = items.filter((n) => n.phase !== 'exit')
   const count = activeItems.length
-  const taskCount = activeItems.filter((n) => n.type === 'task_assigned').length
+  const taskCount = activeItems.filter((n) => isTaskRelated(n)).length
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -381,15 +408,15 @@ export function NotificationCenter() {
                         </Button>
                       </div>
                     </>
-                  ) : (
+                  ) : isTaskRelated(notification) ? (
                     <>
                       <div className="flex gap-3">
                         <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted">
-                          <ClipboardList className="size-4" />
+                          <TaskNotificationIcon type={notification.type} />
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium leading-snug">
-                            {notification.fromUserName} vil at du skal se på oppgaven
+                            {taskNotificationCopy(notification)}
                           </p>
                           <p className="text-xs text-muted-foreground mt-0.5 truncate">
                             {notification.taskTitle}
@@ -426,7 +453,7 @@ export function NotificationCenter() {
                         </Button>
                       </div>
                     </>
-                  )}
+                  ) : null}
                 </li>
               ))}
             </ul>

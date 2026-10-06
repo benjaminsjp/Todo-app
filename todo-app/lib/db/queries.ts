@@ -4,6 +4,7 @@ import { tasks, taskGroups, statuses, organizationMembers, invitations, comments
 import { eq, isNull, and, gt, inArray, count, isNotNull } from 'drizzle-orm'
 import { normalizeTaskAssignees, TASK_WITH_ASSIGNEES } from '@/lib/taskAssignees'
 import { canEditOrgContent } from '@/lib/orgPermissions'
+import { COMMENT_WITH } from '@/lib/db/commentQuery'
 
 async function attachCommentCounts<T extends { id: number }>(
   rows: T[],
@@ -157,7 +158,7 @@ export async function getTaskBySlug(slug: string, _userId: string) {
     where: eq(tasks.slug, slug),
     with: {
       ...TASK_WITH_ASSIGNEES,
-      comments: { with: { user: true } },
+      comments: { with: COMMENT_WITH },
     },
   })
   return row ? normalizeTaskAssignees(row) : null

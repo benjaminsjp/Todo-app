@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import { formatTaskScheduleLabel } from '@/lib/taskSchedule'
 import { CalendarClock, MessageCircle } from 'lucide-react'
 import { TaskAssigneeAvatars } from '@/components/TaskAssignees/TaskAssigneeAvatars'
@@ -9,7 +10,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 
 import { type TaskPresence } from '@/lib/hooks/useOrgRealtime'
 import { TaskOptionsMenu } from './TaskOptionsMenu'
-import Link, { useLinkStatus } from 'next/link'
+import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 
 interface TaskCardProps {
@@ -21,6 +22,8 @@ interface TaskCardProps {
   taskGroups?: TaskGroup[]
   assigneeOptions?: AssigneeOption[]
   canEdit?: boolean
+  /** True while this card is being dragged — blocks navigation on drop. */
+  isDragging?: boolean
   onOptimisticPatch?: (taskId: number, patch: Partial<Task>) => void
   onOptimisticRollback?: (taskId: number, prev: Task) => void
 }
@@ -69,18 +72,6 @@ function PresenceDot({ others }: { others: TaskPresence[] }) {
     </Tooltip>
   )
 }
-function TaskCardLinkPending() {
-  const { pending } = useLinkStatus()
-  return (
-    <span
-      aria-hidden
-      className={cn(
-        'pointer-events-none absolute inset-0 rounded-xl bg-primary/5 transition-opacity duration-150',
-        pending ? 'opacity-100' : 'opacity-0',
-      )}
-    />
-  )
-}
 
 export function TaskCard({
   task,
@@ -91,29 +82,60 @@ export function TaskCard({
   taskGroups = [],
   assigneeOptions = [],
   canEdit = true,
+  isDragging = false,
   onOptimisticPatch,
   onOptimisticRollback,
 }: TaskCardProps) {
+  const router = useRouter()
   const overlayLocked = useKanbanOverlayLocked()
   const groupColor = task.group?.color ?? null
   const href = orgSlug ? `/org/${orgSlug}/${task.slug}` : `/tasks/${task.slug}`
   const others = presenceUsers.filter((u) => u.userId !== currentUserId)
+  const skipNavRef = useRef(false)
+  const [pending, setPending] = useState(false)
+
+  useEffect(() => {
+    if (isDragging) skipNavRef.current = true
+  }, [isDragging])
+
   return (
-    <Link
+    <a
       href={href}
-      prefetch
-      className="group relative rounded-xl border bg-card p-4 flex flex-col gap-3 hover:shadow-md hover:border-foreground/20 transition-all duration-200 cursor-pointer"
+      className={cn(
+        'group relative rounded-xl border bg-card p-4 flex flex-col gap-3',
+        'hover:shadow-md hover:border-foreground/20 transition-all duration-200 cursor-pointer',
+        'no-underline text-inherit',
+        pending && 'bg-primary/5',
+      )}
+      onMouseEnter={() => router.prefetch(href)}
+      onFocus={() => router.prefetch(href)}
+      onClickCapture={(e) => {
+        // Nested buttons (assignees, menus) live inside this <a>.
+        // Capture + preventDefault stops native link navigation before child handlers run.
+        const target = e.target as HTMLElement | null
+        if (target?.closest?.('[data-no-nav]')) {
+          e.preventDefault()
+        }
+      }}
       onClick={(e) => {
-        if (overlayLocked) {
+        const target = e.target as HTMLElement | null
+        if (target?.closest?.('[data-no-nav]')) {
           e.preventDefault()
           return
         }
-        const target = e.target as HTMLElement | null
-        if (target?.closest?.('[data-no-nav]')) e.preventDefault()
+        if (overlayLocked || skipNavRef.current) {
+          e.preventDefault()
+          skipNavRef.current = false
+          return
+        }
+        // Cmd/Ctrl/Shift/middle-click → native browser behavior (new tab, etc.)
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return
+
+        e.preventDefault()
+        setPending(true)
+        router.push(href)
       }}
     >
-      <TaskCardLinkPending />
-
       <div className="relative z-10 flex flex-col gap-2">
         <div className="flex items-center gap-2">
           <TaskAssigneeAvatars
@@ -149,15 +171,15 @@ export function TaskCard({
         )}
       </div>
 
-      <p className="relative z-10 text-sm font-medium leading-snug group-hover:text-foreground/80 transition-colors line-clamp-2 cursor-pointer">
-          {task.title}
+      <p className="relative z-10 text-sm font-medium leading-snug group-hover:text-foreground/80 transition-colors line-clamp-2">
+        {task.title}
       </p>
       {task.description && (
-        <p className="relative z-10 text-xs text-muted-foreground line-clamp-2 cursor-pointer">
+        <p className="relative z-10 text-xs text-muted-foreground line-clamp-2">
           {stripHtml(task.description)}
         </p>
       )}
-      <div className="relative z-10 flex items-center justify-between mt-auto cursor-pointer">
+      <div className="relative z-10 flex items-center justify-between mt-auto">
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <CalendarClock className="size-3" />
           {formatTaskScheduleLabel(task.startAt, task.endAt)}
@@ -168,6 +190,6 @@ export function TaskCard({
           {task.commentCount ?? task.comments?.length ?? 0}
         </div>
       </div>
-    </Link>
+    </a>
   )
 }

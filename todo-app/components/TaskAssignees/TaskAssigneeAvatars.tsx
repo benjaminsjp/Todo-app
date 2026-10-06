@@ -69,6 +69,8 @@ export function TaskAssigneeAvatars({
   const overflow = assignees.length - visible.length
 
   const openModal = (event: React.MouseEvent) => {
+    // Card is an <a>: must preventDefault or the browser still navigates.
+    event.preventDefault()
     event.stopPropagation()
     setAssigneeIds(assignees.map((user) => user.id))
     setOpen(true)
@@ -128,7 +130,10 @@ export function TaskAssigneeAvatars({
       <div
         className={`flex min-w-0 items-center gap-1.5 ${className ?? ''}`}
         data-no-nav
-        onClick={(event) => event.stopPropagation()}
+        onClick={(event) => {
+          event.preventDefault()
+          event.stopPropagation()
+        }}
       >
         {assignees.length > 0 && (
           <AvatarGroup className="-space-x-1 *:data-[slot=avatar]:size-8">
@@ -182,7 +187,10 @@ export function TaskAssigneeAvatars({
                           className="rounded-full p-0.5 outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
                           disabled={isBusy}
                           aria-label={label}
-                          onClick={(event) => event.stopPropagation()}
+                          onClick={(event) => {
+                            event.preventDefault()
+                            event.stopPropagation()
+                          }}
                         >
                           <Avatar className={CHIP_SIZE}>
                             {user.avatarUrl ? (

@@ -1,29 +1,51 @@
 'use client'
 
-import { useActionState } from 'react'
-import { useState } from 'react'
+import { useActionState, useMemo, useState } from 'react'
 import { createTask } from '@/lib/actions/tasks'
 import { CreateTaskEditor } from './CreateTaskEditor'
 import { TaskTitleField } from '@/components/Task/TaskTitleField'
 import { TaskSidebar } from '../TaskDetails/TaskSidebar'
 import { BackToBoardLink } from '@/components/BackToBoardLink'
 import { serializeTaskDateTime } from '@/lib/taskSchedule'
+import type { Status } from '@/lib/types'
 
 interface Props {
   taskGroups: { id: number; title: string }[]
   assigneeOptions: { value: string; label: string }[]
+  statuses?: Status[]
+  initialStatusId?: number | null
   orgId?: number
   orgSlug?: string
 }
 
-export function CreateTaskForm({ taskGroups, assigneeOptions, orgId, orgSlug }: Props) {
+export function CreateTaskForm({
+  taskGroups,
+  assigneeOptions,
+  statuses = [],
+  initialStatusId = null,
+  orgId,
+  orgSlug,
+}: Props) {
+  const defaultStatus = useMemo(() => {
+    if (initialStatusId != null) {
+      return statuses.find((status) => status.id === initialStatusId) ?? statuses[0] ?? null
+    }
+    return statuses[0] ?? null
+  }, [initialStatusId, statuses])
+
   const [description, setDescription] = useState('')
   const [startAt, setStartAt]         = useState<Date | undefined>()
   const [endAt, setEndAt]             = useState<Date | undefined>()
   const [deadlinePriority, setDeadlinePriority] = useState(false)
   const [groupId, setGroupId]         = useState<string>('none')
   const [assigneeIds, setAssigneeIds]   = useState<string[]>([])
+  const [statusLabel, setStatusLabel] = useState(defaultStatus?.label ?? '')
   const [state, action, isPending]    = useActionState(createTask, null)
+
+  const statusId = useMemo(() => {
+    const match = statuses.find((status) => status.label === statusLabel)
+    return match?.id ?? defaultStatus?.id ?? null
+  }, [statuses, statusLabel, defaultStatus])
 
   return (
     <form action={action} className="flex flex-1 flex-col">
@@ -39,6 +61,7 @@ export function CreateTaskForm({ taskGroups, assigneeOptions, orgId, orgSlug }: 
           {orgSlug && <input type="hidden" name="orgSlug" value={orgSlug} />}
 
           <input type="hidden" name="groupId" value={groupId === 'none' ? '' : groupId} />
+          <input type="hidden" name="statusId" value={statusId ?? ''} />
           <input type="hidden" name="startAt" value={serializeTaskDateTime(startAt) ?? ''} />
           <input type="hidden" name="endAt" value={serializeTaskDateTime(endAt) ?? ''} />
           <input type="hidden" name="deadlinePriority" value={deadlinePriority ? 'true' : ''} />
@@ -53,11 +76,13 @@ export function CreateTaskForm({ taskGroups, assigneeOptions, orgId, orgSlug }: 
 
         <TaskSidebar
           mode="create"
+          status={statusLabel}
           groupId={groupId}
           assigneeIds={assigneeIds}
           startAt={startAt}
           endAt={endAt}
           deadlinePriority={deadlinePriority}
+          onStatusChange={setStatusLabel}
           onStartChange={setStartAt}
           onEndChange={(value) => {
             setEndAt(value)
@@ -71,6 +96,7 @@ export function CreateTaskForm({ taskGroups, assigneeOptions, orgId, orgSlug }: 
             label: g.title,
             color: '',
           }))}
+          statuses={statuses}
           assigneeOptions={assigneeOptions}
           cancelHref={orgSlug ? `/org/${orgSlug}` : '/tasks'}
           isPending={isPending}

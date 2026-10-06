@@ -5,14 +5,26 @@ export type User = {
   email:       string
 }
 
+export type CommentReaction = {
+  id:        number
+  commentId: number
+  userId:    string
+  type:      string
+  createdAt: Date | null
+  user?:     User | null
+}
+
 export type Comment = {
   id:        number
   content:   string
   createdAt: Date | null
   userId:    string
   taskId:    number
+  parentId?: number | null
+  pinnedAt?: Date | null
   updatedAt: Date | null
   user?:     User | null
+  reactions?: CommentReaction[]
 }
 
 export type Status = {
@@ -74,15 +86,108 @@ export function formatDate(date: Date | null | undefined): string {
   })
 }
 
-export function mapComments(comments: Comment[] = []) {
-  return comments.map((c) => ({
+export type MappedCommentReactionUser = {
+  id:        string
+  name:      string
+  avatarUrl?: string
+}
+
+export type MappedCommentReaction = {
+  type:     string
+  count:    number
+  reacted:  boolean
+  users:    MappedCommentReactionUser[]
+}
+
+export type MappedComment = {
+  id:                   number
+  userId:               string
+  content:              string
+  createdAt:            string
+  author:               string
+  authorProfilePicture: string | undefined
+  parentId:             number | null
+  pinned:               boolean
+  reactions:            MappedCommentReaction[]
+  replies:              MappedComment[]
+}
+
+function reactionUserLabel(user: User | null | undefined) {
+  return user?.displayName ?? user?.email ?? 'Ukjent'
+}
+
+function aggregateReactions(
+  reactions: CommentReaction[] = [],
+  currentUserId?: string,
+): MappedCommentReaction[] {
+  const byType = new Map<string, MappedCommentReaction>()
+
+  for (const reaction of reactions) {
+    const user: MappedCommentReactionUser = {
+      id:        reaction.userId,
+      name:      reactionUserLabel(reaction.user),
+      avatarUrl: reaction.user?.avatarUrl ?? undefined,
+    }
+    const existing = byType.get(reaction.type)
+    if (existing) {
+      existing.count += 1
+      if (!existing.users.some((u) => u.id === user.id)) existing.users.push(user)
+      if (currentUserId && reaction.userId === currentUserId) existing.reacted = true
+      continue
+    }
+    byType.set(reaction.type, {
+      type:    reaction.type,
+      count:   1,
+      reacted: Boolean(currentUserId && reaction.userId === currentUserId),
+      users:   [user],
+    })
+  }
+
+  return Array.from(byType.values()).sort((a, b) => a.type.localeCompare(b.type))
+}
+
+function toMappedComment(c: Comment, currentUserId?: string): Omit<MappedComment, 'replies'> {
+  return {
     id:                   c.id,
     userId:               c.userId,
     content:              c.content,
     createdAt:            formatDate(c.createdAt),
     author:               c.user?.displayName ?? c.user?.email ?? 'Ukjent',
     authorProfilePicture: c.user?.avatarUrl ?? undefined,
-  }))
+    parentId:             c.parentId ?? null,
+    pinned:               Boolean(c.pinnedAt),
+    reactions:            aggregateReactions(c.reactions, currentUserId),
+  }
+}
+
+/** Flat comments → threaded list with pinned roots first. */
+export function mapComments(comments: Comment[] = [], currentUserId?: string): MappedComment[] {
+  const roots: MappedComment[] = []
+  const repliesByParent = new Map<number, MappedComment[]>()
+
+  const sorted = [...comments].sort((a, b) => {
+    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0
+    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0
+    return aTime - bTime
+  })
+
+  for (const c of sorted) {
+    const mapped: MappedComment = { ...toMappedComment(c, currentUserId), replies: [] }
+    if (c.parentId == null) {
+      roots.push(mapped)
+      continue
+    }
+    const list = repliesByParent.get(c.parentId) ?? []
+    list.push(mapped)
+    repliesByParent.set(c.parentId, list)
+  }
+
+  for (const root of roots) {
+    root.replies = repliesByParent.get(root.id) ?? []
+  }
+
+  roots.sort((a, b) => Number(b.pinned) - Number(a.pinned))
+  return roots
 }
 
 export function stripHtml(html: string): string {

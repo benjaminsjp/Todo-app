@@ -27,7 +27,21 @@ function commentsEqual(a: Comment[], b: Comment[]): boolean {
   if (a.length !== b.length) return false
   return a.every((c, i) => {
     const d = b[i]
-    return c.id === d.id && c.content === d.content && String(c.updatedAt) === String(d.updatedAt)
+    const cReactions = c.reactions ?? []
+    const dReactions = d.reactions ?? []
+    if (cReactions.length !== dReactions.length) return false
+    const reactionsMatch = cReactions.every((r, ri) => {
+      const s = dReactions[ri]
+      return s && r.id === s.id && r.type === s.type && r.userId === s.userId
+    })
+    return (
+      c.id === d.id
+      && c.content === d.content
+      && c.parentId === d.parentId
+      && String(c.pinnedAt) === String(d.pinnedAt)
+      && String(c.updatedAt) === String(d.updatedAt)
+      && reactionsMatch
+    )
   })
 }
 
@@ -42,6 +56,7 @@ export default function TaskDetails({
   currentUser,
   boardHref,
   canEdit = true,
+  canModerateComments = false,
 }: {
   task:             Task
   taskGroup:        string | undefined
@@ -53,6 +68,7 @@ export default function TaskDetails({
   currentUser?:     User | null
   boardHref:        string
   canEdit?:         boolean
+  canModerateComments?: boolean
 }) {
   const router = useRouter()
   const contentBoundaryRef = useRef<HTMLDivElement>(null)
@@ -449,10 +465,32 @@ export default function TaskDetails({
   const handleOptimisticCommentAdd = (comment: Comment) => {
     const withUser: Comment = {
       ...comment,
-      userId: currentUserId ?? comment.userId,
-      user:   currentUser ?? comment.user ?? null,
+      userId:    currentUserId ?? comment.userId,
+      user:      currentUser ?? comment.user ?? null,
+      parentId:  comment.parentId ?? null,
+      pinnedAt:  comment.pinnedAt ?? null,
+      reactions: comment.reactions ?? [],
     }
     setLiveComments((prev) => [...prev, withUser])
+  }
+
+  const handleCommentUpdated = (comment: Comment) => {
+    setLiveComments((prev) => {
+      const base = comment.pinnedAt
+        ? prev.map((c) => (c.id !== comment.id && c.pinnedAt ? { ...c, pinnedAt: null } : c))
+        : prev
+      const idx = base.findIndex((c) => c.id === comment.id)
+      if (idx === -1) return [...base, comment]
+      const next = [...base]
+      next[idx] = comment
+      return next
+    })
+  }
+
+  const handleCommentRemoved = (commentId: number) => {
+    setLiveComments((prev) =>
+      prev.filter((c) => c.id !== commentId && c.parentId !== commentId),
+    )
   }
 
   const handleOptimisticCommentRemove = (tempId: number) => {
@@ -512,12 +550,16 @@ export default function TaskDetails({
               )}
               <Comments
                 taskId={task.id}
-                comments={mapComments(liveComments)}
+                comments={mapComments(liveComments, currentUserId)}
                 currentUserId={currentUserId}
+                currentUser={currentUser}
                 canEdit={canEdit}
+                canModerate={canModerateComments}
                 onOptimisticAdd={handleOptimisticCommentAdd}
                 onOptimisticRemove={handleOptimisticCommentRemove}
                 onCommentSaved={handleCommentSaved}
+                onCommentUpdated={handleCommentUpdated}
+                onCommentRemoved={handleCommentRemoved}
               />
             </>
           )}

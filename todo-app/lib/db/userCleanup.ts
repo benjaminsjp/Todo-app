@@ -1,11 +1,12 @@
 import { db } from '@/lib/db'
-import { comments, taskAssignees, taskGroups, tasks, users } from '@/lib/db/schema'
-import { and, eq, isNull, or } from 'drizzle-orm'
+import { commentReactions, comments, taskAssignees, taskGroups, tasks, users } from '@/lib/db/schema'
+import { and, eq, isNull } from 'drizzle-orm'
 import { resolveOwnedOrganizations } from '@/lib/db/orgOwnership'
 
 export async function cleanupUserData(userId: string) {
   await resolveOwnedOrganizations(userId)
 
+  await db.delete(commentReactions).where(eq(commentReactions.userId, userId))
   await db.delete(comments).where(eq(comments.userId, userId))
 
   await db.delete(taskAssignees).where(eq(taskAssignees.userId, userId))

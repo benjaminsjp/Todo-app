@@ -27,6 +27,8 @@ import { Skeleton } from '../ui/skeleton'
 import { EditStatusMenu } from '../Status/EditStatusMenu'
 
 import { Circle, Plus, ChevronLeft, ChevronRight } from 'lucide-react'
+import Link from 'next/link'
+import { createTaskHref } from '@/components/CreateTask/CreateTaskButton'
 import { resolveStatusIcon } from '@/lib/statusIcons'
 
 import { type Task, TaskGroup, Status, AssigneeOption } from "@/lib/types"
@@ -104,6 +106,7 @@ function SortableTaskCard({
         taskGroups={taskGroups}
         assigneeOptions={assigneeOptions}
         canEdit={canEdit}
+        isDragging={isDragging}
         onOptimisticPatch={onOptimisticPatch}
         onOptimisticRollback={onOptimisticRollback}
       />
@@ -142,8 +145,10 @@ function KanbanColumn({
   onOptimisticRollback: (taskId: number, prev: Task) => void
   onMoveStatus: (statusId: number, direction: 'left' | 'right') => void
 }) {
+  const pathname = usePathname()
   const { setNodeRef, isOver } = useDroppable({ id: status.label })
   const { icon: Icon, class: iconClass } = getStatusStyle(status.color, status.icon)
+  const createHref = createTaskHref(pathname, status.id)
 
   return (
     <div className="flex flex-col gap-3">
@@ -207,6 +212,17 @@ function KanbanColumn({
                 onOptimisticRollback={onOptimisticRollback}
               />
             ))
+          )}
+
+          {canEdit && (
+            <Link
+              href={createHref}
+              prefetch
+              className="mt-auto flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-background/80 hover:text-foreground"
+            >
+              <Plus className="size-3.5" />
+              Ny oppgave
+            </Link>
           )}
         </div>
       </SortableContext>

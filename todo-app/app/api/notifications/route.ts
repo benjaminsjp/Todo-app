@@ -3,6 +3,12 @@ import { getPendingInvitationsForEmail, getUnreadNotificationsForUser } from '@/
 
 export const dynamic = 'force-dynamic'
 
+const TASK_NOTIFICATION_TYPES = new Set([
+  'task_assigned',
+  'comment_reply',
+  'comment_reaction',
+])
+
 export async function GET() {
   const { data: session } = await auth.getSession()
   if (!session?.user) {
@@ -27,17 +33,19 @@ export async function GET() {
       createdAt: inv.createdAt?.toISOString() ?? new Date().toISOString(),
       expiresAt: inv.expiresAt.toISOString(),
     })),
-    ...userNotes.map((note) => ({
-      id:           `task-${note.id}`,
-      type:         'task_assigned' as const,
-      notificationId: note.id,
-      taskId:       note.taskId,
-      taskTitle:    note.taskTitle ?? 'Oppgave',
-      taskSlug:     note.taskSlug,
-      orgSlug:      note.orgSlug,
-      fromUserName: note.fromUserName ?? 'Noen',
-      createdAt:    note.createdAt?.toISOString() ?? new Date().toISOString(),
-    })),
+    ...userNotes
+      .filter((note) => TASK_NOTIFICATION_TYPES.has(note.type))
+      .map((note) => ({
+        id:             `note-${note.id}`,
+        type:           note.type as 'task_assigned' | 'comment_reply' | 'comment_reaction',
+        notificationId: note.id,
+        taskId:         note.taskId,
+        taskTitle:      note.taskTitle ?? 'Oppgave',
+        taskSlug:       note.taskSlug,
+        orgSlug:        note.orgSlug,
+        fromUserName:   note.fromUserName ?? 'Noen',
+        createdAt:      note.createdAt?.toISOString() ?? new Date().toISOString(),
+      })),
   ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
   return Response.json({ notifications })

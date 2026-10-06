@@ -6,20 +6,23 @@ import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 
 interface Props {
-  orgId?:    number
-  children?: React.ReactNode
+  orgId?:     number
+  statusId?:  number
+  children?:  React.ReactNode
 }
 
-function createTaskHref(pathname: string) {
+export function createTaskHref(pathname: string, statusId?: number) {
   const orgSlug = pathname.startsWith('/org/')
     ? pathname.split('/')[2]
     : null
-  return orgSlug ? `/org/${orgSlug}/create-task` : '/tasks/create-task'
+  const base = orgSlug ? `/org/${orgSlug}/create-task` : '/tasks/create-task'
+  if (statusId == null) return base
+  return `${base}?statusId=${statusId}`
 }
 
-export function CreateTaskButton({ children }: Props) {
+export function CreateTaskButton({ statusId, children }: Props) {
   const pathname = usePathname()
-  const href = createTaskHref(pathname)
+  const href = createTaskHref(pathname, statusId)
 
   if (children) {
     return (

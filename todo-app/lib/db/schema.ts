@@ -1,5 +1,5 @@
 // lib/db/schema.ts
-import { pgTable, serial, text, timestamp, integer, boolean, pgEnum, uniqueIndex, jsonb } from 'drizzle-orm/pg-core'
+import { pgTable, serial, text, timestamp, integer, boolean, pgEnum, uniqueIndex, jsonb, type AnyPgColumn } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('users', {
   id:          text('id').primaryKey(), 
@@ -86,9 +86,25 @@ export const comments = pgTable('comments', {
   content:   text('content').notNull(),
   taskId:    integer('task_id').notNull().references(() => tasks.id, { onDelete: 'cascade' }),
   userId:    text('user_id').notNull().references(() => users.id),
+  parentId:  integer('parent_id').references((): AnyPgColumn => comments.id, { onDelete: 'cascade' }),
+  pinnedAt:  timestamp('pinned_at'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 })
+
+export const commentReactions = pgTable('comment_reactions', {
+  id:        serial('id').primaryKey(),
+  commentId: integer('comment_id').notNull().references(() => comments.id, { onDelete: 'cascade' }),
+  userId:    text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  type:      text('type').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (t) => ({
+  commentUserTypeUnique: uniqueIndex('comment_reactions_comment_id_user_id_type_unique').on(
+    t.commentId,
+    t.userId,
+    t.type,
+  ),
+}))
 
 export const taskPresence = pgTable('task_presence', {
   id:         serial('id').primaryKey(),
@@ -164,9 +180,21 @@ export const taskAssigneesRelations = relations(taskAssignees, ({ one }) => ({
   user: one(users, { fields: [taskAssignees.userId], references: [users.id] }),
 }))
 
-export const commentsRelations = relations(comments, ({ one }) => ({
-  task: one(tasks, { fields: [comments.taskId], references: [tasks.id] }),
-  user: one(users, { fields: [comments.userId], references: [users.id] }),
+export const commentsRelations = relations(comments, ({ one, many }) => ({
+  task:     one(tasks, { fields: [comments.taskId], references: [tasks.id] }),
+  user:     one(users, { fields: [comments.userId], references: [users.id] }),
+  parent:   one(comments, {
+    fields:     [comments.parentId],
+    references: [comments.id],
+    relationName: 'comment_replies',
+  }),
+  replies:  many(comments, { relationName: 'comment_replies' }),
+  reactions: many(commentReactions),
+}))
+
+export const commentReactionsRelations = relations(commentReactions, ({ one }) => ({
+  comment: one(comments, { fields: [commentReactions.commentId], references: [comments.id] }),
+  user:    one(users, { fields: [commentReactions.userId], references: [users.id] }),
 }))
 
 export const taskPresenceRelations = relations(taskPresence, ({ one }) => ({

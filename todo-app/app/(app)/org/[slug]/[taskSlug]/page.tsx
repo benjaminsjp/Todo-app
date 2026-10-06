@@ -9,7 +9,8 @@ import { and, eq } from 'drizzle-orm'
 import TaskDetails from '@/components/TaskDetails/TaskDetails'
 import { SetBreadcrumbLabel } from '@/components/Breadcrumbs/SetBreadcrumbLabel'
 import { TaskPageSkeleton } from '@/components/TaskDetails/TaskPageSkeleton'
-import { canEditOrgContent } from '@/lib/orgPermissions'
+import { canEditOrgContent, canManageOrg } from '@/lib/orgPermissions'
+import { COMMENT_WITH } from '@/lib/db/commentQuery'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,7 +54,7 @@ async function OrgTaskContent({
       where: and(eq(tasks.slug, taskSlug), eq(tasks.orgId, org.id)),
       with: {
         ...TASK_WITH_ASSIGNEES,
-        comments: { with: { user: true } },
+        comments: { with: COMMENT_WITH },
       },
     }),
     db.query.taskGroups.findMany({
@@ -71,6 +72,7 @@ async function OrgTaskContent({
   if (!taskRow) redirect(`/org/${slug}`)
 
   const canEdit = canEditOrgContent(membership.role)
+  const canModerateComments = canManageOrg(membership.role)
   const task = normalizeTaskAssignees(taskRow)
 
   const taskGroupOptions = groups.map((g) => ({
@@ -100,6 +102,7 @@ async function OrgTaskContent({
         currentUser={currentUser}
         boardHref={`/org/${slug}`}
         canEdit={canEdit}
+        canModerateComments={canModerateComments}
       />
     </>
   )

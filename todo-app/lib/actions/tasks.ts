@@ -249,12 +249,29 @@ export async function createTask(
     slug    = await generateUniqueSlug(baseSlug, orgId)
     orgSlug = (formData.get('orgSlug') as string) ?? ''
 
-    const firstStatus = await db.query.statuses.findFirst({
-      where: orgId
-        ? eq(statuses.orgId, orgId)
-        : and(eq(statuses.userId, session.user.id), isNull(statuses.orgId)),
-      orderBy: [asc(statuses.order)],
-    })
+    const statusWhere = orgId
+      ? eq(statuses.orgId, orgId)
+      : and(eq(statuses.userId, session.user.id), isNull(statuses.orgId))
+
+    const requestedStatusId = formData.get('statusId')
+      ? Number(formData.get('statusId'))
+      : null
+
+    const [requestedStatus, firstStatus] = await Promise.all([
+      requestedStatusId
+        ? db.query.statuses.findFirst({
+            where: and(statusWhere, eq(statuses.id, requestedStatusId)),
+            columns: { id: true },
+          })
+        : Promise.resolve(null),
+      db.query.statuses.findFirst({
+        where: statusWhere,
+        orderBy: [asc(statuses.order)],
+        columns: { id: true },
+      }),
+    ])
+
+    const statusId = requestedStatus?.id ?? firstStatus?.id ?? null
 
     const resolvedAssigneeIds = await resolveAssigneeIds(session.user.id, orgId, assigneeIds)
 
@@ -274,7 +291,7 @@ export async function createTask(
       endAt:       hasEndAt ? endAt : null,
       deadlinePriority,
       groupId,
-      statusId:    firstStatus?.id ?? null,
+      statusId,
       orgId,
       createdBy:   session.user.id,
     }).returning({ id: tasks.id })
