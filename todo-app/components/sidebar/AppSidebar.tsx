@@ -618,14 +618,14 @@ export function AppSidebar({
       )}
     >
       <Sidebar collapsible="none" className="hidden flex-1 md:flex">
-        <SidebarHeader className="gap-1 p-4 border-b flex flex-row items-center">
+        <SidebarHeader className="gap-1 p-4 border-b flex flex-row items-center min-w-0">
           <OrgSwitcher orgs={orgs} />
           {canEdit && (
             <>
               <CreateTaskButton orgId={activeOrg?.id}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="default" size="sm"><Plus />Ny oppgave</Button>
+                    <Button variant="default" size="sm" className="shrink-0"><Plus />Ny oppgave</Button>
                   </TooltipTrigger>
                   <TooltipContent><p>Opprett en ny oppgave</p></TooltipContent>
                 </Tooltip>
@@ -633,7 +633,7 @@ export function AppSidebar({
               <CreateTaskGroupButton orgId={activeOrg?.id}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="default" size="icon-sm"><FolderPlus /></Button>
+                    <Button variant="default" size="icon-sm" className="shrink-0"><FolderPlus /></Button>
                   </TooltipTrigger>
                   <TooltipContent><p>Opprett en ny gruppe</p></TooltipContent>
                 </Tooltip>
