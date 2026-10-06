@@ -36,6 +36,7 @@ import {
   type CommentReactionType,
 } from '@/lib/commentReactions'
 import { COMMENT_REACTION_ICONS, COMMENT_REACTION_TYPES } from './reactionIcons'
+import { COMMENT_COMPOSER_CLASS } from './composerStyles'
 import type { MappedComment, User } from '@/lib/types'
 import type { Comment as CommentType } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -323,13 +324,17 @@ export function Comment({
               <X className="size-4" />
             </Button>
           </div>
-          <InputGroup className="bg-background/60 border-border">
+          <InputGroup className={cn(COMMENT_COMPOSER_CLASS, 'bg-background/60')}>
             <div className="px-4 py-3 w-full">
               <CreateTaskEditor
                 content={content}
                 onChange={setContent}
                 placeholder="Rediger kommentaren din..."
                 editorClassName="min-h-24 prose-sm"
+                autoFocus
+                onModEnter={() => {
+                  if (!isSaving && hasCommentEditorContent(content)) void handleSave()
+                }}
               />
             </div>
             <InputGroupAddon align="block-end" className="border-t">
@@ -343,6 +348,7 @@ export function Comment({
                   variant="default"
                   disabled={isSaving || !hasCommentEditorContent(content)}
                   onClick={() => void handleSave()}
+                  title="Ctrl/⌘ + Enter"
                 >
                   <Check />
                   {isSaving ? 'Lagrer...' : 'Lagre endringer'}

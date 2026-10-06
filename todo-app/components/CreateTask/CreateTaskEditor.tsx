@@ -19,6 +19,12 @@ interface CreateTaskEditorProps {
   boundaryRef?: React.RefObject<HTMLElement | null>
   placeholder?: string
   editorClassName?: string
+  /** Focus the editor when it mounts / when `focusKey` changes. */
+  autoFocus?: boolean
+  /** Bump to re-focus an already mounted editor (e.g. after clicking Reply). */
+  focusKey?: number | string
+  /** Ctrl/Cmd+Enter shortcut (save task, send comment, etc.). */
+  onModEnter?: () => void
 }
 
 export function CreateTaskEditor({
@@ -27,11 +33,19 @@ export function CreateTaskEditor({
   boundaryRef,
   placeholder = 'Legg til en beskrivelse...',
   editorClassName,
+  autoFocus = false,
+  focusKey,
+  onModEnter,
 }: CreateTaskEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const toolbarRef   = useRef<HTMLDivElement>(null)
+  const onModEnterRef = useRef(onModEnter)
   const [toolbarPos, setToolbarPos] = useState<{ top: number; left: number } | null>(null)
   const [isVisible,  setIsVisible]  = useState(false)
+
+  useEffect(() => {
+    onModEnterRef.current = onModEnter
+  }, [onModEnter])
 
   const updateToolbarPosition = useCallback(() => {
     const selection = window.getSelection()
@@ -73,10 +87,18 @@ export function CreateTaskEditor({
     content,
     editorProps: {
       attributes: {
+        'data-slot': 'input-group-control',
         class: cn(
           'min-h-32 focus:outline-none prose prose-headings:font-normal prose-headings:font-heading max-w-none dark:prose-invert',
           editorClassName,
         ),
+      },
+      handleKeyDown: (_view, event) => {
+        if (event.key !== 'Enter' || !(event.metaKey || event.ctrlKey)) return false
+        if (!onModEnterRef.current) return false
+        event.preventDefault()
+        onModEnterRef.current()
+        return true
       },
     },
     onUpdate: ({ editor }) => onChange?.(editor.getHTML()),
@@ -93,6 +115,14 @@ export function CreateTaskEditor({
     },
     immediatelyRender: false,
   })
+
+  useEffect(() => {
+    if (!editor || !autoFocus) return
+    const frame = requestAnimationFrame(() => {
+      editor.commands.focus('end')
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [editor, autoFocus, focusKey])
 
   useEffect(() => {
     if (!isVisible) return

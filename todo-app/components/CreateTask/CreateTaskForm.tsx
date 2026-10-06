@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useMemo, useState } from 'react'
+import { useActionState, useMemo, useRef, useState } from 'react'
 import { createTask } from '@/lib/actions/tasks'
 import { CreateTaskEditor } from './CreateTaskEditor'
 import { TaskTitleField } from '@/components/Task/TaskTitleField'
@@ -41,14 +41,20 @@ export function CreateTaskForm({
   const [assigneeIds, setAssigneeIds]   = useState<string[]>([])
   const [statusLabel, setStatusLabel] = useState(defaultStatus?.label ?? '')
   const [state, action, isPending]    = useActionState(createTask, null)
+  const formRef = useRef<HTMLFormElement>(null)
 
   const statusId = useMemo(() => {
     const match = statuses.find((status) => status.label === statusLabel)
     return match?.id ?? defaultStatus?.id ?? null
   }, [statuses, statusLabel, defaultStatus])
 
+  const submitWithModEnter = () => {
+    if (isPending) return
+    formRef.current?.requestSubmit()
+  }
+
   return (
-    <form action={action} className="flex flex-1 flex-col">
+    <form ref={formRef} action={action} className="flex flex-1 flex-col">
       <div className="@container/main container mx-auto flex-1 flex flex-row">
         <div className="flex flex-1 flex-col gap-4 max-w-prose py-12 px-8 mx-auto">
           <BackToBoardLink href={orgSlug ? `/org/${orgSlug}` : '/tasks'} />
@@ -70,8 +76,12 @@ export function CreateTaskForm({
           ))}
           <input type="hidden" name="description" value={description} />
 
-          <TaskTitleField name="title" required autoFocus />
-          <CreateTaskEditor content={description} onChange={setDescription} />
+          <TaskTitleField name="title" required autoFocus onModEnter={submitWithModEnter} />
+          <CreateTaskEditor
+            content={description}
+            onChange={setDescription}
+            onModEnter={submitWithModEnter}
+          />
         </div>
 
         <TaskSidebar

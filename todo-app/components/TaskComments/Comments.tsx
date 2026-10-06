@@ -8,6 +8,7 @@ import { ChevronDown, ChevronUp, MessageCircle, X } from 'lucide-react'
 import { CreateTaskEditor } from '@/components/CreateTask/CreateTaskEditor'
 import { Comment } from './Comment'
 import { hasCommentEditorContent } from './commentEditorUtils'
+import { COMMENT_COMPOSER_CLASS } from './composerStyles'
 import type { Comment as CommentType, MappedComment, User } from '@/lib/types'
 
 const REPLY_PAGE_SIZE = 3
@@ -44,6 +45,7 @@ export default function Comments({
   const [isPending, setIsPending] = useState(false)
   const [replyToId, setReplyToId] = useState<number | null>(null)
   const [visibleReplies, setVisibleReplies] = useState<Record<number, number>>({})
+  const [composerFocusKey, setComposerFocusKey] = useState(0)
   const editorKey = useRef(0)
   const composerRef = useRef<HTMLDivElement>(null)
 
@@ -53,6 +55,7 @@ export default function Comments({
 
   const handleReply = (commentId: number) => {
     setReplyToId(commentId)
+    setComposerFocusKey((key) => key + 1)
     composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   }
 
@@ -77,8 +80,7 @@ export default function Comments({
     }))
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const submitComment = async () => {
     if (!hasCommentEditorContent(content) || isPending) return
 
     setError(null)
@@ -123,6 +125,11 @@ export default function Comments({
     setContent('')
     setReplyToId(null)
     editorKey.current += 1
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await submitComment()
   }
 
   return (
@@ -230,7 +237,7 @@ export default function Comments({
             </div>
           )}
           <form onSubmit={handleSubmit}>
-            <InputGroup className="bg-surface-2 border-border">
+            <InputGroup className={COMMENT_COMPOSER_CLASS}>
               <div className="px-4 py-3 w-full">
                 <CreateTaskEditor
                   key={editorKey.current}
@@ -242,6 +249,9 @@ export default function Comments({
                       : 'Skriv en kommentar...'
                   }
                   editorClassName="min-h-24 prose-sm"
+                  autoFocus={Boolean(replyTarget)}
+                  focusKey={composerFocusKey}
+                  onModEnter={() => { void submitComment() }}
                 />
               </div>
               <InputGroupAddon align="block-end" className="border-t">
@@ -254,6 +264,7 @@ export default function Comments({
                     size="sm"
                     variant="default"
                     disabled={isPending || !hasCommentEditorContent(content)}
+                    title="Ctrl/⌘ + Enter"
                   >
                     <MessageCircle />
                     {isPending

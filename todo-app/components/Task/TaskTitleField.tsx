@@ -30,6 +30,8 @@ type TaskTitleFieldProps = {
   placeholder?: string
   autoFocus?: boolean
   required?: boolean
+  /** Ctrl/Cmd+Enter shortcut (save/create task). */
+  onModEnter?: () => void
 } & (
   | {
       name: string
@@ -44,10 +46,20 @@ type TaskTitleFieldProps = {
     }
 )
 
+function isModEnter(event: React.KeyboardEvent) {
+  return event.key === 'Enter' && (event.metaKey || event.ctrlKey)
+}
+
 export function TaskTitleField(props: TaskTitleFieldProps) {
   const ref = React.useRef<HTMLTextAreaElement>(null)
   const value = 'value' in props ? props.value : undefined
   const adjust = useAutoGrowTextarea(ref, value)
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!props.onModEnter || !isModEnter(event)) return
+    event.preventDefault()
+    props.onModEnter()
+  }
 
   const shared = {
     ref,
@@ -57,6 +69,7 @@ export function TaskTitleField(props: TaskTitleFieldProps) {
     autoFocus: props.autoFocus,
     required: props.required,
     onInput: adjust,
+    onKeyDown: handleKeyDown,
   }
 
   if ('value' in props && props.onChange) {

@@ -522,11 +522,16 @@ export default function TaskDetails({
           )}
           {isEditing ? (
             <>
-              <TaskTitleField value={title} onChange={setTitle} />
+              <TaskTitleField
+                value={title}
+                onChange={setTitle}
+                onModEnter={() => { if (!isSaving) void handleSave() }}
+              />
               <CreateTaskEditor
                 content={description}
                 onChange={setDescription}
                 boundaryRef={contentBoundaryRef}
+                onModEnter={() => { if (!isSaving) void handleSave() }}
               />
             </>
           ) : (
