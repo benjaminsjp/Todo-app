@@ -9,7 +9,7 @@ import { CreateTaskEditor } from '@/components/CreateTask/CreateTaskEditor'
 import { Comment } from './Comment'
 import { hasCommentEditorContent } from './commentEditorUtils'
 import { COMMENT_COMPOSER_CLASS } from './composerStyles'
-import type { Comment as CommentType, MappedComment, User } from '@/lib/types'
+import { stripHtml, type Comment as CommentType, type MappedComment, type User } from '@/lib/types'
 
 const REPLY_PAGE_SIZE = 3
 
@@ -114,9 +114,10 @@ export default function Comments({
       taskId,
       userId:    '',
       parentId,
-      pinnedAt:  null,
-      reactions: [],
-      user:      null,
+      inReplyToId: replyToId,
+      pinnedAt:    null,
+      reactions:   [],
+      user:        null,
     }
     onOptimisticAdd?.(optimistic)
 
@@ -235,10 +236,15 @@ export default function Comments({
       {canEdit && (
         <div ref={composerRef} className="mt-auto pt-12 pb-12">
           {replyTarget && (
-            <div className="mb-2 flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
-              <p className="text-muted-foreground truncate">
-                Svarer <span className="font-medium text-foreground">{replyTarget.author}</span>
-              </p>
+            <div className="mb-2 flex items-start justify-between gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
+              <div className="min-w-0 flex-1">
+                <p className="text-muted-foreground truncate">
+                  Svarer <span className="font-medium text-foreground">{replyTarget.author}</span>
+                </p>
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                  {stripHtml(replyTarget.content) || '…'}
+                </p>
+              </div>
               <Button
                 type="button"
                 variant="ghost"

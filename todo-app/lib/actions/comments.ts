@@ -120,6 +120,7 @@ export async function createCommentForTask(
     }
 
     let resolvedParentId: number | null = null
+    let inReplyToId: number | null = null
     let parentAuthorId: string | null = null
 
     if (parentId != null) {
@@ -131,6 +132,7 @@ export async function createCommentForTask(
 
       // Keep threads one level deep (Twitter-style under the root comment).
       resolvedParentId = parent.parentId ?? parent.id
+      inReplyToId = parent.id
       parentAuthorId = parent.userId
     }
 
@@ -139,6 +141,7 @@ export async function createCommentForTask(
       content.trim(),
       session.user.id,
       resolvedParentId,
+      inReplyToId,
     )
     if (!comment) return { error: 'Kunne ikke opprette kommentar' }
 
@@ -164,12 +167,14 @@ async function insertComment(
   content: string,
   userId: string,
   parentId: number | null,
+  inReplyToId: number | null = null,
 ) {
   const [inserted] = await db.insert(comments).values({
     content,
     taskId,
     userId,
     parentId,
+    inReplyToId,
   }).returning()
 
   return loadComment(inserted.id)

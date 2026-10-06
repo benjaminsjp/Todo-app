@@ -17,6 +17,7 @@ import {
   MessageCircle,
   Pin,
   PinOff,
+  Reply,
   SmilePlus,
   SquarePen,
   Trash2,
@@ -81,6 +82,13 @@ export function Comment({
   const canDelete = isAuthor || canModerate
   const canToggleTaskList = isAuthor && !isEditing
   const isReply = depth > 0
+
+  const scrollToComment = (commentId: number) => {
+    document.getElementById(`comment-${commentId}`)?.scrollIntoView({
+      behavior: 'smooth',
+      block:    'center',
+    })
+  }
 
   const saveCommentHtml = useCallback(
     async (html: string) => {
@@ -248,8 +256,9 @@ export function Comment({
 
   return (
     <div
+      id={`comment-${comment.id}`}
       className={cn(
-        'rounded-xl p-4 bg-surface-2 flex flex-col group',
+        'rounded-xl p-4 bg-surface-2 flex flex-col group scroll-mt-24',
         pinned && 'ring-1 ring-primary/25',
         isReply && 'bg-surface-2/70',
       )}
@@ -360,6 +369,22 @@ export function Comment({
         </div>
       ) : (
         <>
+          {isReply && comment.replyTo && (
+            <button
+              type="button"
+              onClick={() => scrollToComment(comment.replyTo!.id)}
+              className="pl-10 mb-3 flex w-[calc(100%-0px)] max-w-full flex-col gap-1 text-left rounded-lg border border-border/60 bg-muted/25 px-3 py-2 hover:bg-muted/45 transition-colors"
+            >
+              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Reply className="size-3 shrink-0" />
+                Svar til{' '}
+                <span className="font-medium text-primary">{comment.replyTo.author}</span>
+              </span>
+              <span className="text-xs text-muted-foreground line-clamp-2 pl-[1.125rem]">
+                {comment.replyTo.snippet}
+              </span>
+            </button>
+          )}
           <div
             className="pl-10 prose-headings:font-heading prose-headings:font-medium prose prose-sm max-w-none dark:prose-invert"
             onClick={handleViewClick}

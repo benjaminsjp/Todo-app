@@ -15,16 +15,23 @@ export type CommentReaction = {
 }
 
 export type Comment = {
-  id:        number
-  content:   string
-  createdAt: Date | null
-  userId:    string
-  taskId:    number
-  parentId?: number | null
-  pinnedAt?: Date | null
-  updatedAt: Date | null
-  user?:     User | null
-  reactions?: CommentReaction[]
+  id:           number
+  content:      string
+  createdAt:    Date | null
+  userId:       string
+  taskId:       number
+  parentId?:    number | null
+  inReplyToId?: number | null
+  pinnedAt?:    Date | null
+  updatedAt:    Date | null
+  user?:        User | null
+  reactions?:   CommentReaction[]
+}
+
+export type MappedCommentReplyTarget = {
+  id:      number
+  author:  string
+  snippet: string
 }
 
 export type Status = {
@@ -109,7 +116,34 @@ export type MappedComment = {
   parentId:             number | null
   pinned:               boolean
   reactions:            MappedCommentReaction[]
+  replyTo?:             MappedCommentReplyTarget
   replies:              MappedComment[]
+}
+
+const REPLY_SNIPPET_MAX = 96
+
+function replySnippet(html: string) {
+  const text = stripHtml(html)
+  if (!text) return '…'
+  if (text.length <= REPLY_SNIPPET_MAX) return text
+  return `${text.slice(0, REPLY_SNIPPET_MAX)}…`
+}
+
+function replyTargetForComment(
+  c: Comment,
+  byId: Map<number, Comment>,
+): MappedCommentReplyTarget | undefined {
+  if (c.parentId == null) return undefined
+
+  const targetId = c.inReplyToId ?? c.parentId
+  const target = byId.get(targetId)
+  if (!target) return undefined
+
+  return {
+    id:      target.id,
+    author:  target.user?.displayName ?? target.user?.email ?? 'Ukjent',
+    snippet: replySnippet(target.content),
+  }
 }
 
 function reactionUserLabel(user: User | null | undefined) {
@@ -146,7 +180,7 @@ function aggregateReactions(
   return Array.from(byType.values()).sort((a, b) => a.type.localeCompare(b.type))
 }
 
-function toMappedComment(c: Comment, currentUserId?: string): Omit<MappedComment, 'replies'> {
+function toMappedComment(c: Comment, currentUserId?: string): Omit<MappedComment, 'replies' | 'replyTo'> {
   return {
     id:                   c.id,
     userId:               c.userId,
@@ -171,8 +205,14 @@ export function mapComments(comments: Comment[] = [], currentUserId?: string): M
     return aTime - bTime
   })
 
+  const byId = new Map(sorted.map((c) => [c.id, c]))
+
   for (const c of sorted) {
-    const mapped: MappedComment = { ...toMappedComment(c, currentUserId), replies: [] }
+    const mapped: MappedComment = {
+      ...toMappedComment(c, currentUserId),
+      replyTo: replyTargetForComment(c, byId),
+      replies: [],
+    }
     if (c.parentId == null) {
       roots.push(mapped)
       continue

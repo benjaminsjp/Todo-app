@@ -86,8 +86,9 @@ export const comments = pgTable('comments', {
   content:   text('content').notNull(),
   taskId:    integer('task_id').notNull().references(() => tasks.id, { onDelete: 'cascade' }),
   userId:    text('user_id').notNull().references(() => users.id),
-  parentId:  integer('parent_id').references((): AnyPgColumn => comments.id, { onDelete: 'cascade' }),
-  pinnedAt:  timestamp('pinned_at'),
+  parentId:     integer('parent_id').references((): AnyPgColumn => comments.id, { onDelete: 'cascade' }),
+  inReplyToId:  integer('in_reply_to_id').references((): AnyPgColumn => comments.id, { onDelete: 'set null' }),
+  pinnedAt:     timestamp('pinned_at'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 })
@@ -187,6 +188,11 @@ export const commentsRelations = relations(comments, ({ one, many }) => ({
     fields:     [comments.parentId],
     references: [comments.id],
     relationName: 'comment_replies',
+  }),
+  inReplyTo: one(comments, {
+    fields:     [comments.inReplyToId],
+    references: [comments.id],
+    relationName: 'comment_in_reply_to',
   }),
   replies:  many(comments, { relationName: 'comment_replies' }),
   reactions: many(commentReactions),
